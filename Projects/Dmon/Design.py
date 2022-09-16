@@ -1,4 +1,4 @@
-__version__ = "v.0.0.5.6"
+__version__ = "v.0.0.5.7"
 
 '''
 Description:
@@ -7,6 +7,11 @@ main series chips. E.g. this one is based on 8Q_v.0.0.0.1 Design.py
 
 
 Changes log
+v.0.0.5.7
+    1. Recess for photo litography widened.
+    2. Adjustment marks for photo-eBeam layer are copied to first layer
+        of bridges. 
+    
 v.0.0.5.6
     1. Express test pads for kinInd express test pad fix.
     2. Recess for kinInd layer widened to be atleast 2 um.
@@ -512,8 +517,8 @@ class DesignDmon(ChipDesign):
         # JJ layer polygons will shrnked in every direction by this amount
         # and then substracted from photo layer to create a recess for a
         # bandage
-        self.photo_recess_d = 0.75e3
-        self.jj_kinInd_recess_d = 1.4e3
+        self.photo_recess_d = 0.55e3
+        self.jj_kinInd_recess_d = 1.5e3
         for i, (jj_dy, jj_dx, kinInd_length) in enumerate(
                 zip(
                     self.jj_dy_list,
@@ -661,7 +666,7 @@ class DesignDmon(ChipDesign):
         self.draw_recess()
         self.draw_CABL_conversion_rectangles()
 
-        self.draw_photo_el_marks()
+        self.draw_adj_marks()
         self.draw_bridges()
         self.draw_pinning_holes()
         # delete
@@ -1566,7 +1571,9 @@ class DesignDmon(ChipDesign):
                 )
             )
 
-    def draw_photo_el_marks(self):
+    def draw_adj_marks(self):
+        # draw marks that used to adjust consecutive layers
+        # of litographies
         marks_centers = [
             DPoint(0.5e6, 0.5e6), DPoint(0.5e6, 4.5e6),
             DPoint(9.5e6, 0.5e6), DPoint(9.5e6, 4.5e6),
@@ -1577,6 +1584,11 @@ class DesignDmon(ChipDesign):
                 MarkBolgar(mark_center)
             )
             self.marks[-1].place(self.region_ph)
+
+        for i in [0,1,3,4]:
+            mark_center = marks_centers[i]
+            mark = self.marks[i]
+            mark.place(self.region_bridges1)
 
     def draw_bridges(self):
         bridges_step = 130e3
