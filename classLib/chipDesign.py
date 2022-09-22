@@ -135,7 +135,7 @@ class ChipDesign:
 
     def inverse_destination(self, dest: Union[Region, Cell], layer_i: int = -1):
         """
-            Inverses empty regions and solid polygons
+            Inverses empty regions and inverse polygons
         on the given destination `dest` and `layer`.
             If layer is not specified, destination `dest`
         is interpreted as `pya.Region` instance.

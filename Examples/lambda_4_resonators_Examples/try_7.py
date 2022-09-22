@@ -9,7 +9,7 @@ from pya import Trans, DTrans, CplxTrans, DCplxTrans, ICplxTrans
 from classLib.baseClasses import ComplexBase
 from classLib.coplanars import CPW, CPWArc
 from classLib.resonators import Coil_type_1
-from classLib.shapes import XmonCross
+from classLib.capacitors import XmonCross
 
 from sonnetSim.sonnetLab import SonnetLab, SonnetPort, SimulationBox
 

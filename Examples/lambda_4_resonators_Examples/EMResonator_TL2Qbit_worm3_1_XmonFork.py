@@ -7,7 +7,7 @@ from pya import Point, DPoint, DVector, DSimplePolygon, SimplePolygon, DPolygon,
 from pya import Trans, DTrans, CplxTrans, DCplxTrans, ICplxTrans
 
 from classLib.coplanars import CPW, CPWArc, Coil_type_1
-from classLib.shapes import XmonCross
+from classLib.capacitors import XmonCross
 from classLib.baseClasses import ComplexBase
 
 from sonnetSim.sonnetLab import SonnetLab, SonnetPort, SimulationBox

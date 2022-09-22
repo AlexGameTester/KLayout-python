@@ -3,8 +3,9 @@ from math import sqrt, cos, sin, atan2, pi, copysign
 from pya import Point, DPoint, DSimplePolygon, SimplePolygon, DPolygon, Polygon, Region, Vector, DVector
 from pya import Trans, DTrans, CplxTrans, DCplxTrans, ICplxTrans
 
+from classLib import ElementBase
 from classLib.baseClasses import ComplexBase
-from classLib.shapes import Ring, Circle, Rectangle, Cross, IsoTrapezoid, Cross2
+from classLib.shapes import Ring, Disk, Rectangle, Cross, IsoTrapezoid, Cross2
 from classLib.coplanars import CPW, CPWParameters, CPWArc
 
 
@@ -69,7 +70,7 @@ class Mark2(ComplexBase):
         origin = DPoint(0, 0)
         self.primitives["empty_ring1"] = Ring(origin, self.ring1_outer_r, self.ring1_thickness, inverse=True)
         self.primitives["empty_ring2"] = Ring(origin, self.ring2_outer_r, self.ring2_thickness, inverse=True)
-        self.primitives["inner_circle"] = Circle(origin, self.inner_circle_radius, inverse=True)
+        self.primitives["inner_circle"] = Disk(origin, self.inner_circle_radius, inverse=True)
         self.primitives["trap_top"] = IsoTrapezoid(
             origin + DPoint(-self.trap_b / 2, self.trap_dist),
             self.trap_h, self.trap_b, self.trap_t
@@ -104,7 +105,7 @@ class MarkBolgar(ComplexBase):
     def init_primitives(self):
         center = DPoint(0, 0)
 
-        self.empty_circle = Circle(center, self.ring1_outer_r + self.ring1_thickness, inverse=True)
+        self.empty_circle = Disk(center, self.ring1_outer_r + self.ring1_thickness, inverse=True)
         self.primitives["empty_circle"] = self.empty_circle
 
         # outer ring
@@ -155,3 +156,69 @@ class MarkBolgar(ComplexBase):
 
     def _refresh_named_connections(self):
         self.center = self.connections[0]
+
+
+class CutMark(ElementBase):
+    def __init__(self, origin, trans_in=None,
+                 inverse=False):
+        super().__init__(origin, trans_in, inverse)
+
+    def init_regions(self):
+        pts_raw = [-199499.00, -299939.00,
+                   -199499.00, -201544.00,
+                   -301346.00, -201544.00,
+                   -301346.00, 202661.00,
+                   -194835.00, 202661.00,
+                   -194835.00, 249057.00,
+                   -3110.00, 249057.00,
+                   -3110.00, 243800.00,
+                   -3006.00, 243800.00,
+                   -3006.00, 9362.00,
+                   -1507.00, 9362.00,
+                   -1507.00, 389.00,
+                   -10506.00, 389.00,
+                   -10506.00, 1862.00,
+                   -250230.00, 1862.00,
+                   -250230.00, -3138.00,
+                   -10506.00, -3138.00,
+                   -10506.00, -1639.00,
+                   -1507.00, -1639.00,
+                   -1507.00, -10638.00,
+                   -3006.00, -10638.00,
+                   -3006.00, -249398.00,
+                   1994.00, -249398.00,
+                   1994.00, -10638.00,
+                   495.00, -10638.00,
+                   495.00, -1639.00,
+                   9494.00, -1639.00,
+                   9494.00, -3138.00,
+                   250101.00, -3138.00,
+                   250101.00, 1862.00,
+                   9494.00, 1862.00,
+                   9494.00, 363.00,
+                   521.00, 363.00,
+                   521.00, 9362.00,
+                   1994.00, 9362.00,
+                   1994.00, 249057.00,
+                   -194835.00, 249057.00,
+                   -194835.00, 299939.00,
+                   202792.00, 299939.00,
+                   202792.00, 196681.00,
+                   301345.00, 196681.00,
+                   301345.00, 140894.00,
+                   149560.00, 140894.00,
+                   149560.00, 140729.00,
+                   301345.00, 140729.00,
+                   301345.00, -203457.00,
+                   202313.00, -203457.00,
+                   202313.00, -299939.00]
+        pts = [
+            DPoint(pts_raw[2 * i], pts_raw[2 * i + 1]) for i in
+            range(int(len(pts_raw) // 2))
+        ]
+        poly = Polygon(DPolygon(pts))
+        if self.inverse:
+            self.empty_region.insert(poly)
+            self.metal_region.insert(poly.bbox().enlarged(100e3, 100e3))
+        else:
+            self.metal_region.insert(poly)

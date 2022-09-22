@@ -15,7 +15,8 @@ reload(classLib)
 
 from classLib.baseClasses import ElementBase, ComplexBase
 from classLib.coplanars import CPWParameters, CPWRLPath, CPW2CPW, Bridge1
-from classLib.shapes import XmonCross, Circle, Rectangle
+from classLib.shapes import Disk, Rectangle
+from classLib.capacitors import XmonCross
 from classLib.resonators import EMResonatorTL3QbitWormRLTailXmonFork
 from classLib.josJ import AsymSquidParams, AsymSquid
 from classLib.chipTemplates import CHIP_10x10_12pads
@@ -921,7 +922,7 @@ class Design5Q(ChipDesign):
             center_down = squid.pad_down.center + DPoint(0, -r_pad)
             big_circle_r = 1.5 * r_pad
             self.el_dc_contacts.append(
-                [Circle(center_up, big_circle_r), Circle(center_down, big_circle_r)]
+                [Disk(center_up, big_circle_r), Disk(center_down, big_circle_r)]
             )
             for contact in self.el_dc_contacts[-1]:
                 contact.place(self.region_el2)

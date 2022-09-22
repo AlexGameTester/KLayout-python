@@ -8,7 +8,7 @@ import classLib
 
 reload(classLib)
 from classLib.chipDesign import ChipDesign
-from classLib.shapes import Circle
+from classLib.shapes import Disk
 from classLib.baseClasses import ComplexBase, ElementBase
 
 

@@ -7,13 +7,13 @@ from importlib import reload
 import classLib
 reload(classLib)
 from classLib.chipDesign import ChipDesign
-from classLib.shapes import Circle
+from classLib.shapes import Disk
 
 
 class MyDesign(ChipDesign):
     def draw(self):
         origin = DPoint(0, 0)
-        circ = Circle(origin, 200e3, n_pts=2000, inverse=False)
+        circ = Disk(origin, 200e3, n_pts=2000, inverse=False)
         circ.place(self.region_ph)
 
 

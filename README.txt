@@ -9,3 +9,8 @@ To successfully use this library you should:
 8. Restart KLayout. 
 9. Open macro editor and try to launch some example from "Klayout-python/Examples" folder.
 10. Congrats! Have fun. If not -> leave an issue.
+
+For developers:
+1. Docstring format - numpy
+2. If you created a new primitive, please attach its basic usage
+example into examples folder.

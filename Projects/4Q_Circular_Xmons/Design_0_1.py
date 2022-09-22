@@ -32,7 +32,8 @@ reload(classLib)
 
 from classLib.baseClasses import ElementBase, ComplexBase
 from classLib.coplanars import CPWParameters, CPWRLPath,CPW2CPW, Bridge1
-from classLib.shapes import XmonCross, Circle, Rectangle
+from classLib.shapes import Disk, Rectangle
+from classLib.capacitors import XmonCross
 from classLib.resonators import EMResonatorTL3QbitWormRLTailXmonFork
 from classLib.josJ import AsymSquidParams, AsymSquid
 from classLib.chipTemplates import CHIP_10x10_12pads, FABRICATION

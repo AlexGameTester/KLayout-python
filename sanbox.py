@@ -14,7 +14,7 @@ import classLib
 reload(classLib)
 from classLib.baseClasses import ComplexBase
 from classLib.chipDesign import ChipDesign
-from classLib.shapes import Circle, Rectangle
+from classLib.shapes import Disk, Rectangle
 from classLib.coplanars import CPW, CPWParameters, CPW2CPW, \
     CPWArc, CPWRLPath, CPW2CPWArc, DPathCPW, Bridge1
 

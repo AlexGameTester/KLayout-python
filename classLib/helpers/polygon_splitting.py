@@ -10,7 +10,7 @@
     and call the function with desired arguments.
 
     Executing this script itself will present an example:
-    Circle with width lot of vertices that is devided such that it has
+    Disk with width lot of vertices that is devided such that it has
     no more than 200 points per polygon.
     ```
 """
@@ -24,7 +24,7 @@ from importlib import reload
 import classLib
 reload(classLib)
 from classLib.chipDesign import ChipDesign
-from classLib.shapes import Circle
+from classLib.shapes import Disk
 
 from typing import Union, List
 
@@ -90,7 +90,7 @@ def split_polygons(obj, max_pts=200, print_tree=False):
 class MyDesign(ChipDesign):
     def draw(self):
         origin = DPoint(0, 0)
-        circ = Circle(origin, 200e3, n_pts=400, inverse=False)
+        circ = Disk(origin, 200e3, n_pts=400, inverse=False)
         circ.place(self.region_ph)
 
         self.region_ph = split_polygons(self.region_ph.dup(), max_pts=100, print_tree=True)

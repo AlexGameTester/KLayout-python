@@ -1,15 +1,19 @@
+# import built-ins
 from collections import namedtuple
 from typing import Union, List
-from math import pi
+from dataclasses import dataclass
 
+# import well-supported 3rd party
 import numpy as np
 
+# import project specific 3rd party
 import pya
 from pya import DPoint, DVector, DSimplePolygon, SimplePolygon
 from pya import Trans, DTrans, DVector, DPath
 
+# import project lib
 from classLib.baseClasses import ElementBase, ComplexBase
-from classLib.shapes import Circle, Kolbaska, DPathCL
+from classLib.shapes import Disk, Kolbaska, DPathCL
 from classLib.coplanars import CPW, CPWParameters, CPWRLPath, CPW2CPW
 
 
@@ -20,14 +24,12 @@ from classLib.coplanars import CPW, CPWParameters, CPWRLPath, CPW2CPW
 class AsymSquidParams:
     def __init__(
             self,
-            pads_d=20e3,
             squid_dx=10.5e3,
             squid_dy=5e3,
             TC_dx=8e3,
             TC_dy=10e3,
             BC_dx: Union[List[float], float] = 5e3,
             BC_dy=7e3,
-            beta=0.5,
             TCW_dx=1e3,
             TCW_dy=10e3,
             BCW_dx: Union[List[float], float] = 1e3,
@@ -40,12 +42,6 @@ class AsymSquidParams:
             SQRBT_dx=None,
             alpha=0.7,
             shadow_gap=200,
-            TCB_dx=2e3,
-            TCB_dy=8e3,
-            BCB_dx=5e3,
-            BCB_dy=20e3,
-            band_el_tol=1e3,
-            band_ph_tol=1.5e3,
             JJC=1e3,
             SQLTJJ_dx=114.551,  # j1_dx
             SQLBJJ_dy=114.551,  # j1_dy
@@ -61,13 +57,10 @@ class AsymSquidParams:
 
         Parameters
         ----------
-        pads_d : float
         squid_dx : float
         squid_dy : float
         TC_dx : float
         BC_dx : Union[List[float], float]
-        beta : float
-            0 < beta < 1
         TCW_dx : float
         BCW_dx : Union[List[float],float]
         SQT_dy : float
@@ -79,15 +72,8 @@ class AsymSquidParams:
         alpha : float
             0 < alpha < 1
         shadow_gap : float
-        TCB_dx : float
-        TCB_dy : float
-        BCB_dx : float
-        BCB_dy : float
-        band_el_tol : float
-        band_ph_tol : float
         bot_wire_x : Union[float, List[float]]
         """
-        self.pads_d = pads_d
         self.squid_dx = squid_dx
         self.squid_dy = squid_dy
 
@@ -132,9 +118,6 @@ class AsymSquidParams:
         else:
             self.BC_dx = BC_dx
 
-        pads_top_left = (pads_d / 2 - self.SQT_dy - squid_dy / 2)
-        pads_bottom_left = (pads_d / 2 - self.SQB_dy - squid_dy / 2)
-        self.beta = beta
         self.TC_dy = TC_dy
         self.BC_dy = BC_dy
         self.TCW_dx = TCW_dx
@@ -150,15 +133,6 @@ class AsymSquidParams:
         self.SQT_dx = self.squid_dx + self.SQLBT_dx / 2 - self.JJC + \
                       self.SQLTT_dx / 2 + self.SQRBT_dx / 2 - self.JJC + \
                       self.SQRTT_dx / 2
-
-        self.TCB_dx = TCB_dx
-        self.TCB_dy = TCB_dy
-
-        self.BCB_dx = BCB_dx
-        self.BCB_dy = BCB_dy
-
-        self.band_el_tol = band_el_tol
-        self.band_ph_tol = band_ph_tol
 
         self.SQLTJJ_dx = SQLTJJ_dx
         self.SQRTJJ_dx = SQRTJJ_dx if SQRTJJ_dx is not None else SQLTJJ_dx
@@ -485,7 +459,7 @@ class AsymSquidDCFlux(ComplexBase):
         self.side = side
 
         ''' Attributes corresponding to primitives '''
-        self.pad_top: Circle = None
+        self.pad_top: Disk = None
         self.ph_el_conn_pad: DPathCL = None
         self.bot_dc_flux_line_right: CPWRLPath = None
         self.bot_dc_flux_line_left: CPWRLPath = None
@@ -507,7 +481,7 @@ class AsymSquidDCFlux(ComplexBase):
         origin = DPoint(0, 0)
         pars = self.params
         top_pad_center = origin + DVector(0, pars.pads_distance / 2)
-        self.pad_top = Circle(
+        self.pad_top = Disk(
             top_pad_center, pars.pad_r,
             n_pts=pars.n, offset_angle=np.pi / 2
         )
@@ -653,7 +627,7 @@ class AsymSquidDCFlux(ComplexBase):
             width=pars.inter_leads_width,
             bgn_ext=pars.inter_leads_width / 2,
             end_ext=pars.inter_leads_width / 4,
-            round=True,
+            is_round=True,
             bendings_r=pars.inter_leads_width
         )
 
@@ -667,7 +641,7 @@ class AsymSquidDCFlux(ComplexBase):
             pts=[top_jj_lead_p1, top_jj_lead_p2],
             width=j_dx,
             bgn_ext=pars.inter_leads_width / 4,
-            round=True
+            is_round=True
         )
 
         ''' draw buttom intermediate lead '''
@@ -712,7 +686,7 @@ class AsymSquidDCFlux(ComplexBase):
             pts=[bot_jj_lead_p1, bot_jj_lead_p2],
             width=j_dy,
             bgn_ext=pars.inter_leads_width / 4,
-            round=True
+            is_round=True
         )
 
 
@@ -856,7 +830,7 @@ class AsymSquidOneLeg(ComplexBase):
         self.leg_side = leg_side
 
         ''' Attributes corresponding to primitives '''
-        self.pad_top: Circle = None
+        self.pad_top: Disk = None
         self.top_ph_el_conn_pad: DPathCL = None
         self.bot_dc_flux_line_right: CPWRLPath = None
         self.bot_dc_flux_line_left: CPWRLPath = None
@@ -880,7 +854,7 @@ class AsymSquidOneLeg(ComplexBase):
         origin = DPoint(0, 0)
         pars = self.params
         top_pad_center = origin + DVector(0, pars.pads_distance / 2)
-        self.pad_top = Circle(
+        self.pad_top = Disk(
             top_pad_center, pars.pad_r,
             n_pts=pars.n, offset_angle=np.pi / 2
         )
@@ -1029,7 +1003,7 @@ class AsymSquidOneLeg(ComplexBase):
             width=pars.inter_leads_width,
             bgn_ext=pars.inter_leads_width / 2,
             end_ext=pars.inter_leads_width / 4,
-            round=True,
+            is_round=True,
             bendings_r=pars.inter_leads_width
         )
 
@@ -1056,7 +1030,7 @@ class AsymSquidOneLeg(ComplexBase):
             pts=[top_jj_lead_p1, top_jj_lead_p2],
             width=j_dx,
             bgn_ext=pars.inter_leads_width / 4,
-            round=True
+            is_round=True
         )
 
         ''' draw buttom intermediate lead '''
@@ -1114,7 +1088,7 @@ class AsymSquidOneLeg(ComplexBase):
             pts=[bot_jj_lead_p1, bot_jj_lead_p2],
             width=j_dy,
             bgn_ext=pars.inter_leads_width / 4,
-            round=True
+            is_round=True
         )
 
 

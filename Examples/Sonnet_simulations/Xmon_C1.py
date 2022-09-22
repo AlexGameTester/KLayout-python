@@ -12,7 +12,7 @@ import sonnetSim.sonnetLab
 
 reload(sonnetSim.sonnetLab)
 from sonnetSim.sonnetLab import SonnetLab, SonnetPort, SimulationBox
-from classLib.shapes import XmonCross
+from classLib.capacitors import XmonCross
 
 
 class CHIP:
