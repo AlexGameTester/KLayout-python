@@ -21,11 +21,13 @@ from pya import Point, Vector, DPoint, DVector, DEdge, \
     DSimplePolygon, \
     SimplePolygon, DPolygon, DBox, Polygon, Region
 
+from pya import DCplxTrans
+
 # import project lib
 import classLib
-
 reload(classLib)
-from classLib.coplanars import CPWParameters
+
+from classLib.coplanars import CPW, CPWParameters
 from classLib.josJ import AsymSquidParams, AsymSquid
 from classLib.chipDesign import ChipDesign
 from classLib.marks import MarkBolgar
@@ -41,8 +43,8 @@ from sonnetSim import SonnetLab, SonnetPort, SimulationBox
 from classLib.baseClasses import ComplexBase
 from classLib.helpers import FABRICATION
 from classLib.chipTemplates import CHIP_14x14_20pads
-CHIP = CHIP_14x14_20pads
 
+CHIP = CHIP_14x14_20pads
 
 PROJECT_DIR = os.path.dirname(__file__)
 
@@ -52,20 +54,23 @@ PROJECT_DIR = os.path.dirname(__file__)
 VERT_ARR_SHIFT = DVector(-50e3, -150e3)
 
 from dataclasses import dataclass, field
+
+
 @dataclass()
 class QubitsGrid:
     # in fractions of chip dimensions
-    origin: float = CHIP.center()
+    origin: float = DVector(CHIP.dx/2, CHIP.dy/2)
     # step of 2D grid in `x` and `y` directions correspondingly
     dx: float = 2e6
     dy: float = 2e6
     pts_grid: np.ndarray = np.array(
-        list(reversed([
-            # grid as displayed
-            (0, 2), (1, 2),
+        [
+            # grid iterates from left to right, from bottom to top,
+            # starting from bl corner.
+            (0, 0), (1, 0), (2, 0),
             (0, 1), (1, 1), (2, 1),
-            (0, 0), (1, 0), (2, 0)
-        ])),
+            (0, 2), (1, 2),
+        ],
         dtype=int
     )
 
@@ -75,7 +80,7 @@ class QubitsGrid:
     def __centralize_grid(self):
         # grid is centralized such that bbox center of the grid has
         # origin (0,0)
-        grid_center = np.array(1,1, dtype=int)
+        grid_center = np.array([1, 1], dtype=int)
         for i, pt_pos in enumerate(self.pts_grid):
             self.pts_grid[i] -= grid_center
 
@@ -83,78 +88,100 @@ class QubitsGrid:
         pt_pos = self.pts_grid[idx]
         pt_x = pt_pos[0] * self.dx
         pt_y = pt_pos[1] * self.dy
-        origin = self.get_origin()
+        origin = self.origin
         return origin + DVector(pt_x, pt_y)
 
+
 @dataclass()
-class PimpDiskPars:
-    disk_r = 1e3
-    pimp_l = 1e3
-    pimp_r = 0.1e3
+class DiskConn8Pars:
+    disk_r = 0.5e6
+    pimp_l = 100e3
+    conn_width = 20e3
+    conn_gap = 10e3
 
 
-class PimpDiskPars(ComplexBase):
+class DiskConn8(ComplexBase):
     """
-    Single superconducting island represents shunting ground capacitor
+    Single superconducting Island represents shunting ground capacitor
     for qubit
     """
+
     def __init__(self, origin,
-                 pars: PimpDiskPars=PimpDiskPars(),
+                 pars: DiskConn8Pars = DiskConn8Pars(),
                  trans_in=None,
-                 region_id="photo"):
-        self.pars: PimpDiskPars = pars
+                 region_id="ph"):
+        self.pars: DiskConn8Pars = pars
+        self.disk: DiskConn8 = None
+        self.conn8_list: List[CPW] = []
         super().__init__(
             origin=origin, trans_in=trans_in, region_id=region_id
         )
 
-
     def init_primitives(self):
+        origin = DPoint(0, 0)
+
+        # draw star-like connection flanges
+        angles = np.linspace(0, 360, 8, endpoint=False)  # degree
+        for i, angle in enumerate(angles):
+            cpw_l = self.pars.disk_r + self.pars.pimp_l
+            cpw = CPW(
+                start=origin,
+                end=origin + DVector(cpw_l, 0),
+                width=self.pars.conn_width,
+                gap=self.pars.conn_gap,
+                trans_in=DCplxTrans(1, angle, False, 0, 0),
+                region_id=self.region_id
+            )
+            self.conn8_list.append(cpw)
+            self.primitives["conn" + str(i)] = cpw
+
         from classLib.shapes import Disk
-        self.circle = Disk(
-            center=self.origin, r=self.pars.disk_r,
+        self.disk = Disk(
+            center=origin, r=self.pars.disk_r,
+            region_id=self.region_id
         )
-        self.primitives["circle"] = self.circle
+        self.primitives["circle"] = self.disk
 
 
 class QubitParams:
     def __init__(
             self,
             squid_params: AsymSquidParams = AsymSquidParams(),
-            qubit_cap_params: TmonPimpDiskParams = TmonPimpDiskParams()
+            qubit_cap_params: DiskConn8Pars = DiskConn8Pars()
     ):
         self.squid_params: AsymSquidParams = squid_params
-        self.qubit_cap_params: TmonPimpDiskParams = qubit_cap_params
-
-
-class QubitParams:
-    def __init__(
-            self,
-            squid_params: AsymSquidParams = AsymSquidParams(),
-            qubit_cap_params: TmonPimpDiskParams = TmonPimpDiskParams()
-    ):
-        self.squid_params: AsymSquidParams = squid_params
-        self.qubit_cap_params: TmonPimpDiskParams = qubit_cap_params
+        self.qubit_cap_params: DiskConn8Pars = qubit_cap_params
 
 
 class Qubit(ComplexBase):
     def __init__(
             self,
-            origin:DPoint = DPoint(0,0),
+            origin: DPoint = DPoint(0, 0),
             qubit_params: QubitParams = QubitParams(),
             trans_in=None
     ):
         self.qubit_params = qubit_params
-        self.squid = AsymSquid(
-            origin=origin,
-            params=qubit_params.squid_params
-        )
-        self.cap_shunt =
+        self.squid: AsymSquid = None
+        self.cap_shunt: DiskConn8 = None
+
         super().__init__(origin=origin, trans_in=trans_in,
                          region_id="default")
 
     def init_primitives(self):
+        origin = DPoint(0,0)
+        self.squid = AsymSquid(
+            origin=origin,
+            params=self.qubit_params.squid_params,
+            region_id="el"
+        )
         self.primitives["squid"] = self.squid
-        self.primitives[""]
+
+        self.cap_shunt = DiskConn8(
+            origin=origin,
+            pars=self.qubit_params.qubit_cap_params,
+            region_id="ph"
+        )
+        self.primitives["cap_shunt"] = self.cap_shunt
 
 
 class Design8QStair(ChipDesign):
@@ -204,12 +231,7 @@ class Design8QStair(ChipDesign):
 
         ''' QUBITS GRID PARAMETERS '''
         self.qubits_grid: QubitsGrid = QubitsGrid()
-
-        ''' QUBITS CAPACITANCE ISLANDS '''
-        self.q_caps_list : List = []
-        
-        ''' QUBITS SQUID PARAMETERS '''
-        self.squid_pars: List[AsymSquidParams] = []
+        self.qubits: List[Qubit] = []
 
     def draw(self):
         """
@@ -233,11 +255,19 @@ class Design8QStair(ChipDesign):
 
     def draw_qubits_array(self):
         # draw rectangles to check QubitsGrid() class
-        for i, _ in enumerate(self.qubits_grid.pts_grid):
-            p_center = self.qubits_grid.get_pt(idx=i)
-            dv = 1e6 * DVector(0.1, 0.1)
-            box = DBox(p_center - dv, p_center + dv)
-            self.region_el.insert(box)
+        # for i, _ in enumerate(self.qubits_grid.pts_grid):
+        #     p_center = self.qubits_grid.get_pt(idx=i)
+        #     dv = 1e6 * DVector(0.1, 0.1)
+        #     box = DBox(p_center - dv, p_center + dv)
+        #     self.region_el.insert(box)
+
+        for pt_i in range(len(self.qubits_grid.pts_grid)):
+            pt = self.qubits_grid.get_pt(pt_i)
+            qubit = Qubit(origin=pt)
+            self.qubits.append(qubit)
+            qubit.place(self.region_ph, region_id="ph")
+            qubit.place(self.region_el, region_id="el")
+
 
     def _transfer_regs2cell(self):
         '''

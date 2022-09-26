@@ -45,29 +45,29 @@ from classLib import qbits
 
 import classLib.resonators
 reload(classLib.resonators)
-from .resonators import *
+from classLib import resonators
 
-from . import contactPads
-reload(contactPads)
-from .contactPads import *
+import classLib.contactPads
+reload(classLib.contactPads)
+from classLib import contactPads
 
-import  classLib.chipTemplates
+import classLib.chipTemplates
 reload(classLib.chipTemplates)
 from classLib import chipTemplates
 
-from . import marks
-reload(marks)
-from .marks import *
+import classLib.marks
+reload(classLib.marks)
+from classLib import marks
 
-from . import sPS
-reload(sPS)
-from .sPS import *
+import classLib.sPS
+reload(classLib.sPS)
+from classLib import sPS
 
-from . import chipDesign
-reload(chipDesign)
-from .chipDesign import *
+import classLib.chipDesign
+reload(classLib.chipDesign)
+from classLib import chipDesign
 
-from . import helpers
+from classLib import helpers
 reload(helpers)
-from .helpers import *
+from classLib import helpers
 

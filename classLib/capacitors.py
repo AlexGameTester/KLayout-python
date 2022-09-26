@@ -9,7 +9,7 @@ from pya import Point, DPoint, Vector, DVector, DSimplePolygon, SimplePolygon, D
 from pya import Trans, DTrans, CplxTrans, DCplxTrans, ICplxTrans
 
 # import project lib
-from classLib import ComplexBase, CPW
+from classLib.baseClasses import ComplexBase
 from classLib.coplanars import *  # TODO: get rid of * statements
 from classLib.shapes import *
 

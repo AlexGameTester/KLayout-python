@@ -149,9 +149,8 @@ class AsymSquidParams:
 
 class AsymSquid(ComplexBase):
     def __init__(self, origin: DPoint, params: AsymSquidParams,
-                 trans_in=None):
+                 trans_in=None, region_id="default"):
         """
-
         Parameters
         ----------
         origin : DPoint
@@ -165,7 +164,8 @@ class AsymSquid(ComplexBase):
         """
         self.center = origin
         self.squid_params = params
-        super().__init__(origin=origin, trans_in=trans_in)
+        super().__init__(origin=origin, trans_in=trans_in,
+                         region_id=region_id)
 
     def init_primitives(self):
         # introducing shorthands for long-named variables
@@ -176,20 +176,23 @@ class AsymSquid(ComplexBase):
         tc_p1 = DPoint(0, pars.squid_dy / 2 + pars.SQT_dy + pars.TCW_dy +
                        pars.TC_dy)
         tc_p2 = tc_p1 + DVector(0, -pars.TC_dy)
-        self.TC = CPW(start=tc_p1, end=tc_p2, width=pars.TC_dx, gap=0)
+        self.TC = CPW(start=tc_p1, end=tc_p2, width=pars.TC_dx, gap=0,
+                      region_id=self.region_id)
         self.primitives["TC"] = self.TC
 
         # (TCW) Top contact wire
         tcw_p1 = self.TC.end
         tcw_p2 = tcw_p1 + DVector(0, -pars.TCW_dy)
-        self.TCW = CPW(start=tcw_p1, end=tcw_p2, width=pars.TCW_dx, gap=0)
+        self.TCW = CPW(start=tcw_p1, end=tcw_p2, width=pars.TCW_dx, gap=0,
+                       region_id=self.region_id)
         self.primitives["TCW"] = self.TCW
 
         # (SQT) squid loop top
         sqt_p1 = origin + DVector(-pars.SQT_dx / 2,
                                   pars.squid_dy / 2 + pars.SQT_dy / 2)
         sqt_p2 = sqt_p1 + DVector(pars.SQT_dx, 0)
-        self.SQT = CPW(start=sqt_p1, end=sqt_p2, width=pars.SQT_dy, gap=0)
+        self.SQT = CPW(start=sqt_p1, end=sqt_p2, width=pars.SQT_dy,
+                       gap=0, region_id=self.region_id)
         self.primitives["SQT"] = self.SQT
 
         # (SQLTT) squid loop left top thick
@@ -199,7 +202,8 @@ class AsymSquid(ComplexBase):
         sqltt_p2 = sqltt_p1 + DVector(0, -pars.SQLTT_dy)
         self.SQLTT = CPW(
             start=sqltt_p1, end=sqltt_p2,
-            width=pars.SQLTT_dx, gap=0
+            width=pars.SQLTT_dx, gap=0,
+            region_id=self.region_id
         )
         self.primitives["SQLTT"] = self.SQLTT
 
@@ -207,7 +211,8 @@ class AsymSquid(ComplexBase):
         sqltjj_p1 = self.SQLTT.end
         sqltjj_p2 = sqltjj_p1 + DVector(0, -pars.SQLTJJ_dy)
         self.SQLTJJ = CPW(start=sqltjj_p1, end=sqltjj_p2,
-                          width=pars.SQLTJJ_dx, gap=0)
+                          width=pars.SQLTJJ_dx, gap=0,
+                          region_id=self.region_id)
         self.primitives["SQLTJJ"] = self.SQLTJJ
 
         # (SQB) squid bottom
@@ -215,7 +220,8 @@ class AsymSquid(ComplexBase):
                                   -pars.squid_dy / 2 - pars.SQB_dy / 2)
         sqb_p2 = sqb_p1 + DVector(pars.squid_dx + pars.SQLBT_dx +
                                   pars.SQRBT_dx, 0)
-        self.SQB = CPW(start=sqb_p1, end=sqb_p2, width=pars.SQB_dy, gap=0)
+        self.SQB = CPW(start=sqb_p1, end=sqb_p2, width=pars.SQB_dy,
+                       gap=0, region_id=self.region_id)
         self.primitives["SQB"] = self.SQB
 
         # (SQLBT) squid left bottom thick
@@ -224,7 +230,7 @@ class AsymSquid(ComplexBase):
                    DVector(0, pars.SQLBT_dy)
         sqlbt_p2 = sqlbt_p1 + DVector(0, -pars.SQLBT_dy)
         self.SQLBT = CPW(start=sqlbt_p1, end=sqlbt_p2, width=pars.SQLBT_dx,
-                         gap=0)
+                         gap=0, region_id=self.region_id)
         self.primitives["SQLBT"] = self.SQLBT
 
         # (SQLBJJ) squid left botton JJ
@@ -236,7 +242,7 @@ class AsymSquid(ComplexBase):
         sqlbjj_p2 = sqlbjj_p1 + DVector(pars.SQLBJJ_dx, 0)
         self.SQLBJJ = CPW(start=sqlbjj_p1, end=sqlbjj_p2,
                           width=pars.SQLBJJ_dy,
-                          gap=0)
+                          gap=0, region_id=self.region_id)
         self.primitives["SQLBJJ"] = self.SQLBJJ
 
         # (SQRTT) squid loop right top thick
@@ -246,7 +252,8 @@ class AsymSquid(ComplexBase):
         sqrtt_p2 = sqrtt_p1 + DVector(0, -pars.SQRTT_dy)
         self.SQRTT = CPW(
             start=sqrtt_p1, end=sqrtt_p2,
-            width=pars.SQRTT_dx, gap=0
+            width=pars.SQRTT_dx, gap=0,
+            region_id=self.region_id
         )
         self.primitives["SQRTT"] = self.SQRTT
 
@@ -254,7 +261,8 @@ class AsymSquid(ComplexBase):
         sqrtjj_p1 = self.SQRTT.end
         sqrtjj_p2 = sqrtjj_p1 + DVector(0, -pars.SQRTJJ_dy)
         self.SQRTJJ = CPW(start=sqrtjj_p1, end=sqrtjj_p2,
-                          width=pars.SQRTJJ_dx, gap=0)
+                          width=pars.SQRTJJ_dx, gap=0,
+                          region_id=self.region_id)
         self.primitives["SQRTJJ"] = self.SQRTJJ
 
         # (SQRBT) squid right bottom thick
@@ -263,7 +271,8 @@ class AsymSquid(ComplexBase):
                    DVector(0, pars.SQRBT_dy)
         sqrbt_p2 = sqrbt_p1 + DVector(0, -pars.SQRBT_dy)
         self.SQRBT = CPW(start=sqrbt_p1, end=sqrbt_p2,
-                         width=pars.SQRBT_dx, gap=0)
+                         width=pars.SQRBT_dx, gap=0,
+                         region_id=self.region_id)
         self.primitives["SQRBT"] = self.SQRBT
 
         # (SQRBJJ) squid right botton JJ
@@ -275,7 +284,8 @@ class AsymSquid(ComplexBase):
         sqrbjj_p2 = sqrbjj_p1 + DVector(-pars.SQRBJJ_dx, 0)
         self.SQRBJJ = CPW(start=sqrbjj_p1, end=sqrbjj_p2,
                           width=pars.SQRBJJ_dy,
-                          gap=0)
+                          gap=0,
+                          region_id=self.region_id)
         self.primitives["SQRBJJ"] = self.SQRBJJ
 
         ''' following code can enclude multiple bottom connections '''
@@ -290,14 +300,17 @@ class AsymSquid(ComplexBase):
             bc_p1 = DPoint(x, -pars.squid_dy / 2 - pars.BCW_dy)
             bc_p2 = bc_p1 + DVector(0, -pars.BC_dy)
 
-            BCi = CPW(start=bc_p1, end=bc_p2, width=pars.BC_dx[i], gap=0)
+            BCi = CPW(start=bc_p1, end=bc_p2, width=pars.BC_dx[i], gap=0,
+                      region_id=self.region_id)
             self.BC_list.append(BCi)
             self.primitives["BC" + str(i)] = BCi
 
             # (BCW) Bottom contact wire
             bcw_p1 = self.BC_list[-1].start + DVector(0, pars.BCW_dy)
             bcw_p2 = bcw_p1 + DVector(0, -pars.BCW_dy)
-            BCWi = CPW(start=bcw_p1, end=bcw_p2, width=pars.BCW_dx[i], gap=0)
+            BCWi = CPW(start=bcw_p1, end=bcw_p2, width=pars.BCW_dx[i],
+                       gap=0,
+                       region_id=self.region_id)
             self.BCW_list.append(BCWi)
             self.primitives["BCW" + str(i)] = BCWi
 
@@ -316,7 +329,8 @@ class AsymSquid(ComplexBase):
             setattr(
                 self,
                 name,
-                CPW(start=bce_p1, end=bce_p2, width=pars.SQB_dy, gap=0)
+                CPW(start=bce_p1, end=bce_p2, width=pars.SQB_dy, gap=0,
+                    region_id=self.region_id)
             )
             self.primitives[name] = getattr(self, name)
 

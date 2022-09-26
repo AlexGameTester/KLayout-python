@@ -204,7 +204,7 @@ class ElementBase():
         self.empty_regions[new_reg_id] = self.empty_regions.pop(old_reg_id)
         self.region_id = new_reg_id
 
-    def place(self, dest, layer_i=-1, region_id="default", merge=False):
+    def place(self, dest, layer_i=-1, region_id="default", merge=True):
         if all([
                 region_id not in self.metal_regions,
                 region_id not in self.empty_regions
@@ -221,7 +221,7 @@ class ElementBase():
                 empty_region = self.empty_regions[region_id]
                 r_cell -= empty_region
 
-            if (merge is True):
+            if merge is True:
                 r_cell.merge()
 
             dest.shapes(temp_i).insert(r_cell)
@@ -235,7 +235,7 @@ class ElementBase():
             if (region_id in self.empty_regions):
                 empty_region = self.empty_regions[region_id]
                 dest -= empty_region
-            if (merge is True):
+            if merge is True:
                 dest.merge()
 
 

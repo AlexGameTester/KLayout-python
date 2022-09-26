@@ -3,8 +3,7 @@ from math import sqrt, cos, sin, atan2, pi, copysign
 from pya import Point, DPoint, DSimplePolygon, SimplePolygon, DPolygon, Polygon, Region, Vector, DVector
 from pya import Trans, DTrans, CplxTrans, DCplxTrans, ICplxTrans
 
-from classLib import ElementBase
-from classLib.baseClasses import ComplexBase
+from classLib.baseClasses import ElementBase, ComplexBase
 from classLib.shapes import Ring, Disk, Rectangle, Cross, IsoTrapezoid, Cross2
 from classLib.coplanars import CPW, CPWParameters, CPWArc
 
