@@ -1,3 +1,4 @@
+import functools
 from math import sqrt, cos, sin, atan2, pi, copysign, tan
 
 import pya
@@ -33,13 +34,12 @@ class CPW(ElementBase):
     """@brief: class represents single coplanar waveguide
         @params:  float width - represents width of the central conductor
                         float gap - spacing between central conductor and ground planes
-                        float gndWidth - width of ground plane to be drawed
                         DPoint start - center aligned point, determines the start point of the coplanar segment
                         DPoint end - center aligned point, determines the end point of the coplanar segment
     """
 
-    def __init__(self, width=None, gap=None, start=DPoint(0, 0),
-                 end=DPoint(0, 0), gndWidth=-1, trans_in=None,
+    def __init__(self, width=0, gap=0, open_end_l=0, start=DPoint(0, 0),
+                 end=DPoint(0, 0), trans_in=None,
                  cpw_params=None, region_id="default"):
         if (cpw_params is None):
             self.width = width
@@ -49,7 +49,7 @@ class CPW(ElementBase):
             self.width = cpw_params.width
             self.gap = cpw_params.gap
             self.b = 2 * self.gap + self.width
-        self.gndWidth = gndWidth
+        self.front_gap_d = open_end_l
         self.end = end
         self.start = start
         self.dr = end - start
@@ -71,44 +71,58 @@ class CPW(ElementBase):
         )
 
     def init_regions(self):
-        self.connections = [DPoint(0, 0), self.dr]
-        self.start = DPoint(0, 0)
-        self.end = self.start + self.dr
+        origin = DPoint(0, 0)
         alpha = atan2(self.dr.y, self.dr.x)
+        dr_abs = self.dr.abs()
+        self.connections = [
+            origin,  # start
+            DPoint(dr_abs, 0),  # end
+            # open_end_end
+            DPoint(dr_abs, 0) + DVector(self.front_gap_d, 0)
+        ]
         self.angle_connections = [alpha, alpha]
-        alpha_trans = ICplxTrans().from_dtrans(
-            DCplxTrans(1, alpha * 180 / pi, False, self.start))
-        metal_poly = DPolygon([DPoint(0, -self.width / 2),
-                               DPoint(self.dr.abs(), -self.width / 2),
-                               DPoint(self.dr.abs(), self.width / 2),
-                               DPoint(0, self.width / 2)])
-        self.connection_edges = [3, 1]
-        self.metal_region.insert(pya.Polygon().from_dpoly(metal_poly))
+
+        if (self.width != 0):
+            metal_poly = DPolygon([DPoint(0, -self.width / 2),
+                                   DPoint(dr_abs, -self.width / 2),
+                                   DPoint(dr_abs, self.width / 2),
+                                   DPoint(0, self.width / 2)])
+            self.metal_region.insert(pya.Polygon().from_dpoly(metal_poly))
+            # hotfix rounding errors that lead to disconnections
+            self.metal_region.size(1, 0, 0)
+
         if (self.gap != 0):
+            # top empty rectangle
             self.empty_region.insert(
                 pya.Box(
                     Point().from_dpoint(DPoint(0, self.width / 2)),
+                    Point().from_dpoint(DPoint(dr_abs, self.b / 2))
+                )
+            )
+            # bottom empty rectangle
+            self.empty_region.insert(
+                pya.Box(
+                    Point().from_dpoint(DPoint(0, -self.b / 2)),
+                    Point().from_dpoint(DPoint(dr_abs, -self.width / 2))
+                )
+            )
+        if (self.front_gap_d != 0):
+            self.empty_region.insert(
+                pya.Box(
+                    Point().from_dpoint(DPoint(dr_abs, -self.b / 2)),
                     Point().from_dpoint(
-                        DPoint(self.dr.abs(), self.width / 2 + self.gap)
+                        DPoint(dr_abs + self.front_gap_d, self.b / 2)
                     )
                 )
             )
-            self.empty_region.insert(
-                pya.Box(
-                    Point().from_dpoint(
-                        DPoint(0, -self.width / 2 - self.gap)),
-                    Point().from_dpoint(
-                        DPoint(self.dr.abs(), -self.width / 2))
-                )
-            )
-        self.metal_region.size(1, 0, 0)
-        self.empty_region.size(1, 0, 0)
-        self.metal_region.transform(alpha_trans)
-        self.empty_region.transform(alpha_trans)
+
+        alpha_trans = DCplxTrans(1, 180 * (alpha / pi), False, 0, 0)
+        self.make_trans(dCplxTrans=alpha_trans)
 
     def _refresh_named_connections(self):
-        self.end = self.connections[1]
         self.start = self.connections[0]
+        self.end = self.connections[1]
+        self.open_end_end = self.connections[2]
         self.dr = self.end - self.start
 
     def _refresh_named_angles(self):
@@ -118,6 +132,12 @@ class CPW(ElementBase):
     def length(self):
         return self.dr.abs()
 
+    @property
+    @functools.lru_cache()
+    def open_end_center(self):
+        return (self.end + self.open_end_end) / 2
+
+    @functools.lru_cache()
     def center(self):
         return (self.end + self.start) / 2
 
@@ -200,14 +220,14 @@ class CPWArc(ElementBase):
                                         n_outer)
         self.connection_edges = [n_inner + n_outer, n_inner]
         empty_arc1 = self._get_solid_arc(self.center, self.R - (
-                    self.width + self.gap) / 2,
+                self.width + self.gap) / 2,
                                          self.gap,
                                          self.alpha_start - pi / 2,
                                          self.alpha_end - pi / 2, n_inner,
                                          n_outer)
 
         empty_arc2 = self._get_solid_arc(self.center, self.R + (
-                    self.width + self.gap) / 2,
+                self.width + self.gap) / 2,
                                          self.gap,
                                          self.alpha_start - pi / 2,
                                          self.alpha_end - pi / 2, n_inner,
@@ -1051,7 +1071,7 @@ class Bridge1(ElementBase):
             pya.Box().from_dbox(top_gnd_touch_box))
 
         bot_gnd_center = center + DPoint(0, -(
-                    self.gnd2gnd_dy / 2 + self.gnd_touch_dy / 2))
+                self.gnd2gnd_dy / 2 + self.gnd_touch_dy / 2))
         p1 = bot_gnd_center + DPoint(-self.gnd_touch_dx / 2,
                                      -self.gnd_touch_dy / 2)
         p2 = p1 + DVector(self.gnd_touch_dx, self.gnd_touch_dy)
@@ -1196,7 +1216,7 @@ class Bridge1(ElementBase):
             for i in range(-additional_bridges_n,
                            additional_bridges_n + 1):
                 bridge_center = cpw.start + (
-                            cpw_len / 2 + i * bridges_step) * cpw_dir_unit_vector
+                        cpw_len / 2 + i * bridges_step) * cpw_dir_unit_vector
 
                 avoid = False
                 for avoid_point, avoid_distance in zip(avoid_points,

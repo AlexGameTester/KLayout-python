@@ -49,7 +49,7 @@ class AsymSquidParams:
             SQRTJJ_dx=398.086,  # j2_dx
             SQRBJJ_dy=250,  # j2_dy
             SQRBJJ_dx=None,
-            bot_wire_x=0,
+            bot_wire_x=None,
             SQRBT_dy=None
     ):
         """
@@ -77,12 +77,6 @@ class AsymSquidParams:
         self.squid_dx = squid_dx
         self.squid_dy = squid_dy
 
-        try:
-            iter(bot_wire_x)
-        except TypeError:
-            self.bot_wire_x = [bot_wire_x]
-        else:
-            self.bot_wire_x = bot_wire_x
         # squid loop top side width
         self.JJC = JJC
         self.SQT_dy = SQT_dy
@@ -109,6 +103,18 @@ class AsymSquidParams:
         self.shadow_gap = shadow_gap
 
         self.TC_dx = TC_dx
+
+        if bot_wire_x is None:
+            dx1 = squid_dx/2 + self.SQLBT_dx/2
+            dx2 = squid_dx / 2 + self.SQRBT_dx / 2
+            self.bot_wire_x = [-dx1, dx2]
+        else:
+            try:
+                iter(bot_wire_x)
+            except TypeError:
+                self.bot_wire_x = [bot_wire_x]
+            else:
+                self.bot_wire_x = bot_wire_x
 
         # check if iterable and set iterable
         try:
