@@ -10,6 +10,9 @@ Based on 8Q_0.0.0.1
 # import built-ins
 from typing import List
 import os
+PROJECT_DIR = os.path.dirname(__file__)
+import sys
+sys.path.append(PROJECT_DIR)
 from importlib import reload
 
 # import good 3rd party
@@ -25,201 +28,28 @@ from pya import DCplxTrans
 
 # import project lib
 import classLib
-
 reload(classLib)
-
 from classLib.coplanars import CPW, CPWParameters
-from classLib.josJ import AsymSquidParams, AsymSquid
 from classLib.chipDesign import ChipDesign
 from classLib.marks import MarkBolgar
 from classLib.contactPads import ContactPad
 from classLib.helpers import fill_holes, split_polygons, extended_region
 
+# import sonnet simulation self-made package
 import sonnetSim
-
 reload(sonnetSim)
 from sonnetSim import SonnetLab, SonnetPort, SimulationBox
 
 # import local dependencies in case project file is too big
 from classLib.baseClasses import ComplexBase
 from classLib.helpers import FABRICATION
-from classLib.chipTemplates import CHIP_14x14_20pads
-
-CHIP = CHIP_14x14_20pads
-
-PROJECT_DIR = os.path.dirname(__file__)
-
-# positioning of md open-end lines relative to qubit
-# represents shift from qubit center for CPW's central conductor
-# open-ended center
-VERT_ARR_SHIFT = DVector(-50e3, -150e3)
-
-from dataclasses import dataclass, field
-
-SQUID_PARS = AsymSquidParams(
-    squid_dx=14.2e3,
-    squid_dy=10e3,
-    TC_dx=2.5e3 * np.sqrt(2) + 1e3,
-    TC_dy=5e3 * np.sqrt(2) / 2 + 1e3,
-    TCW_dy=6e3,
-    TCW_dx=0.5e3,
-    BCW_dy=0e3,
-    BC_dy=5e3 * np.sqrt(2) / 2 + 1e3,
-    BC_dx=2.5e3 * np.sqrt(2) + 1e3
-)
-
-
-@dataclass()
-class QubitsGrid:
-    # in fractions of chip dimensions
-    origin: float = DVector(CHIP.dx / 2, CHIP.dy / 2)
-    # step of 2D grid in `x` and `y` directions correspondingly
-    dx: float = 2e6
-    dy: float = 2e6
-    pts_grid: np.ndarray = np.array(
-        [
-            # grid iterates from left to right, from bottom to top,
-            # starting from bl corner.
-            (0, 0), (1, 0), (2, 0),
-            (0, 1), (1, 1), (2, 1),
-            (0, 2), (1, 2),
-        ],
-        dtype=int
-    )
-
-    def __post_init__(self):
-        self.__centralize_grid()
-
-    def __centralize_grid(self):
-        # grid is centralized such that bbox center of the grid has
-        # origin (0,0)
-        grid_center = np.array([1, 1], dtype=int)
-        for i, pt_pos in enumerate(self.pts_grid):
-            self.pts_grid[i] -= grid_center
-
-    def get_pt(self, idx) -> DPoint:
-        pt_pos = self.pts_grid[idx]
-        pt_x = pt_pos[0] * self.dx
-        pt_y = pt_pos[1] * self.dy
-        origin = self.origin
-        return origin + DVector(pt_x, pt_y)
-
-
-@dataclass()
-class DiskConn8Pars:
-    disk_r = 0.5e6
-    pimp_l = 100e3
-    conn_width = 20e3
-    conn_side_gap = 10e3
-    conn_front_gap = 20e3
-
-
-
-class DiskConn8(ComplexBase):
-    """
-    Single superconducting Island represents shunting ground capacitor
-    for qubit
-    """
-
-    def __init__(self, origin,
-                 pars: DiskConn8Pars = DiskConn8Pars(),
-                 trans_in=None,
-                 region_id="ph"):
-        self.pars: DiskConn8Pars = pars
-        self.disk: DiskConn8 = None
-        self.conn8_list: List[CPW] = []
-        super().__init__(
-            origin=origin, trans_in=trans_in, region_id=region_id
-        )
-
-    def init_primitives(self):
-        origin = DPoint(0, 0)
-
-        # draw star-like connection flanges
-        angles = np.linspace(0, 360, 8, endpoint=False)  # degree
-        for i, angle in enumerate(angles):
-            trans = DCplxTrans(1, angle, False, 0, 0)
-            # finger with side gap
-            cpw_l = self.pars.disk_r + self.pars.pimp_l
-            cpw = CPW(
-                start=origin,
-                end=origin + DVector(cpw_l, 0),
-                width=self.pars.conn_width,
-                gap=self.pars.conn_side_gap,
-                open_end_l=self.pars.conn_front_gap,
-                trans_in=trans,
-                region_id=self.region_id
-            )
-            self.conn8_list.append(cpw)
-            self.primitives["conn" + str(i)] = cpw
-
-        from classLib.shapes import Disk
-        self.disk = Disk(
-            center=origin, r=self.pars.disk_r,
-            region_id=self.region_id
-        )
-        self.primitives["circle"] = self.disk
-
-
-class QubitParams:
-    def __init__(
-            self,
-            squid_params: AsymSquidParams = AsymSquidParams(),
-            qubit_cap_params: DiskConn8Pars = DiskConn8Pars()
-    ):
-        self.squid_params: AsymSquidParams = squid_params
-        self.qubit_cap_params: DiskConn8Pars = qubit_cap_params
-
-
-class Qubit(ComplexBase):
-    _shift_into_substrate = 1.5e3
-    def __init__(
-            self,
-            origin: DPoint = DPoint(0, 0),
-            qubit_params: QubitParams = QubitParams(),
-            trans_in=None
-    ):
-        self.qubit_params = qubit_params
-        self.squid: AsymSquid = None
-        self.cap_shunt: DiskConn8 = None
-
-        super().__init__(origin=origin, trans_in=trans_in,
-                         region_id="default")
-
-    def init_primitives(self):
-        origin = DPoint(0, 0)
-
-        # draw disk with 8 open-ended CPW connectors
-        self.cap_shunt = DiskConn8(
-            origin=origin,
-            pars=self.qubit_params.qubit_cap_params,
-            region_id="ph"
-        )
-        qubit_finger = self.cap_shunt.conn8_list[6]
-
-        # draw squid
-        squid_pars = self.qubit_params.squid_params
-        # vertical shift of every squid local origin coordinates
-        # this line puts squid center on the
-        # "outer capacitor plate's edge" of the shunting capacitance.
-        squid_center = qubit_finger.open_end_end
-        # next step is to make additional shift such that top of the
-        # BC polygon is located at the former squid center position with
-        # additional `_shift_into_substrate = 1.5e3` um shift in direction of substrate
-        _shift_to_BC_center = squid_pars.shadow_gap / 2 + \
-                              squid_pars.SQLBT_dy + squid_pars.SQB_dy + \
-                              squid_pars.BCW_dy + \
-                              self._shift_into_substrate
-        squid_center += DVector(0, _shift_to_BC_center)
-
-        self.squid = AsymSquid(
-            origin=squid_center,
-            params=self.qubit_params.squid_params,
-            region_id="el"
-        )
-
-        self.primitives["squid"] = self.squid
-        self.primitives["cap_shunt"] = self.cap_shunt
+import globalDefinitions
+reload(globalDefinitions)
+from globalDefinitions import CHIP, VERT_ARR_SHIFT, SQUID_PARS
+import qubitGeomPars
+reload(qubitGeomPars)
+from qubitGeomPars import QubitParams, Qubit, QubitsGrid
+from qubitGeomPars import DiskConn8Pars
 
 
 class Design8QStair(ChipDesign):
@@ -288,11 +118,7 @@ class Design8QStair(ChipDesign):
         """
         self.draw_chip()
         self.draw_qubits_array()
-        cpw = CPW(start=DPoint(0, CHIP.dy/2), end=DPoint(CHIP.dx/2,
-                                                         CHIP.dy/2),
-                  width=200e3, gap=40e3, open_end_l=10e3)
-        cpw.place(self.region_ph)
-        print(cpw.start, cpw.end, cpw.open_end_end)
+        self.draw_readout_lines()
 
     def draw_chip(self):
         self.region_bridges2.insert(self.chip_box)
@@ -310,6 +136,9 @@ class Design8QStair(ChipDesign):
             self.qubits.append(qubit)
             qubit.place(self.region_ph, region_id="ph")
             qubit.place(self.region_el, region_id="el")
+
+    def draw_readout_lines(self):
+        pass
 
     def _transfer_regs2cell(self):
         '''
