@@ -65,11 +65,12 @@ class QubitsGrid:
 
 @dataclass()
 class DiskConn8Pars:
-    disk_r = 0.5e6
-    pimp_l = 100e3
-    conn_width = 20e3
-    conn_side_gap = 10e3
-    conn_front_gap = 20e3
+    disk_r = 200e3
+    disk_gap = 20e3
+    pimp_l = 0e3
+    conn_width = 0e3
+    conn_side_gap = 0e3
+    conn_front_gap = 0e3
 
 
 class DiskConn8(ComplexBase):
@@ -90,12 +91,12 @@ class DiskConn8(ComplexBase):
         )
 
     def init_primitives(self):
-        print(self.origin)
+        # print(self.origin)
         origin = DPoint(0, 0)
 
         from classLib.shapes import Disk
         self.empty_disk = Disk(
-            center=origin, r=self.pars.disk_r + 2 * self.pars.pimp_l,
+            center=origin, r=self.pars.disk_r + self.pars.disk_gap,
             region_id=self.region_id, inverse=True
         )
         self.primitives["empty_disk"] = self.empty_disk
@@ -137,18 +138,19 @@ class QubitParams:
 
 class Qubit(ComplexBase):
     _shift_into_substrate = 1.5e3
+
     def __init__(
             self,
             origin: DPoint = DPoint(0, 0),
             qubit_params: QubitParams = QubitParams(),
-            trans_in=None
+            trans_in=None, postpone_drawing=False
     ):
         self.qubit_params = qubit_params
         self.squid: AsymSquid = None
         self.cap_shunt: DiskConn8 = None
 
         super().__init__(origin=origin, trans_in=trans_in,
-                         region_id="default")
+                         region_id="default", postpone_drawing=postpone_drawing)
 
     def init_primitives(self):
         origin = DPoint(0, 0)

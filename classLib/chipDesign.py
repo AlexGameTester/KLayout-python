@@ -114,6 +114,8 @@ class ChipDesign:
 
     # Erases everything outside the box
     def crop(self, box, region=None):
+        try:
+            box
         if region is None:
             self.__crop_box_in_region(self.region_ph, box)
             self.__crop_box_in_region(self.region_el, box)

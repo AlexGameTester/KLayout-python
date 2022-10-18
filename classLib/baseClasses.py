@@ -21,7 +21,8 @@ class ElementBase():
     """
 
     def __init__(self, origin, trans_in=None, inverse=False,
-                 region_id="default"):
+                 region_id="default", postpone_drawing=False):
+
         ## MUST BE IMPLEMENTED ##
         self.connections = []  # DPoint list with possible connection points
         self.connection_edges = []  # indexes of edges that are intended to connect to other polygons
@@ -52,6 +53,12 @@ class ElementBase():
         self.empty_regions[self.region_id] = self.empty_region
         self.region_ids = [self.region_id]
 
+        # whether to draw element geometry at the time of object
+        # initialization (`postpone_drawing==False` - default)
+        # or to postpone it when object is demanded to be drawn via
+        # `place` method (`postpone_drawing==True`)
+        self.postpone_drawing = postpone_drawing
+
         self.metal_region.merged_semantics = True
         self.empty_region.merged_semantics = True
         self.DCplxTrans_init = None
@@ -77,7 +84,8 @@ class ElementBase():
                 self.DCplxTrans_init = DCplxTrans(trans_in)
                 self.ICplxTrans_init = trans_in
         self._geometry_parameters = OrderedDict()
-        self._init_regions_trans()
+        if not self.postpone_drawing:
+            self._init_regions_trans()
 
     def get_geometry_params_dict(self, prefix="", postfix=""):
         """
@@ -205,6 +213,9 @@ class ElementBase():
         self.region_id = new_reg_id
 
     def place(self, dest, layer_i=-1, region_id="default", merge=True):
+        if self.postpone_drawing:
+            self._init_regions_trans()
+
         if all([
                 region_id not in self.metal_regions,
                 region_id not in self.empty_regions
@@ -240,11 +251,14 @@ class ElementBase():
 
 
 class ComplexBase(ElementBase):
-    def __init__(self, origin, trans_in=None, region_id="default"):
-        super().__init__(origin, trans_in, region_id=region_id)
+    def __init__(self, origin, trans_in=None, region_id="default",
+                 postpone_drawing=False):
+        super().__init__(origin, trans_in, region_id=region_id,
+                         postpone_drawing=postpone_drawing)
         # ensures sequential order of drawing primitives
         self.primitives: Dict[Hashable, Union[ElementBase, ComplexBase]] = OrderedDict()
-        self._init_primitives_trans()
+        if not self.postpone_drawing:
+            self._init_primitives_trans()
 
     def _init_regions_trans(self):
         pass
@@ -284,7 +298,10 @@ class ComplexBase(ElementBase):
             for reg_id in self.region_ids:
                 element.place(self.metal_regions[reg_id], region_id=reg_id)
 
-    def place(self, dest, layer_i=-1, region_id="default"):
+    def place(self, dest, layer_i=-1, region_id="default", merge=False):
+        if self.postpone_drawing:
+            self._init_primitives_trans()
+
         if (layer_i != -1):
             # `dest` is interpreted as `pya.Cell` object
             r_cell = Region(dest.begin_shapes_rec(layer_i))
@@ -302,6 +319,10 @@ class ComplexBase(ElementBase):
                 primitive.place(dest, region_id=region_id)
 
     def init_primitives(self):
+        # TODO: OPT. make primitive to take `region_id` argument
+        #  this is necessary if pospone drawing behaviour is set and object
+        #  excpected to call it's `place()`, hence its
+        #  `init_primitives()` method several times.
         raise NotImplementedError
 
     def init_regions(self):

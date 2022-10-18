@@ -9,9 +9,13 @@ reload(pinning_grid)
 from classLib.helpers import region_manipulation
 reload(region_manipulation)
 
+from classLib.helpers import capacitance_sim
+reload(capacitance_sim)
+
 fill_holes = pinning_grid.fill_holes
 split_polygons = polygon_splitting.split_polygons
 extended_region = region_manipulation.extended_region
+simulate_cij = capacitance_sim.simulate_cij
 
 
 class FABRICATION:
