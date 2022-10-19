@@ -16,6 +16,7 @@ fill_holes = pinning_grid.fill_holes
 split_polygons = polygon_splitting.split_polygons
 extended_region = region_manipulation.extended_region
 simulate_cij = capacitance_sim.simulate_cij
+save_sim_results = capacitance_sim.save_sim_results
 
 
 class FABRICATION:

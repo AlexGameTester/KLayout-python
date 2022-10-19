@@ -149,18 +149,28 @@ class Qubit(ComplexBase):
         self.squid: AsymSquid = None
         self.cap_shunt: DiskConn8 = None
 
-        super().__init__(origin=origin, trans_in=trans_in,
-                         region_id="default", postpone_drawing=postpone_drawing)
+        super().__init__(
+            origin=origin, trans_in=trans_in, region_id="default",
+            postpone_drawing=postpone_drawing, region_ids=["ph", "el"]
+        )
 
     def init_primitives(self):
+        # TODO `multilayer complex objects`: not called twice due to
+        #  emergence of `self.initialized` that prevents several
+        #  `init_primitives_trans()` calls
+        #  but every layer has to be initialized separately in my opinion
+        #  nowadays this makes no difference, so this remark will
+        #  remain, until such need arises.
+        # print("qubit primitives called", self.origin.x, self.origin.y)
         origin = DPoint(0, 0)
 
         # draw disk with 8 open-ended CPW connectors
         self.cap_shunt = DiskConn8(
             origin=origin,
             pars=self.qubit_params.qubit_cap_params,
-            region_id="ph"
+            region_id=self.region_ids[0]
         )
+
         qubit_finger = self.cap_shunt.conn8_list[6]
 
         # draw squid
@@ -181,7 +191,7 @@ class Qubit(ComplexBase):
         self.squid = AsymSquid(
             origin=squid_center,
             params=self.qubit_params.squid_params,
-            region_id="el"
+            region_id=self.region_ids[1]
         )
 
         self.primitives["squid"] = self.squid

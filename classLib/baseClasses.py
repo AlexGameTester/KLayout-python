@@ -21,7 +21,9 @@ class ElementBase():
     """
 
     def __init__(self, origin, trans_in=None, inverse=False,
-                 region_id="default", postpone_drawing=False):
+                 region_id="default", postpone_drawing=False,
+                 region_ids=None):
+        # TODO: some parameters has to be wrapped in kwargs in some future.
 
         ## MUST BE IMPLEMENTED ##
         self.connections = []  # DPoint list with possible connection points
@@ -36,28 +38,38 @@ class ElementBase():
 
         self.origin = origin
         self.inverse = inverse
-        # TODO: after Region.insert() and/or? metal_region + other_region
-        #  there is width problem that initial region has dimensions
-        #  Region().bbox() = ((-1,-1,1,1)) or something like that
-        #  Hence, if you wish to take Region.bbox() of the resulting region
-        #  You will get incorrect value due to initial region having
-        #  something "blank" at the creation moment. This may be solved
-        #  by either shrinking resulting region to shapes it contains,
-        #  or by refusing of usage of empty `Region()`s
-        self.metal_regions: Dict[Any, Region] = OrderedDict()
-        self.empty_regions: Dict[Any, Region] = OrderedDict()
+
+        # for single layer structure
+        self.region_id = region_id
         self.metal_region = Region()
         self.empty_region = Region()
-        self.region_id = region_id
+
+        # for multilayer structures
+        if region_ids is not None:
+            self.region_ids = region_ids
+        else:
+            self.region_ids = [self.region_id]
+        self.metal_regions: Dict[str, Region] = OrderedDict(
+            map(
+                lambda reg_id: (reg_id, Region()), self.region_ids
+            )
+        )
+        self.empty_regions: Dict[str, Region] = OrderedDict(
+            map(
+                lambda reg_id: (reg_id, Region()), self.region_ids
+            )
+        )
+
+        # single layer structures
         self.metal_regions[self.region_id] = self.metal_region
         self.empty_regions[self.region_id] = self.empty_region
-        self.region_ids = [self.region_id]
 
         # whether to draw element geometry at the time of object
         # initialization (`postpone_drawing==False` - default)
         # or to postpone it when object is demanded to be drawn via
         # `place` method (`postpone_drawing==True`)
         self.postpone_drawing = postpone_drawing
+        self.initialized = False  # helper bool for `self.postpone_drwaing`
 
         self.metal_region.merged_semantics = True
         self.empty_region.merged_semantics = True
@@ -118,27 +130,31 @@ class ElementBase():
     # then displacement of the current state to the origin
     # after all, origin should be updated
     def _init_regions_trans(self):
-        self.init_regions()  # must be implemented in child classes
+        # TODO `multilayer complex objects`: now objects draw itself only
+        #   once, but all layers
+        if self.initialized is False:
+            self.init_regions()  # must be implemented in child classes
 
-        dr_origin = DSimplePolygon([DPoint(0, 0)])
-        if (self.DCplxTrans_init is not None):
-            # constructor trans displacement
-            dCplxTrans_temp = DCplxTrans(1, 0, False, self.DCplxTrans_init.disp)
-            self.make_trans(dCplxTrans_temp)
-            dr_origin.transform(dCplxTrans_temp)
+            dr_origin = DSimplePolygon([DPoint(0, 0)])
+            if (self.DCplxTrans_init is not None):
+                # constructor trans displacement
+                dCplxTrans_temp = DCplxTrans(1, 0, False, self.DCplxTrans_init.disp)
+                self.make_trans(dCplxTrans_temp)
+                dr_origin.transform(dCplxTrans_temp)
 
-            # rest of the constructor trans functions
-            dCplxTrans_temp = self.DCplxTrans_init.dup()
-            dCplxTrans_temp.disp = DPoint(0, 0)
-            self.make_trans(dCplxTrans_temp)
-            dr_origin.transform(dCplxTrans_temp)
+                # rest of the constructor trans functions
+                dCplxTrans_temp = self.DCplxTrans_init.dup()
+                dCplxTrans_temp.disp = DPoint(0, 0)
+                self.make_trans(dCplxTrans_temp)
+                dr_origin.transform(dCplxTrans_temp)
 
-        # translation local coordinates to the program coordinates by
-        # tranlating geometry into `self.origin` - user-requested point
-        # in program's coordinate system
-        # Note: self.connections are already contain proper values
-        self.make_trans(DCplxTrans(1, 0, False, self.origin))  # move to the origin
-        self.origin += dr_origin.point(0)
+            # translation local coordinates to the program coordinates by
+            # tranlating geometry into `self.origin` - user-requested point
+            # in program's coordinate system
+            # Note: self.connections are already contain proper values
+            self.make_trans(DCplxTrans(1, 0, False, self.origin))  # move to the origin
+            self.origin += dr_origin.point(0)
+            self.initialized = True
 
     def make_trans(self, dCplxTrans):
         if (dCplxTrans is not None):
@@ -252,9 +268,12 @@ class ElementBase():
 
 class ComplexBase(ElementBase):
     def __init__(self, origin, trans_in=None, region_id="default",
-                 postpone_drawing=False):
-        super().__init__(origin, trans_in, region_id=region_id,
-                         postpone_drawing=postpone_drawing)
+                 postpone_drawing=False, region_ids=None):
+        super().__init__(
+            origin, trans_in, region_id=region_id,
+            postpone_drawing=postpone_drawing,
+            region_ids=region_ids
+        )
         # ensures sequential order of drawing primitives
         self.primitives: Dict[Hashable, Union[ElementBase, ComplexBase]] = OrderedDict()
         if not self.postpone_drawing:
@@ -273,30 +292,33 @@ class ComplexBase(ElementBase):
         self._update_alpha(dCplxTrans_temp)
 
     def _init_primitives_trans(self):
-        self.init_primitives()  # must be implemented in every subclass
-        dr_origin = DSimplePolygon([DPoint(0, 0)])
-        if (self.DCplxTrans_init is not None):
-            # constructor trans displacement
-            dCplxTrans_temp = DCplxTrans(1, 0, False, self.DCplxTrans_init.disp)
-            self.make_trans(dCplxTrans_temp)
-            dr_origin.transform(dCplxTrans_temp)
+        if self.initialized is False:
+            self.init_primitives()  # must be implemented in every subclass
 
-            # rest of the constructor trans functions
-            dCplxTrans_temp = self.DCplxTrans_init.dup()
-            dCplxTrans_temp.disp = DPoint(0, 0)
-            self.make_trans(dCplxTrans_temp)
-            dr_origin.transform(dCplxTrans_temp)
+            # Intermediate object representation is kept in its metal regions.
+            # This is a tradeoff biased into memory size to simplify and speedup analysis of
+            # compound objects.
+            for element in self.primitives.values():
+                for reg_id in self.region_ids:
+                    element.place(self.metal_regions[reg_id], region_id=reg_id)
 
-        dCplxTrans_temp = DCplxTrans(1, 0, False, self.origin.x, self.origin.y)
-        self.make_trans(dCplxTrans_temp)  # move to the origin
-        self.origin += dr_origin.point(0)
+            dr_origin = DSimplePolygon([DPoint(0, 0)])
+            if (self.DCplxTrans_init is not None):
+                # constructor trans displacement
+                dCplxTrans_temp = DCplxTrans(1, 0, False, self.DCplxTrans_init.disp)
+                self.make_trans(dCplxTrans_temp)
+                dr_origin.transform(dCplxTrans_temp)
 
-        # Intermediate object representation is kept in its metal regions.
-        # This is a tradeoff biased into memory size to simplify and speedup analysis of
-        # compound objects.
-        for element in self.primitives.values():
-            for reg_id in self.region_ids:
-                element.place(self.metal_regions[reg_id], region_id=reg_id)
+                # rest of the constructor trans functions
+                dCplxTrans_temp = self.DCplxTrans_init.dup()
+                dCplxTrans_temp.disp = DPoint(0, 0)
+                self.make_trans(dCplxTrans_temp)
+                dr_origin.transform(dCplxTrans_temp)
+
+            dCplxTrans_temp = DCplxTrans(1, 0, False, self.origin.x, self.origin.y)
+            self.make_trans(dCplxTrans_temp)  # move to the origin
+            self.origin += dr_origin.point(0)
+            self.initialized = True
 
     def place(self, dest, layer_i=-1, region_id="default", merge=False):
         if self.postpone_drawing:

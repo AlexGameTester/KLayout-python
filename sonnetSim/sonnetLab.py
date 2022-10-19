@@ -1,12 +1,22 @@
+# import built-ins
+from typing import Union
+import csv
+import time
+from importlib import reload
+
+# import good 3rd party
+import numpy as np
+
+# import project specific 3rd party
 import pya
 from pya import Point, DPoint, Vector, DVector, DSimplePolygon, SimplePolygon, DPolygon, Polygon, Region
-from classLib import *
+
+# import project lib
 from sonnetSim.matlabClient import MatlabClient
 from sonnetSim.pORT_TYPES import PORT_TYPES
-
-import time
-import numpy as np
-import csv
+import classLib
+reload(classLib)
+from classLib.coplanars import CPWParameters, CPWRLPath
 
 
 class SonnetPort:
