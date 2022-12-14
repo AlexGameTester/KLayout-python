@@ -1,7 +1,7 @@
 # import built-ins
 import os
 import csv
-from typing import List
+from typing import List, Tuple
 
 # import good 3rd party
 import numpy as np
@@ -16,7 +16,7 @@ from classLib.chipDesign import ChipDesign
 # TODO: `reg` and `layer` will be no longer needed both after introducing
 #  region_ids global dictionary
 def simulate_cij(
-        design, reg, layer, subregs, resolution=(5e3, 5e3),
+        design, layer, subregs, env_reg=None, resolution=(5e3, 5e3),
         print_values=True
 ):
     '''
@@ -30,35 +30,34 @@ def simulate_cij(
     ----------
     design : ChipDesign
         design instance
-    reg : Region
-        simulation environment region
     subregs : List[Region]
         list of different metal polygons to calculate capacitance between.
-
+    env_reg : Region
+        simulation environment region (if not specified will be derived from
+        'subregs` parameter by enlarging it in 2 to 3 times
     resolution : tuple(float,float)
         dx and dy mesh step for Sonnet
+    print_values : bool
+        Whether or not to print capacitance values in KLayout console
 
     Returns
     -------
-    tuple(float,float,float)
+    Tuple[float,float,float]
         C1, C12, C2
     '''
 
     resolution_dx, resolution_dy = resolution
 
     ''' CROP NECESSARY DESIGN PART '''
-    bbox_list = [subreg.bbox() for subreg in subregs]
-    # print(subregs)
-    crop_box = Region(sum(subregs, Region()).bbox())
-    crop_box = crop_box.sized(
-        2 * max(map(lambda x: x.width(), bbox_list)),
-        2 * max(map(lambda x: x.height(), bbox_list))
-    ).bbox()
-    reg = reg.dup()
+    if env_reg is None:
+        bbox_list = [subreg.bbox() for subreg in subregs]
+        # print(subregs)
+        crop_box = Region(sum(subregs, Region()).bbox())
+        crop_box =
+        env_reg = env_reg.dup()
 
     ''' PLACE SONNET PORTS '''
     n_terminals = len(subregs)
-    # TODO: AUTOGROUNDED PORTS CANNOT BE DIAGONAL.
     if n_terminals == 1:
         # find smallest width terminal
         edge_center_best = None
@@ -66,6 +65,7 @@ def simulate_cij(
         edge_centers_it = subregs[0].edges().each()
         for edge in edge_centers_it:
             if edge.length() < min_width:
+                # AUTOGROUNDED PORTS CANNOT BE DIAGONAL (TODO: CHANGE LATER)
                 if any([
                     (edge.d().y == 0),
                     (edge.d().x == 0)
@@ -96,11 +96,11 @@ def simulate_cij(
 
         design.sonnet_ports.append(edgeCenter_cr1_best)
         design.sonnet_ports.append(edgeCenter_cr2_best)
-
+    [print(port.x, port.y) for port in design.sonnet_ports]
     ''' Transform cropped box to origin (for convenience) '''
     dr = DPoint(0, 0) - crop_box.p1
-    design.crop(crop_box, reg)
-    design.transform_region(reg, DTrans(dr.x, dr.y),
+    design.crop(crop_box, env_reg)
+    design.transform_region(env_reg, DTrans(dr.x, dr.y),
                             trans_ports=True)
     design.layout.clear_layer(layer)
     design.show()
@@ -128,8 +128,8 @@ def simulate_cij(
             SonnetPort(sonnet_port, PORT_TYPES.AUTOGROUNDED)
         )
 
-    # for sp in ports:
-    #     print(sp.point)
+    for sp in ports:
+        print(sp.point)
     ml_terminal.set_ports(ports)
 
     ml_terminal.send_polygons(design.cell, layer_i=layer)
@@ -138,9 +138,9 @@ def simulate_cij(
     result_path = ml_terminal.start_simulation(wait=True)
     ml_terminal.release()
 
-    ### SIMULATION SECTION END ###
+    """ SIMULATION SECTION END """
 
-    ### CALCULATE CAPACITANCE SECTION START ###
+    """ CALCULATE CAPACITANCE SECTION START """
     C1 = None
     C12 = None
     C2 = None
@@ -189,6 +189,7 @@ def simulate_cij(
 
     return C1, C12, C2
 
+
 def save_sim_results(output_filepath, design, additional_pars):
     """
     Saves simulation results. Associates single filename with single
@@ -229,4 +230,3 @@ def save_sim_results(output_filepath, design, additional_pars):
                 list(additional_pars.values()) +
                 list(design_pars.values())
             )
-    '''SAVING REUSLTS SECTION END'''

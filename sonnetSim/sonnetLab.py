@@ -25,7 +25,8 @@ class SonnetPort:
         self.port_type = port_type
 
     def __deepcopy__(self, memodict={}):
-        return SonnetPort(self.point, self.port_type)  # due to the bug in copying Point(), DPoint() and other objects
+        # due to no use of using copy() for Point(), DPoint() and other objects
+        return SonnetPort(self.point, self.port_type)
 
 
 class SimulationBox:
