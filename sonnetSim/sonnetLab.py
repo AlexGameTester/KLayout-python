@@ -81,8 +81,8 @@ class SonnetLab(MatlabClient):
             port_edges_types = []
 
             for i, edge in enumerate(polygon.each_edge()):
-                pts_x[i] = edge.p1.x / 1.0e3
-                pts_y[i] = edge.p1.y / 1.0e3
+                pts_x[i] = edge.p1.x
+                pts_y[i] = edge.p1.y
 
                 # adding port to the current edge
                 for port in self.ports:
@@ -90,12 +90,14 @@ class SonnetLab(MatlabClient):
                     R = port.point.distance(r_middle)
                     # if( polygon.num_points_hull() == 4):
                     #     print(r_middle, "\t", port.point, "\t", R)
-                    if R < 10:  # distance from connection point to the middle of the edge <10 nm => add port there
+                    if R < 10:  # distance from connection point to the
+                        # middle of the edge <10 nm, hence: add port
                         port_edges_indexes.append(i + 1)  # matlab polygon edge indexing starts from 1
                         port_edges_types.append(port.port_type)  # choosing appropriate port type
                         break
 
-        self._send_polygon(pts_x, pts_y, port_edges_indexes, port_edges_types)
+        self._send_polygon(pts_x/1.0e3, pts_y/1.0e3, port_edges_indexes,
+                           port_edges_types)
 
     def send_polygons(self, cell, layer_i=-1):
         if (layer_i == -1):  # cell is width Region()

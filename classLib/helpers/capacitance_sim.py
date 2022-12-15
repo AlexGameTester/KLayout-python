@@ -7,7 +7,7 @@ from typing import List, Tuple
 import numpy as np
 
 # import project specific 3rd party
-from pya import Region, DPoint, DTrans
+from pya import Region, DPoint, DTrans, Box
 
 # import project lib
 from sonnetSim import SonnetLab, SonnetPort, SimulationBox
@@ -33,12 +33,13 @@ def simulate_cij(
     subregs : List[Region]
         list of different metal polygons to calculate capacitance between.
     env_reg : Region
-        simulation environment region (if not specified will be derived from
-        'subregs` parameter by enlarging it in 2 to 3 times
+        simulation environment region.
+        If not specified will be derived from `subregs` parameter
+        by enlarging it in 2 to 3 times
     resolution : tuple(float,float)
         dx and dy mesh step for Sonnet
     print_values : bool
-        Whether or not to print capacitance values in KLayout console
+        Whether to print capacitance values in KLayout console
 
     Returns
     -------
@@ -47,21 +48,21 @@ def simulate_cij(
     '''
 
     resolution_dx, resolution_dy = resolution
-
-    ''' CROP NECESSARY DESIGN PART '''
     if env_reg is None:
-        bbox_list = [subreg.bbox() for subreg in subregs]
-        # print(subregs)
-        crop_box = Region(sum(subregs, Region()).bbox())
-        crop_box =
-        env_reg = env_reg.dup()
+        crop_box = sum(subregs, Region()).bbox()
+        # enlarge box around its center
+        dr = crop_box.p2 - crop_box.p1
+        center = crop_box.center()
+        crop_box = Box(center - 3/2*dr, center + 3/2*dr)
+    else:
+        crop_box = env_reg.bbox()
 
-    ''' PLACE SONNET PORTS '''
+    ''' SONNET PORTS POSITIONS SECTION START '''
     n_terminals = len(subregs)
     if n_terminals == 1:
         # find smallest width terminal
         edge_center_best = None
-        min_width = 1e20
+        min_width = 1e9
         edge_centers_it = subregs[0].edges().each()
         for edge in edge_centers_it:
             if edge.length() < min_width:
@@ -74,8 +75,9 @@ def simulate_cij(
                     edge_center_best = (edge.p1 + edge.p2)/2
         design.sonnet_ports.append(edge_center_best)
     elif n_terminals == 2:
+        # TODO: not tested
         from itertools import product
-        edgeCenter_cr1_best, edgeCenter_cr2_best = None, None
+        edge1_best, edge2_best = None, None
         max_distance = 0
         edge_centers_it = product(
             subregs[0].edges().centers(0, 0).each(),
@@ -85,25 +87,38 @@ def simulate_cij(
             lambda edge_tuple: (edge_tuple[0].p1, edge_tuple[1].p1),
             edge_centers_it
         )
-        for edgeCenter_cr1, edgeCenter_cr2 in edge_centers_it:
-            centers_d = edgeCenter_cr1.distance(edgeCenter_cr2)
-            if centers_d > max_distance:
-                edgeCenter_cr1_best, edgeCenter_cr2_best = \
-                    edgeCenter_cr1, edgeCenter_cr2
+        for edge1, edge2 in edge_centers_it:
+            centers_d = edge1.distance(edge2)
+            if all(
+                    [
+                        centers_d > max_distance,
+                        any([(edge1.d().y == 0), (edge1.d().x == 0)]),
+                        any([(edge1.d().y == 0), (edge1.d().x == 0)])
+                    ]
+                ):
+                edge1_best, edge2_best = edge1, edge2
                 max_distance = centers_d
             else:
                 continue
 
-        design.sonnet_ports.append(edgeCenter_cr1_best)
-        design.sonnet_ports.append(edgeCenter_cr2_best)
-    [print(port.x, port.y) for port in design.sonnet_ports]
-    ''' Transform cropped box to origin (for convenience) '''
+        design.sonnet_ports.append(edge1_best)
+        design.sonnet_ports.append(edge2_best)
+    # [print(port.x, port.y) for port in design.sonnet_ports]
+    ''' SONNET PORTS POSITIONS SECTION END '''
+
+    ''' CROP + SNAP TO ORIGIN SECTION START '''
     dr = DPoint(0, 0) - crop_box.p1
-    design.crop(crop_box, env_reg)
-    design.transform_region(env_reg, DTrans(dr.x, dr.y),
+    print(crop_box.p1.x, crop_box.p1.y)
+    print(crop_box.p2.x, crop_box.p2.y)
+    design.crop(crop_box, design.region_ph)
+    print("sonnet ports positions BEFORE transform:")
+    for sp in design.sonnet_ports:
+        print(sp.x, sp.y)
+    design.transform_region(design.region_ph, DTrans(dr.x, dr.y),
                             trans_ports=True)
     design.layout.clear_layer(layer)
     design.show()
+    ''' CROP + SNAP TO ORIGIN SECTION END '''
 
     '''SIMULATION SECTION START'''
     ml_terminal = SonnetLab()
@@ -118,6 +133,7 @@ def simulate_cij(
         crop_box.width() / resolution_dx,
         crop_box.height() / resolution_dy
     )
+    print(simBox.y, simBox.x, simBox.x_n, simBox.x_n)
     ml_terminal.set_boxProps(simBox)
     # print("sending cell and layer")
     from sonnetSim.pORT_TYPES import PORT_TYPES
@@ -125,9 +141,13 @@ def simulate_cij(
     ports = []
     for sonnet_port in design.sonnet_ports:
         ports.append(
-            SonnetPort(sonnet_port, PORT_TYPES.AUTOGROUNDED)
+            SonnetPort(
+                sonnet_port,  # `nm` to `um`
+                PORT_TYPES.AUTOGROUNDED
+            )
         )
 
+    print("sonnet ports positions after transform:")
     for sp in ports:
         print(sp.point)
     ml_terminal.set_ports(ports)

@@ -199,11 +199,10 @@ def simulate_Cqq(q1_idx, q2_idx=-1, resolution=(5e3, 5e3)):
                                       f"{dl:.3f}_.gds")
         )
         '''DRAWING SECTION END'''
-        q1_reg = q1.empty_regions["ph"]
-        env_reg = Region(q1_reg.bbox()*3)
+        q1_reg = q1.metal_regions["ph"]
         C1, _, _ = simulate_cij(
-            design, env_reg=env_reg, layer=design.layer_ph,
-            subregs=[q1.metal_regions["ph"]],
+            design, env_reg=None, layer=design.layer_ph,
+            subregs=[q1_reg],
             resolution=resolution, print_values=True
         )
 
