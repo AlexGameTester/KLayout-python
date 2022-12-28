@@ -176,6 +176,7 @@ class AsymSquid(ComplexBase):
     def init_primitives(self):
         # introducing shorthands for long-named variables
         origin = DPoint(0, 0)
+        self.connections = [origin]
         pars = self.squid_params
 
         # (TC) Top contact polygon
@@ -340,8 +341,10 @@ class AsymSquid(ComplexBase):
             )
             self.primitives[name] = getattr(self, name)
 
+        self.connections = [origin]
+
     def _refresh_named_connections(self):
-        self.center = self.origin
+        self.center = self.connections[0]
 
 
 AsymSquidDCFluxParams = namedtuple(

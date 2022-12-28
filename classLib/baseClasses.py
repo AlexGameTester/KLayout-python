@@ -158,7 +158,9 @@ class ElementBase():
 
     def make_trans(self, dCplxTrans):
         if (dCplxTrans is not None):
-            regions = itertools.chain(self.metal_regions.values(), self.empty_regions.values())
+            regions = itertools.chain(
+                self.metal_regions.values(), self.empty_regions.values()
+            )
             for reg in regions:
                 iCplxTrans = ICplxTrans().from_dtrans(dCplxTrans)
                 reg.transform(iCplxTrans)
@@ -175,6 +177,7 @@ class ElementBase():
             they values are rearranged solution is: k need to create
             polygon for each point personally,
             then the initial order presists'''
+            # TODO: optimize, we can gather all points in a single polygon?
             for i, pt in enumerate(self.connections):
                 poly_temp = DSimplePolygon([pt])
                 poly_temp.transform(dCplxTrans)
@@ -283,9 +286,13 @@ class ComplexBase(ElementBase):
         pass
 
     def make_trans(self, dCplxTrans_temp: DCplxTrans):
+        # transform each element separately
         for primitive in self.primitives.values():
             primitive.make_trans(dCplxTrans_temp)
-        for region in itertools.chain(self.metal_regions.values(), self.empty_regions.values()):
+        # transform intermediate representation
+        for region in itertools.chain(
+                self.metal_regions.values(), self.empty_regions.values()
+        ):
             iCplxTrans = ICplxTrans().from_dtrans(dCplxTrans_temp)
             region.transform(iCplxTrans)
         self._update_connections(dCplxTrans_temp)
@@ -295,9 +302,11 @@ class ComplexBase(ElementBase):
         if self.initialized is False:
             self.init_primitives()  # must be implemented in every subclass
 
-            # Intermediate object representation is kept in its metal regions.
-            # This is a tradeoff biased into memory size to simplify and speedup analysis of
-            # compound objects.
+            # Intermediate object representation is kept in its
+            # metal regions.
+            # This is a memory-speed tradeoff biased into more memory
+            # consuming approach in order to simplify and speedup the
+            # analysis of compound objects.
             for element in self.primitives.values():
                 for reg_id in self.region_ids:
                     element.place(self.metal_regions[reg_id], region_id=reg_id)
@@ -325,7 +334,7 @@ class ComplexBase(ElementBase):
             self._init_primitives_trans()
 
         if (layer_i != -1):
-            # `dest` is interpreted as `pya.Cell` object
+            # `dest` is interpreted as `pya.Cell` instance
             r_cell = Region(dest.begin_shapes_rec(layer_i))
             for primitive in self.primitives.values():
                 primitive.place(r_cell, region_id=region_id)
@@ -336,7 +345,7 @@ class ComplexBase(ElementBase):
             dest.layout().move_layer(temp_i, layer_i)
             dest.layout().delete_layer(temp_i)
         else:
-            # `dest` is interpreted as `pya.Region` object
+            # `dest` is interpreted as `pya.Region` instance
             for primitive in self.primitives.values():
                 primitive.place(dest, region_id=region_id)
 

@@ -65,7 +65,7 @@ class QubitsGrid:
 
 @dataclass()
 class DiskConn8Pars:
-    disk_r = 200e3
+    disk_r = 120e3
     disk_gap = 20e3
     pimp_l = 0e3
     conn_width = 0e3

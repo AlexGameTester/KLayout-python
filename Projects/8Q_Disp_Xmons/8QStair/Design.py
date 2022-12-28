@@ -10,8 +10,10 @@ Based on 8Q_0.0.0.1
 # import built-ins
 from typing import List
 import os
+
 PROJECT_DIR = os.path.dirname(__file__)
 import sys
+
 sys.path.append(PROJECT_DIR)
 from importlib import reload
 
@@ -28,6 +30,7 @@ from pya import DCplxTrans
 
 # import project lib
 import classLib
+
 reload(classLib)
 from classLib.coplanars import CPW, CPWParameters
 from classLib.chipDesign import ChipDesign
@@ -38,6 +41,7 @@ from classLib.helpers import simulate_cij, save_sim_results
 
 # import sonnet simulation self-made package
 import sonnetSim
+
 reload(sonnetSim)
 from sonnetSim import SonnetLab, SonnetPort, SimulationBox
 
@@ -45,9 +49,11 @@ from sonnetSim import SonnetLab, SonnetPort, SimulationBox
 from classLib.baseClasses import ComplexBase
 from classLib.helpers import FABRICATION
 import globalDefinitions
+
 reload(globalDefinitions)
 from globalDefinitions import CHIP, VERT_ARR_SHIFT, SQUID_PARS
 import qubitGeomPars
+
 reload(qubitGeomPars)
 from qubitGeomPars import QubitParams, Qubit, QubitsGrid
 from qubitGeomPars import DiskConn8Pars
@@ -106,7 +112,6 @@ class Design8QStair(ChipDesign):
         ''' SQUID POSITIONING AND PARAMETERS SECTION STARAT '''
         self.squid_vertical_shifts_list = []
 
-
     def draw(self):
         """
 
@@ -120,6 +125,7 @@ class Design8QStair(ChipDesign):
         self.draw_chip()
         self.draw_qubits_array()
         self.draw_readout_lines()
+        
 
     def draw_postpone(self):
         """
@@ -146,11 +152,23 @@ class Design8QStair(ChipDesign):
             qubit_pars = QubitParams(squid_params=SQUID_PARS,
                                      qubit_cap_params=DiskConn8Pars())
             qubit = Qubit(origin=pt, qubit_params=qubit_pars,
-                          postpone_drawing=True)
+                          postpone_drawing=False)
             self.qubits.append(qubit)
-            # qubit.qubit_params.qubit_cap_params.disk_r = 50e3
-            # qubit.place(self.region_ph, region_id="ph")
-            # qubit.place(self.region_el, region_id="el")
+            # TODO: not working, qubit.squid.origin is wrong | partially
+            #  dealt with. Check this.
+            # shift squid to suit into scheme
+            qubit.squid.make_trans(DCplxTrans(1, 0, False, 0, -20e3))
+            q_origin = qubit.origin.dup()  # memorize origin
+            # transfer to origin
+            qubit.make_trans(DCplxTrans(1, 0, False, -q_origin))
+            # rotate depending on qubit group
+            if pt_i in [0, 1, 3]:
+                qubit.make_trans(DCplxTrans(1, -45, False, 0, 0))
+            else:
+                qubit.make_trans(DCplxTrans(1, -45, True, 0, 0))
+            qubit.make_trans(DCplxTrans(1, 0, False, q_origin))
+            qubit.place(self.region_ph, region_id="ph")
+            qubit.place(self.region_el, region_id="el")
 
     def draw_readout_lines(self):
         pass
@@ -221,9 +239,9 @@ def simulate_Cqq(q1_idx, q2_idx=-1, resolution=(5e3, 5e3)):
 if __name__ == "__main__":
     ''' draw and show design for manual design evaluation '''
     FABRICATION.OVERETCHING = 0.0e3
-    # design = Design8QStair("testScript")
-    # design.draw()
-    # design.show()
+    design = Design8QStair("testScript")
+    design.draw()
+    design.show()
 
     # design.save_as_gds2(
     #     os.path.join(
@@ -249,7 +267,7 @@ if __name__ == "__main__":
     # simulate_Cqr(resolution=(1e3, 1e3), mode="Cqr")
 
     ''' Simulation of C_{q1,q2} in fF '''
-    simulate_Cqq(0, resolution=(2e3, 2e3))
+    # simulate_Cqq(0, resolution=(2e3, 2e3))
 
     ''' MD line C_qd for md1,..., md6 '''
     # for md_idx in [0,1]:
