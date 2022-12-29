@@ -32,8 +32,8 @@ class QubitsGrid:
     # in fractions of chip dimensions
     origin: float = DVector(CHIP.dx / 2, CHIP.dy / 2)
     # step of 2D grid in `x` and `y` directions correspondingly
-    dx: float = 2e6
-    dy: float = 2e6
+    dx: float = 1e6
+    dy: float = 1e6
     pts_grid: np.ndarray = np.array(
         [
             # grid iterates from left to right, from bottom to top,

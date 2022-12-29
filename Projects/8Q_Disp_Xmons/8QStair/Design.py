@@ -10,6 +10,7 @@ Based on 8Q_0.0.0.1
 # import built-ins
 from typing import List
 import os
+import itertools
 
 PROJECT_DIR = os.path.dirname(__file__)
 import sys
@@ -32,7 +33,7 @@ from pya import DCplxTrans
 import classLib
 
 reload(classLib)
-from classLib.coplanars import CPW, CPWParameters
+from classLib.coplanars import CPW, CPWParameters, DPathCPW
 from classLib.chipDesign import ChipDesign
 from classLib.marks import MarkBolgar
 from classLib.contactPads import ContactPad
@@ -107,9 +108,14 @@ class Design8QStair(ChipDesign):
         ''' QUBITS GRID PARAMETERS '''
         self.qubits_grid: QubitsGrid = QubitsGrid()
         self.qubits: List[Qubit] = []
+        ''' QUBIT COUPLINGS PARAMETERS '''
+        self.q_couplings = []
+        self.circle_hull_d = 5e3
 
-        ''' QUBIT DRAWING PARAMETERS '''
-        ''' SQUID POSITIONING AND PARAMETERS SECTION STARAT '''
+        ''' READOUT LINES '''
+        self.ro_lines = [None, None]
+
+        ''' SQUID POSITIONING AND PARAMETERS SECTION START '''
         self.squid_vertical_shifts_list = []
 
     def draw(self):
@@ -124,12 +130,15 @@ class Design8QStair(ChipDesign):
         """
         self.draw_chip()
         self.draw_qubits_array()
+        self.draw_qq_couplings()
         self.draw_readout_lines()
-        
 
     def draw_postpone(self):
         """
-        placing elements that were scheduled for postpone drawing
+        placing elements that were scheduled for postpone drawing.
+        Initially implemented to use for geometry parameters sweeps in
+        order to be able to change geometry parameters after
+        `ChipDesign` class instance is initialized.
 
         Returns
         -------
@@ -170,8 +179,42 @@ class Design8QStair(ChipDesign):
             qubit.place(self.region_ph, region_id="ph")
             qubit.place(self.region_el, region_id="el")
 
+    def draw_qq_couplings(self):
+        it_1d = list(range(len(self.qubits_grid.pts_grid)))
+        it_2d = itertools.product(it_1d, it_1d)
+        for pt_i, pt_j in it_2d:
+            row_i = pt_i // 3
+            col_i = pt_i % 3
+            row_j = pt_j // 3
+            col_j = pt_j % 3
+            if (abs(row_i - row_j) + abs(col_i - col_j)) == 1:
+                pt_1 = self.qubits_grid.get_pt(pt_i)
+                pt_2 = self.qubits_grid.get_pt(pt_j)
+                dv = (pt_1 - pt_2)
+                dv = dv/dv.abs()
+                dv = dv*(
+                    self.qubits[row_i*3 + col_i].cap_shunt.pars.disk_r
+                    + self.circle_hull_d
+                )
+                pt_1 -= dv
+                pt_2 += dv
+                cpw = CPW(start=pt_1, end=pt_2, width=40e3, gap=10e3)
+                cpw.place(self.region_ph)
+                self.q_couplings.append(cpw)
+
     def draw_readout_lines(self):
-        pass
+        p0_start = self.contact_pads[2].end
+        p0_end = self.contact_pads[6].end
+        pts = [p0_start, DPoint(5e6, 7e6), DPoint(5e6, 5e6),
+               DPoint(7e6, 5e6), p0_end]
+        self.ro_lines[0] = DPathCPW(
+            points=pts,
+            cpw_parameters=CPWParameters(width=20e3, gap=10e3),
+            turn_radiuses=60e3,  # TODO: dimension mismatch if only 1 list entry is provided, same for other args
+            trans_in=None,
+            region_id="ph"
+        )
+        self.ro_lines[0].place(self.region_ph, region_id="ph")
 
     def _transfer_regs2cell(self):
         '''

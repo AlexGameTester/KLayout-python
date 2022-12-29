@@ -724,7 +724,6 @@ class CPWRLPath(ComplexBase):
 
 
 class DPathCPW(ComplexBase):
-
     def __init__(self, points, cpw_parameters,
                  turn_radiuses, trans_in=None, region_id="default"):
         """
@@ -736,7 +735,7 @@ class DPathCPW(ComplexBase):
 
         Parameters
         ----------
-        points : Union[List[DPoint],np.ndarray[Point]]
+        points : Union[List[DPoint], np.ndarray[DPoint]]
             list of anchor points of width Path
         cpw_parameters : Union[CPWParameters, List[CPWParameters]]
             Parameters of the CPW or an array-like with parameters
