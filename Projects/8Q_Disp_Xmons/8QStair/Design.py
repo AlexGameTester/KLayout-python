@@ -2,9 +2,6 @@ __version__ = "8QS_0.0.0.1"
 
 '''
 Changes log
-
-8QS_0.0.0.1
-Based on 8Q_0.0.0.1
 '''
 
 # import built-ins

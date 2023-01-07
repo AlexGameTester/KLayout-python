@@ -1,14 +1,20 @@
 # <type>: (If applied, this commit will...) <subject> (Max 50 char)
 # |<----  Using a Maximum Of 50 Characters  ---->|
-Large commit many changes read below for details
+Fix[(scope see more in ref)][!]: subject
 
 # Explain why this change is being made
 # |<----   Try To Limit Each Line to a Maximum Of 72 Characters  ---->|
+Explanation granted here
+- first bullet list point
+- second bullet list point
+Aftermath or etc
 
 # Provide links or keys to any relevant tickets, 
 # articles or other resources
 # Example: Github issue #23
 
+
+[BREAKDOWN CHANGES: description]
 # --- COMMIT END ---
 # Type can be 
 #    feat (new feature)
@@ -33,28 +39,17 @@ Large commit many changes read below for details
 # For more information about this template, check out
 # https://gist.github.com/adeekshith/cd4c95a064977cdc6c50
 # |<----   Try To Limit Each Line to a Maximum Of 72 Characters  ---->|
-
 # --- MUST READ ABOUT COMMITING STYLE ---
 # check commit idioms here: 
 # https://chris.beams.io/posts/git-commit/
 # or
 # https://alistapart.com/article/the-art-of-the-commit/
-
+# also
+# https://www.conventionalcommits.org/en/v1.0.0/ (or newer)
 # --- SETUP GUIDE ---
 # To setup git environment use following commands in git Bash console:
 # git config --global core.editor <your editor or path>
 # e.g. git config --global core.editor notepad++
 # git config --global commit.template <path to this .txt file>
-# e.g  git config --global commit.template C:/Users/SUNSHINE_MACHINE/Documents/GitHub/commit_template.txt
-# Please enter the commit message for your changes. Lines starting
-# with '#' will be ignored, and an empty message aborts the commit.
-# On branch MIPT
-# Your branch is up-to-date with 'origin/MIPT'.
-#
-# |<----   Try To Limit Each Line to a Maximum Of 72 Characters  ---->|
-# Changes to be committed:
-CPW CPW_RLPath
-	External parameters arrays passed to constructor now copied.
-	They are internally modified so without copy the same array
-	could not be passed twice to produce the same result.
-	
+# e.g  git config --global commit.template C:/Users/%USER%/Documents/GitHub/commit_template.txt
+# last uptated 07.01.2023

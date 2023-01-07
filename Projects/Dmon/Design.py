@@ -528,22 +528,14 @@ class DesignDmon(ChipDesign):
                     self.kinInd_length_list
                 )
         ):
-            pars_i = AsymSquidParams(
-                band_ph_tol=1e3,
-                squid_dx=11.2e3,
-                squid_dy=14.5e3,
-                TC_dx=2.5e3 * np.sqrt(2) + 1e3,
-                TC_dy=5e3 * np.sqrt(2) / 2 + 2e3,
-                TCW_dy=0,
-                BCW_dy=1.5e3,
-                BC_dy=5e3 * np.sqrt(2) / 2 + 1e3,
-                BC_dx=2.5e3 * np.sqrt(2) + 1e3,
-                SQLBJJ_dy=jj_dy,
-                SQLTJJ_dx=jj_dx,
-                # eliminate junction on the rhs
-                SQRBJJ_dy=jj_dy,
-                SQRTJJ_dx=jj_dx
-            )
+            pars_i = AsymSquidParams(squid_dx=11.2e3, squid_dy=14.5e3,
+                                     TC_dx=2.5e3 * np.sqrt(2) + 1e3,
+                                     TC_dy=5e3 * np.sqrt(2) / 2 + 2e3,
+                                     BC_dx=2.5e3 * np.sqrt(2) + 1e3,
+                                     BC_dy=5e3 * np.sqrt(2) / 2 + 1e3,
+                                     TCW_dy=0, BCW_dy=1.5e3,
+                                     SQLTJJ_dx=jj_dx, SQLBJJ_dy=jj_dy,
+                                     SQRTJJ_dx=jj_dx, SQRBJJ_dy=jj_dy)
             dx = pars_i.SQB_dx / 2
             if i < 6:
                 pars_i.bot_wire_x = [-dx, dx]
@@ -551,21 +543,12 @@ class DesignDmon(ChipDesign):
                 pars_i.BCW_dx = [pars_i.BCW_dx[0]]*2
             else:
                 dx = 35e3 / 2  # HARDCODED BY DARIA
-                pars_i = AsymSquidParams(
-                    band_ph_tol=1e3,
-                    squid_dx=2*dx,
-                    squid_dy=13e3,
-                    TC_dx=pars_i.TC_dx,
-                    TC_dy=7e3,
-                    TCW_dy=0,
-                    BCW_dy=0e3,
-                    BC_dy=7e3,
-                    BC_dx=pars_i.BC_dx,
-                    SQLTJJ_dx=jj_dx,
-                    SQRTJJ_dx=jj_dx,
-                    SQRBJJ_dy=jj_dy,
-                    SQLBJJ_dy=jj_dy
-                )
+                pars_i = AsymSquidParams(squid_dx=2 * dx, squid_dy=13e3,
+                                         TC_dx=pars_i.TC_dx, TC_dy=7e3,
+                                         BC_dx=pars_i.BC_dx, BC_dy=7e3,
+                                         TCW_dy=0, BCW_dy=0e3,
+                                         SQLTJJ_dx=jj_dx, SQLBJJ_dy=jj_dy,
+                                         SQRTJJ_dx=jj_dx, SQRBJJ_dy=jj_dy)
                 pars_i.bot_wire_x = [-dx, dx]
                 pars_i.BC_dx = [pars_i.BC_dx[0]] * 2
                 pars_i.BCW_dx = [pars_i.BCW_dx[0]] * 2

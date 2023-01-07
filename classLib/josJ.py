@@ -1,7 +1,6 @@
 # import built-ins
 from collections import namedtuple
-from typing import Union, List
-from dataclasses import dataclass
+from typing import Union, List, Tuple
 
 # import well-supported 3rd party
 import numpy as np
@@ -13,7 +12,7 @@ from pya import Trans, DTrans, DVector, DPath
 
 # import project lib
 from classLib.baseClasses import ElementBase, ComplexBase
-from classLib.shapes import Disk, Kolbaska, DPathCL
+from classLib.shapes import Disk, DPathCL
 from classLib.coplanars import CPW, CPWParameters, CPWRLPath, CPW2CPW
 
 
@@ -22,17 +21,18 @@ from classLib.coplanars import CPW, CPWParameters, CPWRLPath, CPW2CPW
 
 
 class AsymSquidParams:
+    instance_i = 0
     def __init__(
             self,
             squid_dx=10.5e3,
             squid_dy=5e3,
             TC_dx=8e3,
             TC_dy=10e3,
-            BC_dx: Union[List[float], float] = 5e3,
+            BC_dx: Tuple[float] = (5e3,),
             BC_dy=7e3,
             TCW_dx=1e3,
             TCW_dy=10e3,
-            BCW_dx: Union[List[float], float] = 1e3,
+            BCW_dx: Tuple[float] = (1e3,),
             BCW_dy=1.5e3,
             SQT_dy=500,
             SQLTT_dx=None,
@@ -49,20 +49,23 @@ class AsymSquidParams:
             SQRTJJ_dx=398.086,  # j2_dx
             SQRBJJ_dy=250,  # j2_dy
             SQRBJJ_dx=None,
-            bot_wire_x=None,
+            bot_wire_x: Tuple[float] = None,
             SQRBT_dy=None
     ):
         """
-        For all undocumented pararmeters see corresponding PDF schematics.
+        All pararmeters are visualized see corresponding PDF schematics:
+        .../classlib/schematics/AsymmetricSQUID.pdf
+        Parameters that has default value "None" are calculated during
+        initialization and aimed to provide a nice-looking geometry.
 
         Parameters
         ----------
         squid_dx : float
         squid_dy : float
         TC_dx : float
-        BC_dx : Union[List[float], float]
+        BC_dx : Tuple[float]
         TCW_dx : float
-        BCW_dx : Union[List[float],float]
+        BCW_dx : Tuple[float]
         SQT_dy : float
         SQLTT_dx : Optional[float]
         SQRTT_dx : Optional[float]
@@ -72,7 +75,12 @@ class AsymSquidParams:
         alpha : float
             0 < alpha < 1
         shadow_gap : float
-        bot_wire_x : Union[float, List[float]]
+        bot_wire_x : Tuple[float]
+            List containing bottom wires coordinates.
+            See schematics provided for self-explanatory description.
+            Default "None" - this tuple will be calculated to generate
+            two BCW regions (BCW1 and BCW2) nicely attached to the SQB
+            region.
         """
         self.squid_dx = squid_dx
         self.squid_dy = squid_dy
@@ -103,38 +111,25 @@ class AsymSquidParams:
         self.shadow_gap = shadow_gap
 
         self.TC_dx = TC_dx
-
+        print("bot_wire_x passed:", bot_wire_x)
+        print("instance_idx:", AsymSquidParams.instance_i)
         if bot_wire_x is None:
-            dx1 = squid_dx/2 + self.SQLBT_dx/2
+            print("enter None", AsymSquidParams.instance_i)
+            dx1 = squid_dx / 2 + self.SQLBT_dx / 2
             dx2 = squid_dx / 2 + self.SQRBT_dx / 2
-            self.bot_wire_x = [-dx1, dx2]
+            self.bot_wire_x: List[float] = [-dx1, dx2]
         else:
-            try:
-                iter(bot_wire_x)
-            except TypeError:
-                self.bot_wire_x = [bot_wire_x]
-            else:
-                self.bot_wire_x = bot_wire_x
+            print("assign value passed")
+            self.bot_wire_x: List[float] = list(bot_wire_x)
 
-        # check if iterable and set iterable
-        try:
-            iter(BC_dx)
-        except TypeError:
-            self.BC_dx = [BC_dx] * len(self.bot_wire_x)
-        else:
-            self.BC_dx = BC_dx
+        self.BC_dx: List[float] = list(BC_dx)
 
         self.TC_dy = TC_dy
         self.BC_dy = BC_dy
         self.TCW_dx = TCW_dx
         self.TCW_dy = TCW_dy
         self.BCW_dy = BCW_dy
-        try:
-            iter(BCW_dx)
-        except TypeError:
-            self.BCW_dx = [BCW_dx] * len(self.bot_wire_x)
-        else:
-            self.BCW_dx = BCW_dx
+        self.BCW_dx: List[float] = list(BCW_dx)
 
         self.SQT_dx = self.squid_dx + self.SQLBT_dx / 2 - self.JJC + \
                       self.SQLTT_dx / 2 + self.SQRBT_dx / 2 - self.JJC + \
@@ -1158,7 +1153,7 @@ class Squid(AsymSquid):
     def __init__(self, origin, params, side=0, trans_in=None):
         # To draw only width half of width squid use 'side'
         # side = -1 is left, 1 is right, 0 is both (default)
-        asymparams = AsymSquidParams(*params[:-3], *params[-2:])
+        asymparams = AsymSquidParams()
         super().__init__(self, origin, asymparams, side, trans_in)
 
 

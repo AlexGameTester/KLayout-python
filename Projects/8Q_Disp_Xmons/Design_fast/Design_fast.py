@@ -1,5 +1,5 @@
 __version__ = "8Q_0.0.0.1"
-
+# TODO: not compatible with 8QStair
 '''
 Changes log
 
@@ -35,11 +35,12 @@ from classLib.coplanars import CPWParameters, CPW, DPathCPW, \
     CPWRLPath, Bridge1, CPW2CPW
 from classLib.shapes import Rectangle
 from classLib.capacitors import TmonT
-from classLib import CutMark
+from classLib.marks import CutMark
 from classLib.resonators import EMResonatorTL3QbitWormRLTailXmonFork
 from classLib.josJ import AsymSquid, AsymSquidParams
 from classLib.chipTemplates import CHIP_16p5x16p5_20pads, \
-    CHIP_14x14_20pads, FABRICATION
+    CHIP_14x14_20pads
+from classLib.helpers import FABRICATION
 from classLib.chipDesign import ChipDesign
 from classLib.marks import MarkBolgar
 from classLib.contactPads import ContactPad
@@ -113,18 +114,12 @@ class TestStructurePadsSquare(ComplexBase):
         self.center = self.connections[0]
 
 
-SQUID_PARS = AsymSquidParams(
-    band_ph_tol=1e3,
-    squid_dx=14.2e3,
-    squid_dy=10e3,
-    TC_dx=2.5e3 * np.sqrt(2) + 1e3,
-    TC_dy=5e3 * np.sqrt(2) / 2 + 1e3,
-    TCW_dy=6e3,
-    TCW_dx=0.5e3,
-    BCW_dy=0e3,
-    BC_dy=5e3 * np.sqrt(2) / 2 + 1e3,
-    BC_dx=2.5e3 * np.sqrt(2) + 1e3
-)
+SQUID_PARS = AsymSquidParams(squid_dx=14.2e3, squid_dy=10e3,
+                             TC_dx=2.5e3 * np.sqrt(2) + 1e3,
+                             TC_dy=5e3 * np.sqrt(2) / 2 + 1e3,
+                             BC_dx=2.5e3 * np.sqrt(2) + 1e3,
+                             BC_dy=5e3 * np.sqrt(2) / 2 + 1e3,
+                             TCW_dx=0.5e3, TCW_dy=6e3, BCW_dy=0e3)
 
 VERT_ARR_SHIFT = DVector(-50e3, -150e3)
 

@@ -876,14 +876,7 @@ class Design5Q(ChipDesign):
         self.cpwrl_fl5_end.place(tmp_reg)
 
     def draw_josephson_loops(self):
-        new_pars_squid = AsymSquidParams(
-            pad_r=5e3, pads_distance=30e3,
-            p_ext_width=10e3, p_ext_r=200,
-            sq_dy=15e3, sq_area=200e6,
-            j_width_1=95, j_width_2=348,
-            intermediate_width=500, b_ext=1e3, j_length=94, n=20,
-            bridge=180, j_length_2=250
-        )
+        new_pars_squid = AsymSquidParams()
         # place left squid
         xmon0 = self.xmons[0]
         center1 = DPoint(
@@ -949,14 +942,7 @@ class Design5Q(ChipDesign):
             rec_bot.place(self.region_ph)
 
     def draw_test_structures(self):
-        new_pars_squid = AsymSquidParams(
-            pad_r=5e3, pads_distance=30e3,
-            p_ext_width=10e3, p_ext_r=200,
-            sq_dy=15e3, sq_area=200e6,
-            j_width_1=94, j_width_2=347,
-            intermediate_width=500, b_ext=1e3, j_length=94, n=20,
-            bridge=180, j_length_2=250
-        )
+        new_pars_squid = AsymSquidParams()
 
         struct_centers = [DPoint(1e6, 4e6), DPoint(8.7e6, 5.7e6), DPoint(6.5e6, 2.7e6)]
         for struct_center in struct_centers:

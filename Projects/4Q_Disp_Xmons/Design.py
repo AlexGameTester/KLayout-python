@@ -197,17 +197,9 @@ class TestStructurePadsSquare(ComplexBase):
         self.center = self.connections[0]
 
 
-SQUID_PARS = AsymSquidParams(
-    band_ph_tol=1e3,
-    squid_dx=14.2e3,
-    squid_dy=7e3,
-    TC_dx=9e3,
-    TC_dy=7e3,
-    TCW_dy=6e3,
-    BCW_dy=0e3,
-    BC_dy=7e3,
-    BC_dx=7e3
-)
+SQUID_PARS = AsymSquidParams(squid_dx=14.2e3, squid_dy=7e3, TC_dx=9e3,
+                             TC_dy=7e3, BC_dx=7e3, BC_dy=7e3, TCW_dy=6e3,
+                             BCW_dy=0e3)
 
 
 class Design5Q(ChipDesign):
