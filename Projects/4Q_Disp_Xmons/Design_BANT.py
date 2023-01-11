@@ -754,7 +754,7 @@ class Design5QTest(ChipDesign):
         self.cpwrl_md1 = DPathCPW(
             points=[_p1, _p2, _p3],
             cpw_parameters=self.z_md_fl,
-            turn_radiuses=self.ctr_lines_turn_radius
+            turn_radii=self.ctr_lines_turn_radius
         )
         self.cpwrl_md1.place(tmp_reg)
         self.cpw_md_lines.append(self.cpwrl_md1)
@@ -766,7 +766,7 @@ class Design5QTest(ChipDesign):
         self.cpwrl_md1 = DPathCPW(
             points=[_p1, _p2, _p3],
             cpw_parameters=self.z_md_fl,
-            turn_radiuses=self.ctr_lines_turn_radius
+            turn_radii=self.ctr_lines_turn_radius
         )
         self.cpwrl_md1.place(tmp_reg)
         self.cpw_md_lines.append(self.cpwrl_md1)
@@ -778,7 +778,7 @@ class Design5QTest(ChipDesign):
         self.cpwrl_md1 = DPathCPW(
             points=[_p1, _p2, _p3],
             cpw_parameters=self.z_md_fl,
-            turn_radiuses=self.ctr_lines_turn_radius
+            turn_radii=self.ctr_lines_turn_radius
         )
         self.cpwrl_md1.place(tmp_reg)
         self.cpw_md_lines.append(self.cpwrl_md1)
@@ -790,7 +790,7 @@ class Design5QTest(ChipDesign):
         self.cpwrl_md1 = DPathCPW(
             points=[_p1, _p2, _p3],
             cpw_parameters=self.z_md_fl,
-            turn_radiuses=self.ctr_lines_turn_radius
+            turn_radii=self.ctr_lines_turn_radius
         )
         self.cpwrl_md1.place(tmp_reg)
         self.cpw_md_lines.append(self.cpwrl_md1)
@@ -802,7 +802,7 @@ class Design5QTest(ChipDesign):
         self.cpwrl_md1 = DPathCPW(
             points=[_p1, _p2, _p3],
             cpw_parameters=self.z_md_fl,
-            turn_radiuses=self.ctr_lines_turn_radius
+            turn_radii=self.ctr_lines_turn_radius
         )
         self.cpwrl_md1.place(tmp_reg)
         self.cpw_md_lines.append(self.cpwrl_md1)
@@ -814,7 +814,7 @@ class Design5QTest(ChipDesign):
         self.cpwrl_md1 = DPathCPW(
             points=[_p1, _p2, _p3],
             cpw_parameters=self.z_md_fl,
-            turn_radiuses=self.ctr_lines_turn_radius
+            turn_radii=self.ctr_lines_turn_radius
         )
         self.cpwrl_md1.place(tmp_reg)
         self.cpw_md_lines.append(self.cpwrl_md1)
@@ -836,7 +836,7 @@ class Design5QTest(ChipDesign):
         self.cpwrl_fl1 = DPathCPW(
             points=[_p1, _p2, _p3],
             cpw_parameters=self.z_md_fl,
-            turn_radiuses=self.ctr_lines_turn_radius,
+            turn_radii=self.ctr_lines_turn_radius,
         )
         self.cpw_fl_lines.append(self.cpwrl_fl1)
 
@@ -847,7 +847,7 @@ class Design5QTest(ChipDesign):
         self.cpwrl_fl3 = DPathCPW(
             points=[_p1, _p2, _p3],
             cpw_parameters=self.z_md_fl,
-            turn_radiuses=self.ctr_lines_turn_radius,
+            turn_radii=self.ctr_lines_turn_radius,
         )
         self.cpw_fl_lines.append(self.cpwrl_fl3)
 
@@ -858,7 +858,7 @@ class Design5QTest(ChipDesign):
         self.cpwrl_fl5 = DPathCPW(
             points=[_p1, _p2, _p3],
             cpw_parameters=self.z_md_fl,
-            turn_radiuses=self.ctr_lines_turn_radius,
+            turn_radii=self.ctr_lines_turn_radius,
         )
         self.cpw_fl_lines.append(self.cpwrl_fl5)
 
@@ -870,7 +870,7 @@ class Design5QTest(ChipDesign):
         self.cpwrl_fl0 = DPathCPW(
             points=[_p1, _p2, _p3],
             cpw_parameters=self.z_md_fl,
-            turn_radiuses=self.ctr_lines_turn_radius,
+            turn_radii=self.ctr_lines_turn_radius,
         )
         self.cpw_fl_lines.append(self.cpwrl_fl0)
 
@@ -882,7 +882,7 @@ class Design5QTest(ChipDesign):
         self.cpwrl_fl4 = DPathCPW(
             points=[_p1, _p2, _p3],
             cpw_parameters=self.z_md_fl,
-            turn_radiuses=self.ctr_lines_turn_radius,
+            turn_radii=self.ctr_lines_turn_radius,
         )
         self.cpw_fl_lines.append(self.cpwrl_fl4)
 
@@ -894,7 +894,7 @@ class Design5QTest(ChipDesign):
         self.cpwrl_fl2 = DPathCPW(
             points=[_p1, _p2, _p3],
             cpw_parameters=self.z_md_fl,
-            turn_radiuses=self.ctr_lines_turn_radius,
+            turn_radii=self.ctr_lines_turn_radius,
         )
         self.cpw_fl_lines.append(self.cpwrl_fl2)
 

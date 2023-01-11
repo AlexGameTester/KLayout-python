@@ -522,8 +522,7 @@ class CPWRLPath(ComplexBase):
         will not alter the position of the end of the line.
 
         TODO: Rewrite based on to be rewritten DPathCPW lines construction
-            algorithm
-            construction.
+            algorithm.
          CPW2CPW straight and circular transitions has to be implemented
          for `CPWDPath` to be continuous coplanar (may be even with
          continuous parametric derivative)
@@ -673,7 +672,7 @@ class CPWRLPath(ComplexBase):
                     coeff = abs(np.tan(self._turn_angles[idx_r] / 2))
                     # print(self._segment_lengths)
                     # print(coeff)
-                    # print(self._turn_radiuses)
+                    # print(self._turn_radii)
                     self._segment_lengths[idx_l] -= \
                         self._turn_radiuses[idx_r] * coeff
                 # previous 'R' segment if exists
@@ -724,8 +723,11 @@ class CPWRLPath(ComplexBase):
 
 
 class DPathCPW(ComplexBase):
-    def __init__(self, points, cpw_parameters,
-                 turn_radiuses, trans_in=None, region_id="default"):
+    def __init__(self, points: Union[List[DPoint], np.ndarray],
+                 cpw_parameters: List[CPWParameters],
+                 turn_radii: List[float],
+                 trans_in=None,
+                 region_id="default"):
         """
         A piecewise-linear coplanar waveguide with rounded turns.
 
@@ -737,12 +739,18 @@ class DPathCPW(ComplexBase):
         ----------
         points : Union[List[DPoint], np.ndarray[DPoint]]
             list of anchor points of width Path
-        cpw_parameters : Union[CPWParameters, List[CPWParameters]]
+        cpw_parameters : List[CPWParameters]
             Parameters of the CPW or an array-like with parameters
-            for each peace (R or L)
-        turn_radiuses : Union[float, List[float]]
+            for each peace (R or L).
+            List length must either 1 (same for all CPWs)
+            or has to be equal to the number of elements in combined
+            coplanar.
+        turn_radii : List[float]
             Radius of the turns or an array-like with radiuses for
-            each turn
+            each turn.
+            List length must either 1 (same for all turns)
+            or has to be equal to the number of turns in combined
+            coplanar.
         trans_in: DTrans
             Transformation of the line as width whole
 
@@ -771,8 +779,12 @@ class DPathCPW(ComplexBase):
 
         # translating from points, to squences of segments lengths and
         # turn angles
-        self._turn_angles = []
-        self._shape_string = []
+        self._turn_angles: Union[List[float], np.ndarray] = []
+        self._shape_string: Union[List[float], np.ndarray] = []
+        self._cpw_parameters: List[CPWParameters] = []
+        self._turn_radii: Union[List[float], np.ndarray] = []
+        self._segment_lengths: Union[List[float], np.ndarray] = []
+
         for p1, p2, p3 in zip(points, points[1:], points[2:]):
             a = (p2 - p1)
             b = (p3 - p2)
@@ -787,13 +799,14 @@ class DPathCPW(ComplexBase):
                 angle = a.vprod_sign(b) * np.abs(
                     np.arccos(a.sprod(b) / (a.length() * b.length()))
                 )
-
             if np.abs(angle) < 1e-6:
+                # exact or almost collinear vectors interpreted as a single straight line
                 self._shape_string += ["L"]
             else:
-                # non-colinear
+                # non-colinear vectors has round arc between them
                 self._shape_string += ["L", "R"]
                 self._turn_angles += [angle]
+        self._turn_angles = np.array(self._turn_angles, dtype=float)
         self._shape_string += ["L"]
 
         # number of `CPW` segments + number of `CPW2CPWarc`s
@@ -804,48 +817,43 @@ class DPathCPW(ComplexBase):
         self._N_turns = _ctr["R"]
         self._N_elements = self._N_straights + self._N_turns
 
-        self._cpw_parameters: List[CPWParameters] = []
-        # multi-type parameters parsing
-        if hasattr(cpw_parameters, "__len__"):
-            l_length = len(cpw_parameters)
-            if (l_length != self._N_elements) and (l_length != 1):
+        # input parameters parsing for `cpw_parameters` and `turn_radii`
+        cpw_parameters = copy.deepcopy(cpw_parameters)
+        if len(cpw_parameters) == 1:
+            self._cpw_parameters = [cpw_parameters[0]] * self._N_elements
+        else:
+            if len(cpw_parameters) != self._N_elements:
                 raise ValueError(
                     "CPW parameters dimension mismatch\n"
                     f"N_elements = {self._N_elements} != cpwpars given = "
-                    f"{l_length}"
+                    f"{len(cpw_parameters)}"
                 )
             else:
-                self._cpw_parameters = copy.deepcopy(cpw_parameters)
-            if l_length == 1:
-                self._cpw_parameters = [cpw_parameters[
-                                            0]] * self._N_elements
-        else:
-            self._cpw_parameters = [cpw_parameters] * self._N_elements
+                self._cpw_parameters = [cpw_parameters] * self._N_elements
 
-        if hasattr(turn_radiuses, "__len__"):
-            if len(turn_radiuses) != self._N_turns:
-                raise ValueError("Turn raduises dimension mismatch")
+        turn_radii = copy.deepcopy(turn_radii)
+        if len(turn_radii) == 1:
+            # same radius for all turns
+            self._turn_radii = [turn_radii[0]] * self._N_turns
+        else:
+            # number of radii has to match number of detected
+            # turns
+            if len(turn_radii) != self._N_turns:
+                raise ValueError("`turn_raduii` dimension mismatch")
             else:
-                self._turn_radiuses = copy.deepcopy(turn_radiuses)
-        else:
-            self._turn_radiuses = [turn_radiuses] * self._N_turns
+                self._turn_radii = np.array(turn_radii, dtype=float)
 
-        segment_lengths = []
         for p1, p2 in zip(points, points[1:]):
-            segment_lengths.append(p1.distance(p2))
-        # print(segment_lengths)
-        if hasattr(segment_lengths, "__len__"):
-            if len(segment_lengths) != self._N_straights:
-                raise ValueError(
-                    "Straight segments dimension mismatch"
-                    f"self._N_straights = {self._N_straights}\n"
-                    f"segment_lengths = {segment_lengths}"
-                )
-            else:
-                self._segment_lengths = copy.deepcopy(segment_lengths)
+            self._segment_lengths += [p1.distance(p2)]
+        if len(self._segment_lengths) != self._N_straights:
+            raise ValueError(
+                "DPathCPW internal parsing error:\n"
+                "Straight segments dimension mismatch\n"
+                f"self._N_straights = {self._N_straights}\n"
+                f"segment_lengths = {len(self._segment_lengths)}"
+            )
         else:
-            self._segment_lengths: List[float] = [segment_lengths] * \
-                                                 self._N_straights
+            self._segment_lengths = np.array(self._segment_lengths, dtype=float)
 
         super().__init__(self.points[0], trans_in, region_id=region_id)
         self.start = self.connections[0]
@@ -863,7 +871,7 @@ class DPathCPW(ComplexBase):
 
         for i, symbol in enumerate(self._shape_string):
             if symbol == 'R':
-                turn_radius = self._turn_radiuses[idx_r]
+                turn_radius = self._turn_radii[idx_r]
                 turn_angle = self._turn_angles[idx_r]
 
                 if abs(turn_radius) < self._cpw_parameters[i].b / 2:
@@ -925,14 +933,13 @@ class DPathCPW(ComplexBase):
                         and self._shape_string[i + 1] == 'R'
                         and abs(self._turn_angles[idx_r]) < np.pi):
                     coeff = abs(np.tan(self._turn_angles[idx_r] / 2))
-                    self._segment_lengths[idx_l] -= self._turn_radiuses[
-                                                        idx_r] * coeff
+                    self._segment_lengths[idx_l] -= self._turn_radii[idx_r] * coeff
                 # previous 'R' segment if exists
                 if (i - 1 > 0  # line can't start with 'R'
                         and self._shape_string[i - 1] == 'R'
                         and abs(self._turn_angles[idx_r - 1]) < np.pi):
                     coeff = abs(np.tan(self._turn_angles[idx_r - 1] / 2))
-                    self._segment_lengths[idx_l] -= self._turn_radiuses[
+                    self._segment_lengths[idx_l] -= self._turn_radii[
                                                         idx_r - 1] * coeff
 
                 if (self._segment_lengths[idx_l] < 0):
@@ -1014,7 +1021,7 @@ class DPathCPW(ComplexBase):
     def get_total_length(self):
         return sum(self._segment_lengths) + \
                sum([abs(R * alpha) for R, alpha in
-                    zip(self._turn_radiuses, self._turn_angles)])
+                    zip(self._turn_radii, self._turn_angles)])
 
 
 class Bridge1(ElementBase):

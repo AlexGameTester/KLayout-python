@@ -110,7 +110,7 @@ class Design8QStair(ChipDesign):
         self.circle_hull_d = 5e3
 
         ''' READOUT LINES '''
-        self.ro_lines = [None, None]
+        self.ro_lines: List[DPathCPW] = [None, None]
 
         ''' SQUID POSITIONING AND PARAMETERS SECTION START '''
         self.squid_vertical_shifts_list = []
@@ -206,8 +206,8 @@ class Design8QStair(ChipDesign):
                DPoint(7e6, 5e6), p0_end]
         self.ro_lines[0] = DPathCPW(
             points=pts,
-            cpw_parameters=CPWParameters(width=20e3, gap=10e3),
-            turn_radiuses=60e3,  # TODO: dimension mismatch if only 1 list entry is provided, same for other args
+            cpw_parameters=[CPWParameters(width=20e3, gap=10e3)],
+            turn_radii=[60e3],
             trans_in=None,
             region_id="ph"
         )

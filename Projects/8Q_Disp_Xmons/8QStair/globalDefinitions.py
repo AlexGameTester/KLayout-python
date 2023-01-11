@@ -23,7 +23,7 @@ CHIP = CHIP_14x14_20pads
 # open-ended center
 VERT_ARR_SHIFT = DVector(-50e3, -150e3)
 
-print("global definitions loaded")
+# print("global definitions loaded")
 BC_dx = 2.5e3*np.sqrt(2)+1e3
 SQUID_PARS = AsymSquidParams(squid_dx=14.2e3, squid_dy=10e3,
                              TC_dx=2.5e3 * np.sqrt(2) + 1e3,

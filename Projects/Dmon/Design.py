@@ -268,7 +268,7 @@ class Fluxonium(AsymSquid):
             cpw_parameters=CPWParameters(
                 width=self.squid_params.line_width, gap=0
             ),
-            turn_radiuses=self.r_curve,
+            turn_radii=self.r_curve,
             region_id="kinInd"
         )
         # print(self.line.get_total_length())
@@ -982,7 +982,7 @@ class DesignDmon(ChipDesign):
         self.cpwrl_md1 = DPathCPW(
             points=[_p1, _p2, _p3],
             cpw_parameters=self.z_fl,
-            turn_radiuses=self.ctr_lines_turn_radius
+            turn_radii=self.ctr_lines_turn_radius
         )
         self.cpwrl_md1.place(tmp_reg)
         self.cpw_md_lines.append(self.cpwrl_md1)
@@ -995,7 +995,7 @@ class DesignDmon(ChipDesign):
         self.cpwrl_md1 = DPathCPW(
             points=[_p1, _p2, _p3],
             cpw_parameters=self.z_fl,
-            turn_radiuses=self.ctr_lines_turn_radius
+            turn_radii=self.ctr_lines_turn_radius
         )
         self.cpwrl_md1.place(tmp_reg)
         self.cpw_md_lines.append(self.cpwrl_md1)
@@ -1008,7 +1008,7 @@ class DesignDmon(ChipDesign):
         self.cpwrl_md1 = DPathCPW(
             points=[_p1, _p2, _p3],
             cpw_parameters=self.z_fl,
-            turn_radiuses=self.ctr_lines_turn_radius
+            turn_radii=self.ctr_lines_turn_radius
         )
         self.cpwrl_md1.place(tmp_reg)
         self.cpw_md_lines.append(self.cpwrl_md1)
@@ -1021,7 +1021,7 @@ class DesignDmon(ChipDesign):
         self.cpwrl_md1 = DPathCPW(
             points=[_p1, _p2, _p3],
             cpw_parameters=self.z_fl,
-            turn_radiuses=self.ctr_lines_turn_radius
+            turn_radii=self.ctr_lines_turn_radius
         )
         self.cpwrl_md1.place(tmp_reg)
         self.cpw_md_lines.append(self.cpwrl_md1)
@@ -1034,7 +1034,7 @@ class DesignDmon(ChipDesign):
         self.cpwrl_md1 = DPathCPW(
             points=[_p1, _p2, _p3],
             cpw_parameters=self.z_fl,
-            turn_radiuses=self.ctr_lines_turn_radius
+            turn_radii=self.ctr_lines_turn_radius
         )
         self.cpwrl_md1.place(tmp_reg)
         self.cpw_md_lines.append(self.cpwrl_md1)
@@ -1047,7 +1047,7 @@ class DesignDmon(ChipDesign):
         self.cpwrl_md1 = DPathCPW(
             points=[_p1, _p2, _p3],
             cpw_parameters=self.z_fl,
-            turn_radiuses=self.ctr_lines_turn_radius
+            turn_radii=self.ctr_lines_turn_radius
         )
         self.cpwrl_md1.place(tmp_reg)
         self.cpw_md_lines.append(self.cpwrl_md1)
@@ -1076,7 +1076,7 @@ class DesignDmon(ChipDesign):
         self.cpwrl_fl1 = DPathCPW(
             points=[_p1, _p2, _p3],
             cpw_parameters=self.z_fl,
-            turn_radiuses=self.ctr_lines_turn_radius,
+            turn_radii=self.ctr_lines_turn_radius,
         )
         self.cpw_fl_lines.append(self.cpwrl_fl1)
 
@@ -1088,7 +1088,7 @@ class DesignDmon(ChipDesign):
         self.cpwrl_fl3 = DPathCPW(
             points=[_p1, _p2, _p3],
             cpw_parameters=self.z_fl,
-            turn_radiuses=self.ctr_lines_turn_radius,
+            turn_radii=self.ctr_lines_turn_radius,
         )
         self.cpw_fl_lines.append(self.cpwrl_fl3)
 
@@ -1100,7 +1100,7 @@ class DesignDmon(ChipDesign):
         self.cpwrl_fl5 = DPathCPW(
             points=[_p1, _p2, _p3],
             cpw_parameters=self.z_fl,
-            turn_radiuses=self.ctr_lines_turn_radius,
+            turn_radii=self.ctr_lines_turn_radius,
         )
         self.cpw_fl_lines.append(self.cpwrl_fl5)
 
@@ -1112,7 +1112,7 @@ class DesignDmon(ChipDesign):
         self.cpwrl_fl0 = DPathCPW(
             points=[_p1, _p2, _p3],
             cpw_parameters=self.z_fl,
-            turn_radiuses=self.ctr_lines_turn_radius,
+            turn_radii=self.ctr_lines_turn_radius,
         )
         self.cpw_fl_lines.append(self.cpwrl_fl0)
 
@@ -1124,7 +1124,7 @@ class DesignDmon(ChipDesign):
         self.cpwrl_fl4 = DPathCPW(
             points=[_p1, _p2, _p3],
             cpw_parameters=self.z_fl,
-            turn_radiuses=self.ctr_lines_turn_radius,
+            turn_radii=self.ctr_lines_turn_radius,
         )
         self.cpw_fl_lines.append(self.cpwrl_fl4)
 
@@ -1136,7 +1136,7 @@ class DesignDmon(ChipDesign):
         self.cpwrl_fl2 = DPathCPW(
             points=[_p1, _p2, _p3],
             cpw_parameters=self.z_fl,
-            turn_radiuses=self.ctr_lines_turn_radius,
+            turn_radii=self.ctr_lines_turn_radius,
         )
         self.cpw_fl_lines.append(self.cpwrl_fl2)
 

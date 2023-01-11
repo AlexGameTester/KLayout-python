@@ -808,7 +808,7 @@ class Design5Q(ChipDesign):
 
         # self.cpwrl_md5 = CPWDPath(
         #     contact_pads[9].end, shape="LRLRL", cpw_parameters=z_md_fl_corrected,
-        #     turn_radiuses=[ctr_lines_turn_radius] * 2,
+        #     turn_radii=[ctr_lines_turn_radius] * 2,
         #     segment_lengths=[
         #         md5_l1,
         #         (

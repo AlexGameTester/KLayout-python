@@ -797,7 +797,7 @@ class Design8Q(ChipDesign):
         self.cpwrl_ro_line1 = DPathCPW(
             points=[p1, p2, p3, p4, p5, p_last],
             cpw_parameters=self.ro_Z,
-            turn_radiuses=self.ro_line_turn_radius
+            turn_radii=self.ro_line_turn_radius
         )
         self.cpwrl_ro_line1.place(self.region_ph)
 
@@ -824,7 +824,7 @@ class Design8Q(ChipDesign):
         self.cpwrl_ro_line2 = DPathCPW(
             points=[p1, p2, p3, p4, p5, p_last],
             cpw_parameters=self.ro_Z,
-            turn_radiuses=self.ro_line_turn_radius
+            turn_radii=self.ro_line_turn_radius
         )
         self.cpwrl_ro_line2.place(self.region_ph)
 
@@ -880,7 +880,7 @@ class Design8Q(ChipDesign):
             points=[p1, p2, p3, p4, p5],
             cpw_parameters=[self.z_md_fl] * 5 +
                 [CPWParameters(width=0, gap=self.z_md_fl.b / 2)],
-            turn_radiuses=r_turn
+            turn_radii=r_turn
         )
         self.cpw_md_lines.append(self.cpwrl_md0)
         self.cpwrl_md0.place(self.region_ph)
@@ -913,7 +913,7 @@ class Design8Q(ChipDesign):
                 points=[p1, p2, p3, p4, p5],
                 cpw_parameters=[self.z_md_fl]*5 +
                 [CPWParameters(width=0, gap=self.z_md_fl.b/2)],
-                turn_radiuses=r_turn
+                turn_radii=r_turn
             )
             self.__setattr__("cpwrl_md_" + str(q_idx), md_dpath)
             self.cpw_md_lines.append(md_dpath)
@@ -931,7 +931,7 @@ class Design8Q(ChipDesign):
             cpw_parameters=[self.z_md_fl] * 4 +
                            [CPWParameters(width=0,
                                           gap=self.z_md_fl.b / 2)],
-            turn_radiuses=r_turn
+            turn_radii=r_turn
         )
         self.cpw_md_lines.append(self.cpwrl_md7)
         self.cpwrl_md7.place(self.region_ph)
@@ -955,7 +955,7 @@ class Design8Q(ChipDesign):
         self.cpwrl_fl0 = DPathCPW(
             points=[p1, p2, p3, p4, p5],
             cpw_parameters=self.z_md_fl,
-            turn_radiuses=r_turn
+            turn_radii=r_turn
         )
         self.cpw_fl_lines.append(self.cpwrl_fl0)
 
@@ -987,7 +987,7 @@ class Design8Q(ChipDesign):
             md_dpath = DPathCPW(
                 points=[p1, p2, p3, p4],
                 cpw_parameters=self.z_md_fl,
-                turn_radiuses=r_turn
+                turn_radii=r_turn
             )
             self.__setattr__("cpwrl_fl" + str(q_idx), md_dpath)
             self.cpw_fl_lines.append(md_dpath)
@@ -1008,7 +1008,7 @@ class Design8Q(ChipDesign):
         self.cpwrl_fl7 = DPathCPW(
             points=[p1, p2, p3, p4, p5],
             cpw_parameters=self.z_md_fl,
-            turn_radiuses=r_turn
+            turn_radii=r_turn
         )
         self.cpw_fl_lines.append(self.cpwrl_fl7)
 

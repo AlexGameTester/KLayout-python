@@ -21,7 +21,6 @@ from classLib.coplanars import CPW, CPWParameters, CPWRLPath, CPW2CPW
 
 
 class AsymSquidParams:
-    instance_i = 0
     def __init__(
             self,
             squid_dx=10.5e3,
@@ -111,15 +110,11 @@ class AsymSquidParams:
         self.shadow_gap = shadow_gap
 
         self.TC_dx = TC_dx
-        print("bot_wire_x passed:", bot_wire_x)
-        print("instance_idx:", AsymSquidParams.instance_i)
         if bot_wire_x is None:
-            print("enter None", AsymSquidParams.instance_i)
             dx1 = squid_dx / 2 + self.SQLBT_dx / 2
             dx2 = squid_dx / 2 + self.SQRBT_dx / 2
             self.bot_wire_x: List[float] = [-dx1, dx2]
         else:
-            print("assign value passed")
             self.bot_wire_x: List[float] = list(bot_wire_x)
 
         self.BC_dx: List[float] = list(BC_dx)
