@@ -1871,7 +1871,7 @@ def simulate_resonators_f_and_Q(resolution=(4e3, 4e3)):
         estimated_freq = predef_freq
         # print("start drawing")
         # print(f"previous result estimated freq: {estimated_freq:3.5} GHz")
-        # print(design.resonators[resonator_idx].length(exception="fork"))
+        # print(design.resonators[resonator_idx].length(except_containing="fork"))
 
         crop_box = (
                 design.resonators[resonator_idx].metal_region +

@@ -1,6 +1,6 @@
-from typing import Hashable, Union, Dict, Any
+from typing import Hashable, Union, Dict
 import pya
-from math import sqrt, cos, sin, atan2, pi, copysign
+from math import cos, sin, atan2
 from pya import Point, DPoint, DSimplePolygon, SimplePolygon, DPolygon, Polygon, Region
 from pya import Trans, DTrans, CplxTrans, DCplxTrans, ICplxTrans
 
@@ -48,16 +48,19 @@ class ElementBase():
         """
         # TODO: some parameters has to be wrapped in kwargs in some future.
 
-        ## MUST BE IMPLEMENTED ##
-        self.connections = []  # DPoint list with possible connection points
-        self.connection_edges = []  # indexes of edges that are intended to connect to other polygons
+        ## TODO: IMPLEMENT INTER-OBJECT CONNECTIONS ##
+        # DPoint list with possible connection points
+        self.connections = []
+        # indexes of edges that are intended to connect to other polygons
+        self.connection_edges = []
         # indexes in "self.connection_edges" where Sonnet ports
         # should be placed
-        self.sonnet_port_connections = []
-        self.angle_connections = []  # list with angle of connecting elements
         ## MUST BE IMLPEMENTED END ##
 
-        self.connection_ptrs = []  # pointers to connected structures represented by their class instances
+        self.sonnet_port_connections = []
+        self.angle_connections = []  # list with angle of connecting elements
+        # pointers to connected structures represented by their class instances
+        self.connection_ptrs = []
 
         self.origin = origin
         self.inverse = inverse
@@ -142,7 +145,7 @@ class ElementBase():
                 tmp_dict[prefix + key + postfix] = item
             return tmp_dict
         else:
-            print("Geometry parameters for ", self.__class__ , " does not implemented")
+            print("Geometry parameters for ", self.__class__, " does not implemented")
             return {}
 
     def init_regions(self):
@@ -382,13 +385,13 @@ class ComplexBase(ElementBase):
     def init_regions(self):
         pass
 
-    def length(self, exception=None):
+    def length(self, except_containing=""):
         """
 
         Parameters
         ----------
-        exception : str
-            primitives which names contains this string will be skipped
+        except_containing : str
+            primitives with name containing this string will be omitted
 
         Returns
         -------
@@ -398,20 +401,20 @@ class ComplexBase(ElementBase):
         for name, primitive in self.primitives.items():
             # getting only those who has length
             if hasattr(primitive, "length"):
-                if (exception is not None) and (exception in name):
+                if (except_containing == "") or (except_containing in name):
                     continue
-
-                dl = 0
-                if isinstance(primitive, ComplexBase):
-                    dl = primitive.length(exception=exception)
-                elif isinstance(primitive, ElementBase):
-                    dl = primitive.length()
                 else:
-                    raise Exception("unknown primitive found while "
-                                    "searching for length. "
-                                    "Terminating.")
+                    dl = 0
+                    if isinstance(primitive, ComplexBase):
+                        dl = primitive.length(except_containing=except_containing)
+                    elif isinstance(primitive, ElementBase):
+                        dl = primitive.length()
+                    else:
+                        raise Exception("unknown primitive found while "
+                                        "searching for length. "
+                                        "Terminating.")
 
-                length += dl
+                    length += dl
             else:
                 continue
 

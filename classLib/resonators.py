@@ -935,7 +935,7 @@ class EMResonatorTL3QbitWormRLTailXmonFork(EMResonatorTL3QbitWormRLTail):
         freq : float
             Estimated frequency
         """
-        length = self.length(exception="fork")  # nm
+        length = self.length(except_containing="fork")  # nm
         light_speed = 299792458/refractive_index  # m/s
         # print("resonator length: ", length)
         freq = light_speed/(4*length)  # GHz
