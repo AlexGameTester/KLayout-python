@@ -11,18 +11,41 @@ import itertools
 
 
 class ElementBase():
-    """
-    @brief: base class for simple single-layer or multi-layer elements and objects that are consisting of
-            several polygons.
-            metal_region polygons will be added to the design
-            empty_region polygons will be erased from the background with
-            metal region polygons already added.
-
-    """
-
     def __init__(self, origin, trans_in=None, inverse=False,
                  region_id="default", postpone_drawing=False,
                  region_ids=None):
+        """
+        Base class for simple single-layer or multi-layer elements and objects
+        that are consisting of several polygons to be added or erassed from possible destination:
+        `pya.Region` or `pya.Cell` (see `ElementBase.place()` method)
+
+        Chronological order of operations:
+        `metal_region` polygons will be added to the destination (logical OR between planes)
+        `empty_region` polygons will be erased from the background (logical XOR between planes)
+
+        Parameters
+        ----------
+        origin: DPioint
+            This objects axes origin will be placed at `origin` of parent object's
+            coordinate plane.
+        trans_in: Union[DCplxTrans, DTrans, Trans]
+            Klayout transformation.
+            ATTENTION: default behaviour is alternated, displacement is performed before rotation.
+        inverse: Optional[bool]
+            Whether to swap `self.metal_regions` and `self.empty_regions`.
+            Default:
+            `self.metal_regions` are treated as polygons to be added to the destination
+            `self.empty_regions` are treated as polygons to be erased from destination region.
+        region_id: str
+            Short name of the layer for multilayer geometries.
+        postpone_drawing: bool
+            Whether or not to prevent drawing of
+             `self.metal_regions` and `self.empty_regions` on class instance construction.
+             Primary usage aimed at parameter alteration before drawing.
+        region_ids: List[str]
+            List of layer names that are occupied by this object
+            Usually used by `ComplexBase` class, that is designed for compound objects.
+        """
         # TODO: some parameters has to be wrapped in kwargs in some future.
 
         ## MUST BE IMPLEMENTED ##

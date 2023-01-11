@@ -23,9 +23,9 @@ from classLib.baseClasses import ComplexBase
 from classLib.coplanars import CPW
 from classLib.josJ import AsymSquidParams, AsymSquid
 
-
 # project specific files
 from globalDefinitions import CHIP
+
 
 @dataclass()
 class QubitsGrid:
@@ -67,9 +67,12 @@ class QubitsGrid:
 class DiskConn8Pars:
     disk_r = 120e3
     disk_gap = 20e3
+    # extension beyond `disk_r` of `CPW` that imitates connection
     pimp_l = 0e3
     conn_width = 0e3
+    # side ground-gap of `CPW` that imitates connection
     conn_side_gap = 0e3
+    # front gap of the `CPW` that imitates connection
     conn_front_gap = 0e3
 
 
@@ -77,12 +80,18 @@ class DiskConn8(ComplexBase):
     """
     Single superconducting Island represents shunting ground capacitor
     for qubit
+    Has 8 connections distributed equidistantly (in angle) in counter-clockwise direction.
+    Connections are represented by zero-width/zero-gap coplanars.
+    As a result, coplanars are aligned into star-like structure.
+    See relevant parameters in `DiskConn8Pars` definition.
     """
 
-    def __init__(self, origin,
-                 pars: DiskConn8Pars = DiskConn8Pars(),
-                 trans_in=None,
-                 region_id="ph"):
+    def __init__(
+        self, origin,
+        pars: DiskConn8Pars = DiskConn8Pars(),
+        trans_in=None,
+        region_id="ph"
+        ):
         self.pars: DiskConn8Pars = pars
         self.disk: DiskConn8 = None
         self.conn8_list: List[CPW] = []
@@ -116,7 +125,7 @@ class DiskConn8(ComplexBase):
                 trans_in=trans,
                 region_id=self.region_id
             )
-            self.conn8_list.append(cpw)
+            self.connections.append(cpw.end)
             self.primitives["conn" + str(i)] = cpw
 
         self.disk = Disk(
@@ -128,10 +137,12 @@ class DiskConn8(ComplexBase):
 
 class QubitParams:
     def __init__(
-            self,
-            squid_params: AsymSquidParams = AsymSquidParams(),
-            qubit_cap_params: DiskConn8Pars = DiskConn8Pars()
+        self,
+        squid_params: AsymSquidParams = AsymSquidParams(),
+        qubit_cap_params: DiskConn8Pars = DiskConn8Pars(),
+        squid_connector_idx=4
     ):
+        self.squid_connector_idx = squid_connector_idx
         self.squid_params: AsymSquidParams = squid_params
         self.qubit_cap_params: DiskConn8Pars = qubit_cap_params
 
@@ -140,10 +151,10 @@ class Qubit(ComplexBase):
     _shift_into_substrate = 1.5e3
 
     def __init__(
-            self,
-            origin: DPoint = DPoint(0, 0),
-            qubit_params: QubitParams = QubitParams(),
-            trans_in=None, postpone_drawing=False
+        self,
+        origin: DPoint = DPoint(0, 0),
+        qubit_params: QubitParams = QubitParams(),
+        trans_in=None, postpone_drawing=False
     ):
         self.qubit_params = qubit_params
         self.squid: AsymSquid = None
@@ -171,25 +182,27 @@ class Qubit(ComplexBase):
             region_id=self.region_ids[0]
         )
 
-        qubit_finger = self.cap_shunt.conn8_list[6]
+        qubit_finger_end = self.cap_shunt.connections[
+            self.qubit_params.squid_connector_idx
+        ]
 
         # draw squid
-        squid_pars = self.qubit_params.squid_params
+        # squid_pars = self.qubit_params.squid_params
         # vertical shift of every squid local origin coordinates
         # this line puts squid center on the
         # "outer capacitor plate's edge" of the shunting capacitance.
-        squid_center = qubit_finger.open_end_end
+
         # next step is to make additional shift such that top of the
         # BC polygon is located at the former squid center position with
         # additional `_shift_into_substrate = 1.5e3` um shift in direction of substrate
-        _shift_to_BC_center = squid_pars.shadow_gap / 2 + \
-                              squid_pars.SQLBT_dy + squid_pars.SQB_dy + \
-                              squid_pars.BCW_dy + \
-                              self._shift_into_substrate
-        squid_center += DVector(0, _shift_to_BC_center)
+        # _shift_to_BC_center = squid_pars.shadow_gap / 2 + \
+        #                       squid_pars.SQLBT_dy + squid_pars.SQB_dy + \
+        #                       squid_pars.BCW_dy + \
+        #                       self._shift_into_substrate
+        # squid_center += DVector(0, _shift_to_BC_center)
 
         self.squid = AsymSquid(
-            origin=squid_center,
+            origin=qubit_finger_end,
             params=self.qubit_params.squid_params,
             region_id=self.region_ids[1]
         )

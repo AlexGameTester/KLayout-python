@@ -163,16 +163,16 @@ class Design8QStair(ChipDesign):
             # TODO: not working, qubit.squid.origin is wrong | partially
             #  dealt with. Check this.
             # shift squid to suit into scheme
-            qubit.squid.make_trans(DCplxTrans(1, 0, False, 0, -20e3))
-            q_origin = qubit.origin.dup()  # memorize origin
-            # transfer to origin
-            qubit.make_trans(DCplxTrans(1, 0, False, -q_origin))
-            # rotate depending on qubit group
-            if pt_i in [0, 1, 3]:
-                qubit.make_trans(DCplxTrans(1, -45, False, 0, 0))
-            else:
-                qubit.make_trans(DCplxTrans(1, -45, True, 0, 0))
-            qubit.make_trans(DCplxTrans(1, 0, False, q_origin))
+            # qubit.squid.make_trans(DCplxTrans(1, 0, False, 0, -20e3))
+            # q_origin = qubit.origin.dup()  # memorize origin
+            # # transfer to origin
+            # qubit.make_trans(DCplxTrans(1, 0, False, -q_origin))
+            # # rotate depending on qubit group
+            # if pt_i in [0, 1, 3]:
+            #     qubit.make_trans(DCplxTrans(1, -45, False, 0, 0))
+            # else:
+            #     qubit.make_trans(DCplxTrans(1, -45, True, 0, 0))
+            # qubit.make_trans(DCplxTrans(1, 0, False, q_origin))
             qubit.place(self.region_ph, region_id="ph")
             qubit.place(self.region_el, region_id="el")
 
