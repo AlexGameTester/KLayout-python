@@ -112,7 +112,7 @@ class DiskConn8(ComplexBase):
                 end=origin + DVector(cpw_l, 0),
                 width=self.pars.conn_width,
                 gap=self.pars.conn_side_gap,
-                open_end_l=self.pars.conn_front_gap,
+                open_end_gap=self.pars.conn_front_gap,
                 trans_in=trans,
                 region_id=self.region_id
             )

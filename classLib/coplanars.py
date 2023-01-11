@@ -38,8 +38,8 @@ class CPW(ElementBase):
                         DPoint end - center aligned point, determines the end point of the coplanar segment
     """
 
-    def __init__(self, width=0, gap=0, open_end_l=0, start=DPoint(0, 0),
-                 end=DPoint(0, 0), trans_in=None,
+    def __init__(self, width=0, gap=0, start=DPoint(0, 0),
+                 end=DPoint(0, 0), open_end_gap=0, trans_in=None,
                  cpw_params=None, region_id="default"):
         if (cpw_params is None):
             self.width = width
@@ -49,7 +49,7 @@ class CPW(ElementBase):
             self.width = cpw_params.width
             self.gap = cpw_params.gap
             self.b = 2 * self.gap + self.width
-        self.front_gap_d = open_end_l
+        self.open_end_gap = open_end_gap
         self.end = end
         self.start = start
         self.dr = end - start
@@ -78,7 +78,7 @@ class CPW(ElementBase):
             origin,  # start
             DPoint(dr_abs, 0),  # end
             # open_end_end
-            DPoint(dr_abs, 0) + DVector(self.front_gap_d, 0)
+            DPoint(dr_abs, 0) + DVector(self.open_end_gap, 0)
         ]
         self.angle_connections = [alpha, alpha]
 
@@ -106,12 +106,12 @@ class CPW(ElementBase):
                     Point().from_dpoint(DPoint(dr_abs, -self.width / 2))
                 )
             )
-        if (self.front_gap_d != 0):
+        if (self.open_end_gap != 0):
             self.empty_region.insert(
                 pya.Box(
                     Point().from_dpoint(DPoint(dr_abs, -self.b / 2)),
                     Point().from_dpoint(
-                        DPoint(dr_abs + self.front_gap_d, self.b / 2)
+                        DPoint(dr_abs + self.open_end_gap, self.b / 2)
                     )
                 )
             )
@@ -971,10 +971,10 @@ class DPathCPW(ComplexBase):
                     )
                 else:
                     cpw = CPW(
-                        self._cpw_parameters[i].width,
-                        self._cpw_parameters[i].gap,
-                        prev_primitive_end,
-                        prev_primitive_end +
+                        width=self._cpw_parameters[i].width,
+                        gap=self._cpw_parameters[i].gap,
+                        start=prev_primitive_end,
+                        end=prev_primitive_end +
                         DPoint(self._segment_lengths[idx_l], 0),
                         trans_in=DCplxTrans(
                             1,
