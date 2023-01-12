@@ -2,6 +2,11 @@ __version__ = "8QS_0.0.0.1"
 
 '''
 Changes log
+
+Design is based on schematics located on YandexDisk: 
+https://disk.yandex.com/d/F1Uz4Qk79VytSA
+Developing journal is also available on YandexDisk:
+https://disk.yandex.com/i/KLZmyRAYXG4mGA
 '''
 
 # import built-ins
@@ -36,6 +41,7 @@ from classLib.marks import MarkBolgar
 from classLib.contactPads import ContactPad
 from classLib.helpers import fill_holes, split_polygons, extended_region
 from classLib.helpers import simulate_cij, save_sim_results
+from classLib.shapes import RingSector
 
 # import sonnet simulation self-made package
 import sonnetSim
@@ -50,11 +56,11 @@ import globalDefinitions
 
 reload(globalDefinitions)
 from globalDefinitions import CHIP, VERT_ARR_SHIFT, SQUID_PARS
-import qubitGeomPars
+import designElementsGeometry
 
-reload(qubitGeomPars)
-from qubitGeomPars import QubitParams, Qubit, QubitsGrid
-from qubitGeomPars import DiskConn8Pars
+reload(designElementsGeometry)
+from designElementsGeometry import QubitParams, Qubit, QubitsGrid
+from designElementsGeometry import DiskConn8Pars
 
 
 class Design8QStair(ChipDesign):
@@ -102,18 +108,19 @@ class Design8QStair(ChipDesign):
             transition_len=250e3
         )
 
-        ''' QUBITS GRID PARAMETERS '''
+        ''' QUBITS GRID '''
         self.qubits_grid: QubitsGrid = QubitsGrid()
+        self.qubits_n = len(self.qubits_grid.pts_grid)
         self.qubits: List[Qubit] = []
-        ''' QUBIT COUPLINGS PARAMETERS '''
-        self.q_couplings = []
+        ''' QUBIT COUPLINGS '''
+        self.q_couplings: np.array = np.empty(
+            (self.qubits_n, self.qubits_n),
+            dtype=object
+        )
         self.circle_hull_d = 5e3
 
         ''' READOUT LINES '''
         self.ro_lines: List[DPathCPW] = [None, None]
-
-        ''' SQUID POSITIONING AND PARAMETERS SECTION START '''
-        self.squid_vertical_shifts_list = []
 
     def draw(self):
         """
@@ -132,7 +139,7 @@ class Design8QStair(ChipDesign):
 
     def draw_postpone(self):
         """
-        placing elements that were scheduled for postpone drawing.
+        Placing elements that were scheduled for postpone drawing.
         Initially implemented to use for geometry parameters sweeps in
         order to be able to change geometry parameters after
         `ChipDesign` class instance is initialized.
@@ -153,12 +160,36 @@ class Design8QStair(ChipDesign):
             contact_pad.place(self.region_ph)
 
     def draw_qubits_array(self):
-        for pt_i in range(len(self.qubits_grid.pts_grid)):
-            pt = self.qubits_grid.get_pt(pt_i)
-            qubit_pars = QubitParams(squid_params=SQUID_PARS,
-                                     qubit_cap_params=DiskConn8Pars())
-            qubit = Qubit(origin=pt, qubit_params=qubit_pars,
-                          postpone_drawing=False)
+        def get_squid_connector_idx(qubit_idx: int):
+            """
+            Returns squid connector idx based on qubit idx
+            Parameters
+            ----------
+            qubit_idx: int
+                from 0 to 7
+
+            Returns
+            -------
+            int
+                qubit disk's connector idx
+            """
+            if qubit_idx in [0, 1, 3, 6]:
+                return 5
+            else:
+                return 1
+
+        for qubit_idx in range(len(self.qubits_grid.pts_grid)):
+            pt = self.qubits_grid.get_pt(qubit_idx)
+            qubit_pars = QubitParams(
+                squid_params=SQUID_PARS,
+                qubit_cap_params=DiskConn8Pars(),
+                squid_connector_idx=get_squid_connector_idx(qubit_idx)
+            )
+            qubit = Qubit(
+                origin=pt,
+                qubit_params=qubit_pars,
+                postpone_drawing=False
+            )
             self.qubits.append(qubit)
             # TODO: not working, qubit.squid.origin is wrong | partially
             #  dealt with. Check this.
@@ -180,6 +211,8 @@ class Design8QStair(ChipDesign):
         it_1d = list(range(len(self.qubits_grid.pts_grid)))
         it_2d = itertools.product(it_1d, it_1d)
         for pt_i, pt_j in it_2d:
+            if (pt_i < pt_j):
+                continue
             row_i = pt_i // 3
             col_i = pt_i % 3
             row_j = pt_j // 3

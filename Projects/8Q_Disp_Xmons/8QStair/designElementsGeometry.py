@@ -12,7 +12,7 @@ from pya import Point, Vector, DPoint, DVector, DEdge, \
     DSimplePolygon, \
     SimplePolygon, DPolygon, DBox, Polygon, Region
 
-from pya import DCplxTrans
+from pya import DCplxTrans, DTrans
 
 # import self-made API
 import classLib
@@ -65,6 +65,7 @@ class QubitsGrid:
 
 @dataclass()
 class DiskConn8Pars:
+    connector_angles = np.linspace(0, 360, 8, endpoint=False)
     disk_r = 120e3
     disk_gap = 20e3
     # extension beyond `disk_r` of `CPW` that imitates connection
@@ -111,7 +112,7 @@ class DiskConn8(ComplexBase):
         self.primitives["empty_disk"] = self.empty_disk
 
         # draw star-like connection flanges
-        angles = np.linspace(0, 360, 8, endpoint=False)  # degree
+        angles = self.pars.connector_angles  # degree
         for i, angle in enumerate(angles):
             trans = DCplxTrans(1, angle, False, 0, 0)
             # finger with side gap
@@ -166,6 +167,17 @@ class Qubit(ComplexBase):
         )
 
     def init_primitives(self):
+        """
+        Qubit is drawn in its coordinate system with SQUID at the bottom and oriented vertically.
+        SQUID is oriented from bottom to top.
+
+        Based on `squid_connector_idx` supplied via `QubitParams` constructor,
+        qubit rotates squid relative to its center to position squid properly.
+
+        Returns
+        -------
+
+        """
         # TODO `multilayer complex objects`: not called twice due to
         #  emergence of `self.initialized` that prevents several
         #  `init_primitives_trans()` calls
@@ -182,9 +194,9 @@ class Qubit(ComplexBase):
             region_id=self.region_ids[0]
         )
 
-        qubit_finger_end = self.cap_shunt.connections[
-            self.qubit_params.squid_connector_idx
-        ]
+        # SQUID is connected to the right of the disk by default (see schematics for details)
+        # SQUID is further rotated according to `QubitParams.squid_connector_idx`
+        qubit_finger_end = self.cap_shunt.connections[0]
 
         # draw squid
         # squid_pars = self.qubit_params.squid_params
@@ -204,8 +216,13 @@ class Qubit(ComplexBase):
         self.squid = AsymSquid(
             origin=qubit_finger_end,
             params=self.qubit_params.squid_params,
-            region_id=self.region_ids[1]
+            region_id=self.region_ids[1],
+            trans_in=DTrans.R90
         )
+        connector_angles = self.qubit_params.qubit_cap_params.connector_angles
+        connector_idx = self.qubit_params.squid_connector_idx
+        angle = connector_angles[connector_idx]
+        self.squid.make_trans(DCplxTrans(1, angle, False, 0, 0))
 
         self.primitives["squid"] = self.squid
         self.primitives["cap_shunt"] = self.cap_shunt

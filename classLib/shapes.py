@@ -237,6 +237,76 @@ class DiskSector(ElementBase):
 
 
 class Ring(ElementBase):
+    def __init__(self, origin, outer_r, ring_width,
+                 alpha_start=0, alpha_end=2*np.pi, n_pts=50,
+                 trans_in=None,
+                 inverse=False, region_id="default"):
+        """
+
+        Parameters
+        ----------
+        origin : DPoint
+            the center of the ring
+        outer_r : float
+            outer radius of the ring
+        ring_width : float
+            thickness of the ring
+        alpha_start : float
+            start angle in degree. For ring sector. Count starts from x axis in counter-clockwise
+            direction.
+            Default = 0
+        alpha_end : float
+            end angle in degree. For ring sector
+            Default = 360
+        n_pts : int
+            number of points comprising the circumference of the ring (50 by default)
+        trans_in : Union[DCplxTrans, CplxTrans, DTrans, Trans]
+            Represent object's local coordinate system transformation
+            see more at
+            https://www.klayout.de/doc-qt4/code/class_DCplxTrans.html
+        inverse : bool
+            Whether to interchange `empty_polygon` and
+            `metal_polygon` before placing
+        region_id : str
+            region identifier to object if object is part of a compound
+            object and/or resides in objects tree.
+        """
+        self.outer_radius = outer_r
+        self.ring_width = ring_width
+        self.n_pts = n_pts
+        self.alpha_start = alpha_start
+        self.alpha_end = alpha_end
+        super().__init__(
+            origin=origin, trans_in=trans_in, inverse=inverse,
+            region_id=region_id
+        )
+        self.center = self.origin
+
+    def init_regions(self):
+        Rout = self.outer_radius
+        Rin = self.outer_radius - self.ring_width
+
+        alphas = (2*np.pi/360)*np.linspace(self.alpha_start, self.alpha_end, self.n_pts)
+        dpts_arr_Rout = Rout * np.transpose([np.cos(alphas), np.sin(
+            alphas)])
+        dpts_arr_Rout = [DPoint(x, y) for x, y in dpts_arr_Rout]
+
+        dpts_arr_Rin = Rin * np.transpose([np.cos(alphas), np.sin(
+            alphas)])
+        dpts_arr_Rin = [DPoint(x, y) for x, y in dpts_arr_Rin]
+
+        ring_dpoly = DPolygon(dpts_arr_Rout)
+        ring_dpoly.insert_hole(dpts_arr_Rin)
+        ring_poly = Polygon(ring_dpoly)
+
+        self.metal_region.insert(ring_poly)
+        self.connections = [DPoint(0, 0)]
+
+    def _refresh_named_connections(self):
+        self.center = self.connections[0]
+
+
+class RingSector(ElementBase):
     def __init__(self, origin, outer_r, thickness, n_pts=50, trans_in=None,
                  inverse=False, region_id="default"):
         """
@@ -325,7 +395,7 @@ class IsoTrapezoid(ElementBase):
 class Cross2(ElementBase):
     """@brief: class represents width cross
         @params:  DPoint origin - center of the cross
-                        float thickness - thickness of the line
+                        float width - width of the line
                         float length - size of the cross
                         Trans trans_in - initial transformation (None by default)
                         bool inverse - if True then the ring is subtracted from width layer (False by default)
