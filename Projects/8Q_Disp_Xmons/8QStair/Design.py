@@ -121,6 +121,7 @@ class Design8QStair(ChipDesign):
 
         ''' READOUT LINES '''
         self.ro_lines: List[DPathCPW] = [None, None]
+        self.qCenter_roLine_distance = 1e6
 
     def draw(self):
         """
@@ -230,13 +231,18 @@ class Design8QStair(ChipDesign):
                 pt_2 += dv
                 cpw = CPW(start=pt_1, end=pt_2, width=40e3, gap=10e3)
                 cpw.place(self.region_ph)
-                self.q_couplings.append(cpw)
+                self.q_couplings[row_i, row_j] = cpw
 
     def draw_readout_lines(self):
-        p0_start = self.contact_pads[2].end
-        p0_end = self.contact_pads[6].end
-        pts = [p0_start, DPoint(5e6, 7e6), DPoint(5e6, 5e6),
-               DPoint(7e6, 5e6), p0_end]
+        # left readout line
+        p0_start = self.contact_pads[-1].end
+        p0_end = self.contact_pads[8].end
+        p1 = p0_start + DVector(0, -3e6)
+        p2 = DPoint(self.qubits[3].origin.x - self.qCenter_roLine_distance, p1.y)
+        p3 = DPoint(p2.x, self.qubits[0].origin.y - self.qCenter_roLine_distance)
+        p4 = DPoint(self.qubits[2].origin.x + self.qCenter_roLine_distance, p3.x)
+        p5 = DPoint(p0_end.x, p4.y)
+        pts = [p0_start, p1, p2, p3, p4, p5, p0_end]
         self.ro_lines[0] = DPathCPW(
             points=pts,
             cpw_parameters=[CPWParameters(width=20e3, gap=10e3)],
@@ -245,6 +251,9 @@ class Design8QStair(ChipDesign):
             region_id="ph"
         )
         self.ro_lines[0].place(self.region_ph, region_id="ph")
+
+        # right readout line
+        
 
     def _transfer_regs2cell(self):
         '''
