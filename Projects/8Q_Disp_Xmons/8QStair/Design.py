@@ -111,13 +111,16 @@ class Design8QStair(ChipDesign):
         ''' QUBITS GRID '''
         self.qubits_grid: QubitsGrid = QubitsGrid()
         self.qubits_n = len(self.qubits_grid.pts_grid)
-        self.qubits: List[Qubit] = []
+        self.qubits: List[Qubit] = []*self.qubits_n
         ''' QUBIT COUPLINGS '''
         self.q_couplings: np.array = np.empty(
             (self.qubits_n, self.qubits_n),
             dtype=object
         )
         self.circle_hull_d = 5e3
+
+        ''' READOUT RESONATORS '''
+        self.ro_resonators: List[object] = []*self.qubits_n
 
         ''' READOUT LINES '''
         self.ro_lines: List[DPathCPW] = [None, None]
@@ -234,26 +237,52 @@ class Design8QStair(ChipDesign):
                 self.q_couplings[row_i, row_j] = cpw
 
     def draw_readout_lines(self):
+        # readout line is extended around qubit square in order to
+        # fit readout resonators `L_couplings` and left a bit more space
+        # for consistent and easy simulation of notch port resonator
+        # TODO: put this variables into resonator/ro_line parameters structure
+        ro_line_extension = self.qCenter_roLine_distance/2
+        turn_radii = ro_line_extension/4
+
         # left readout line
         p0_start = self.contact_pads[-1].end
         p0_end = self.contact_pads[8].end
-        p1 = p0_start + DVector(0, -3e6)
+        p1 = DPoint(p0_start.x, self.qubits[6].origin.y + ro_line_extension)
         p2 = DPoint(self.qubits[3].origin.x - self.qCenter_roLine_distance, p1.y)
         p3 = DPoint(p2.x, self.qubits[0].origin.y - self.qCenter_roLine_distance)
-        p4 = DPoint(self.qubits[2].origin.x + self.qCenter_roLine_distance, p3.x)
-        p5 = DPoint(p0_end.x, p4.y)
-        pts = [p0_start, p1, p2, p3, p4, p5, p0_end]
+        p4 = DPoint(self.qubits[2].origin.x + ro_line_extension, p3.y)
+        p5 = p4 + DVector(0, -1e6)
+        p6 = DPoint(p0_end.x, p5.y)
+        pts = [p0_start, p1, p2, p3, p4, p5, p6, p0_end]
         self.ro_lines[0] = DPathCPW(
             points=pts,
             cpw_parameters=[CPWParameters(width=20e3, gap=10e3)],
-            turn_radii=[60e3],
+            turn_radii=[turn_radii],
             trans_in=None,
             region_id="ph"
         )
         self.ro_lines[0].place(self.region_ph, region_id="ph")
 
         # right readout line
-        
+        p1_start = self.contact_pads[-2].end
+        p1_end = self.contact_pads[9].end
+        p1 = p1_start + DVector(0, -1e6)
+        p2 = DPoint(self.qubits[6].origin.x - ro_line_extension, p1.y)
+        p3 = DPoint(p2.x, self.qubits[6].origin.y + self.qCenter_roLine_distance)
+        p4 = DPoint(self.qubits[2].origin.x + self.qCenter_roLine_distance, p3.y)
+        p5 = DPoint(p4.x, self.qubits[2].origin.y - ro_line_extension)
+        p6 = DPoint(p1_end.x, p5.y)
+        pts = [p1_start, p1, p2, p3, p4, p5, p6, p1_end]
+        self.ro_lines[1] = DPathCPW(
+            points=pts,
+            cpw_parameters=[CPWParameters(width=20e3, gap=10e3)],
+            turn_radii=[turn_radii],
+            trans_in=None,
+            region_id="ph"
+        )
+        self.ro_lines[1].place(self.region_ph, region_id="ph")
+
+
 
     def _transfer_regs2cell(self):
         '''
