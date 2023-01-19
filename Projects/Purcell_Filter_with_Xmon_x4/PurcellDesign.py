@@ -220,12 +220,10 @@ class Design8QTest(ChipDesign):
         # bandages
         # bandages width and height scales such that area
         # scales as `(i+1)*2`, `i` starts from 0
-        self.bandages_width_list = [
-            1e3 * x for x in [2.50, 3.53, 5.00, 7.07, 10, 14.14]
-        ]
-        self.bandages_height_list = [
-            1e3 * x for x in [5.00, 7.07, 10.00, 14.14, 20, 28.28]
-        ]
+        self.bandages_width = 3.53e3
+
+        self.bandages_height = 7.07e3
+
         self.bandage_width = 5e3
         self.bandage_height = 10e3
         self.bandage_r_outer = 2e3
@@ -537,13 +535,13 @@ class Design8QTest(ChipDesign):
         pars_local.bot_wire_x = [-dx, dx]
         pars_local.SQB_dy = 0
         for res_idx, xmon_cross in enumerate(self.xmons):
-            pars_local.BC_dx = [self.bandages_width_list[res_idx]]*len(
+            pars_local.BC_dx = [self.bandages_width]*len(
                 pars_local.bot_wire_x)
             pars_local.BCW_dx = [pars_local.BCW_dx[0]]*len(
                 pars_local.bot_wire_x)
-            pars_local.BC_dy = (self.bandages_height_list[res_idx])/2 + 3.5e3 - 1e3
+            pars_local.BC_dy = (self.bandages_height)/2 + 3.5e3 - 1e3
             pars_local.TC_dx = pars_local.BC_dx[0]
-            pars_local.TC_dy = (self.bandages_height_list[res_idx])/2 + 3e3 - 1e3
+            pars_local.TC_dy = (self.bandages_height)/2 + 3e3 - 1e3
             # below RO line
             m = 1
             squid_center = (xmon_cross.cpw_bempt.end +
@@ -559,14 +557,14 @@ class Design8QTest(ChipDesign):
             squid.place(self.region_el)
 
         for res_idx, xmon_cross in enumerate(self.simple_xmons):
-            pars_local.BC_dx = [self.bandages_width_list[res_idx]]*len(
+            pars_local.BC_dx = [self.bandages_width]*len(
                 pars_local.bot_wire_x)
             pars_local.BCW_dx = [pars_local.BCW_dx[0]]*len(
                 pars_local.bot_wire_x)
-            pars_local.BC_dy = (self.bandages_height_list[res_idx])/2 + \
+            pars_local.BC_dy = (self.bandages_height)/2 + \
                                3.5e3 - 1e3
             pars_local.TC_dx = pars_local.BC_dx[0]
-            pars_local.TC_dy = (self.bandages_height_list[res_idx])/2 + \
+            pars_local.TC_dy = (self.bandages_height)/2 + \
                                3e3 - 1e3
             # above RO line
             m = -1
@@ -586,7 +584,7 @@ class Design8QTest(ChipDesign):
         # DRAW CONCTACT FOR BANDAGES WITH 5um CLEARANCE
 
         struct_centers = [DPoint(4.5e6, 11.0e6), DPoint(9.5e6, 11.0e6),
-                          DPoint(12.0e6, 3.0e6)]
+                          DPoint(12.0e6, 4.0e6)]
         self.test_squids_pads = []
         for struct_center in struct_centers:
             ## JJ test structures ##
@@ -675,7 +673,7 @@ class Design8QTest(ChipDesign):
         test_dc_el2_centers = [
             DPoint(1.5e6, 5.5e6),
             DPoint(7.3e6, 11.0e6),
-            DPoint(12.3e6, 5.0e6)
+            DPoint(12.3e6, 5.5e6)
         ]
         for struct_center in test_dc_el2_centers:
             test_struct1 = TestStructurePadsSquare(struct_center)
@@ -697,15 +695,15 @@ class Design8QTest(ChipDesign):
 
     def draw_express_test_structures_pads(self):
         for squid, test_pad in zip(
-                self.test_squids[:-2],
-                self.test_squids_pads[:-2]
+                self.test_squids,
+                self.test_squids_pads
         ):
             if squid.squid_params.SQRBJJ_dy == 0:
                 # only left JJ is present
 
                 # test pad expanded to the left
                 p1 = DPoint(squid.SQRTT.start.x, test_pad.center.y)
-                p2 = p1 + DVector(10e3, 0)
+                p2 = p1 + DVector(54e3, 0)
                 etc1 = CPW(
                     start=p1, end=p2,
                     width=1e3,
@@ -723,7 +721,7 @@ class Design8QTest(ChipDesign):
 
                 # test pad expanded to the left
                 p1 = squid.BCW_list[0].end
-                p2 = p1 - DVector(10e3, 0)
+                p2 = p1 - DVector(54e3, 0)
                 etc3 = CPW(
                     start=p1, end=p2,
                     width=1e3,  # TODO: hardcoded value
@@ -743,7 +741,7 @@ class Design8QTest(ChipDesign):
             elif squid.squid_params.SQLBJJ_dy == 0:
                 # only right leg is present
                 p1 = DPoint(squid.SQLTT.start.x, test_pad.center.y)
-                p2 = p1 + DVector(-10e3, 0)
+                p2 = p1 + DVector(-54e3, 0)
                 # test pad expanded to the left
                 etc1 = CPW(
                     start=p1, end=p2,
@@ -762,7 +760,7 @@ class Design8QTest(ChipDesign):
 
                 # test pad expanded to the right
                 p1 = squid.BCW_list[0].end
-                p2 = p1 + DVector(10e3, 0)
+                p2 = p1 + DVector(54e3, 0)
                 etc3 = CPW(
                     start=p1, end=p2,
                     width=1e3,  # TODO: hardcoded value
@@ -787,7 +785,7 @@ class Design8QTest(ChipDesign):
         """
         from itertools import chain
         for squid, contact in chain(
-                zip(self.squids, self.xmons),
+                zip(self.squids, self.xmons + self.simple_xmons),
                 zip(self.test_squids, self.test_squids_pads)
         ):
             # dc contact pad has to be completely
@@ -824,8 +822,8 @@ class Design8QTest(ChipDesign):
             bandage_width = self.bandage_width
             bandage_height = self.bandage_height
         else:
-            bandage_width = self.bandages_width_list[i]
-            bandage_height = self.bandages_height_list[i]
+            bandage_width = self.bandages_width
+            bandage_height = self.bandages_height
 
         rect_lb = center +\
                   DVector(
@@ -871,9 +869,9 @@ class Design8QTest(ChipDesign):
 
     def draw_photo_el_marks(self):
         marks_centers = [
-            DPoint(1.9e6, 12.1e6), DPoint(12.5e6, 11.0e6),
-            DPoint(4.3e6, 8.0e6), DPoint(9.2e6, 5.8e6),
-            DPoint(1.5e6, 3.0e6), DPoint(12.1e6, 1.9e6)
+            DPoint(1.0e6, 12.0e6), DPoint(13.0e6, 12.0e6),
+            DPoint(1.0e6, 8.0e6), DPoint(13.0e6, 8.0e6),
+            DPoint(1.0e6, 2.0e6), DPoint(13.0e6, 2.0e6)
         ]
         for mark_center in marks_centers:
             self.marks.append(
@@ -1013,19 +1011,19 @@ class Design8QTest(ChipDesign):
                 print("exists bridge2")
 
     def draw_additional_boxes(self):
-        abox_top_ph = pya.Box(Point(self.chip.dx/2,self.chip.dy/2) + Point(-self.chip.dx * 0.3, self.chip.dx * 0.54),
-                Point(self.chip.dx/2,self.chip.dy/2) + Point(self.chip.dx * 0.3, self.chip.dx * 0.64))
-        abox_bot_ph = pya.Box(Point(self.chip.dx/2,self.chip.dy/2) - Point(-self.chip.dx * 0.3, self.chip.dx * 0.54),
-                           Point(self.chip.dx/2,self.chip.dy/2) - Point(self.chip.dx * 0.3, self.chip.dx * 0.64))
+        abox_top_ph = pya.Box(Point(self.chip.dx/2,self.chip.dy/2) + Point(-self.chip.dx * 0.3, self.chip.dx * 0.52),
+                Point(self.chip.dx/2,self.chip.dy/2) + Point(self.chip.dx * 0.3, self.chip.dx * 0.62))
+        abox_bot_ph = pya.Box(Point(self.chip.dx/2,self.chip.dy/2) - Point(-self.chip.dx * 0.3, self.chip.dx * 0.52),
+                           Point(self.chip.dx/2,self.chip.dy/2) - Point(self.chip.dx * 0.3, self.chip.dx * 0.62))
         self.region_ph.insert(abox_top_ph)
         self.region_ph.insert(abox_bot_ph)
 
         abox_top_el = pya.Box(
-            Point(self.chip.dx / 2, self.chip.dy / 2) + Point(-self.chip.dx * 0.4, self.chip.dx * 0.56),
-            Point(self.chip.dx / 2, self.chip.dy / 2) + Point(self.chip.dx * 0.4, self.chip.dx * 0.62))
+            Point(self.chip.dx / 2, self.chip.dy / 2) + Point(-self.chip.dx * 0.35, self.chip.dx * 0.54),
+            Point(self.chip.dx / 2, self.chip.dy / 2) + Point(self.chip.dx * 0.35, self.chip.dx * 0.6))
         abox_bot_el = pya.Box(
-            Point(self.chip.dx / 2, self.chip.dy / 2) - Point(-self.chip.dx * 0.4, self.chip.dx * 0.56),
-            Point(self.chip.dx / 2, self.chip.dy / 2) - Point(self.chip.dx * 0.4, self.chip.dx * 0.62))
+            Point(self.chip.dx / 2, self.chip.dy / 2) - Point(-self.chip.dx * 0.35, self.chip.dx * 0.54),
+            Point(self.chip.dx / 2, self.chip.dy / 2) - Point(self.chip.dx * 0.35, self.chip.dx * 0.6))
         self.region_bridges1.insert(abox_top_el)
         self.region_bridges1.insert(abox_bot_el)
 

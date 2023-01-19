@@ -57,7 +57,7 @@ from classLib import chipTemplates
 
 import  classLib.purcell
 reload(classLib.purcell)
-from .purcell import *
+from classLib import purcell
 
 from . import marks
 reload(marks)
