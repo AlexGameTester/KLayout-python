@@ -59,7 +59,7 @@ PROJECT_DIR = Path(r'C:\Users\Artem\Desktop\books\Phystech\LAQS\tasks')
 
 class TestStructurePadsSquare(ComplexBase):
     def __init__(self, center, trans_in=None, square_a=200e3,
-                 gnd_gap=20e3, squares_gap=20e3):
+                 gnd_gap=40e3, squares_gap=40e3):
         self.center = center
         self.rectangle_a =square_a
         self.gnd_gap = gnd_gap
@@ -595,7 +595,7 @@ class Design8QTest(ChipDesign):
                 struct_center,
                 # gnd gap in test structure is now equal to
                 # the same of first xmon cross, where polygon is placed
-                squares_gap=self.xmons[0].sideY_face_gnd_gap
+                squares_gap=40e3
             )
             self.test_squids_pads.append(test_struct1)
             test_struct1.place(self.region_ph)
@@ -608,6 +608,8 @@ class Design8QTest(ChipDesign):
             self.region_ph -= text_reg
 
             pars_local = deepcopy(SQUID_PARS)
+            pars_local.TCW_dy += 10e3
+            pars_local.BCW_dy += 10e3
             pars_local.SQRBT_dx = 0
             pars_local.SQRBJJ_dy = 0
             pars_local.bot_wire_x = [-dx]
@@ -634,6 +636,8 @@ class Design8QTest(ChipDesign):
             self.region_ph -= text_reg
 
             pars_local = deepcopy(SQUID_PARS)
+            pars_local.TCW_dy += 10e3
+            pars_local.BCW_dy += 10e3
             pars_local.SQLBT_dx = 0
             pars_local.SQLBJJ_dy = 0
             pars_local.bot_wire_x = [dx]
@@ -797,11 +801,14 @@ class Design8QTest(ChipDesign):
             jjLoop_idx = None
             if squid in self.squids:
                 jjLoop_idx = self.squids.index(squid)
-            self.bandages_regs_list += \
-                self.draw_squid_bandage(squid, jjLoop_idx=jjLoop_idx)
+                self.bandages_regs_list += \
+                    self.draw_squid_bandage(squid, jjLoop_idx=jjLoop_idx, two_bot=True)
+            else:
+                self.bandages_regs_list += \
+                    self.draw_squid_bandage(squid)
 
     def draw_squid_bandage(self, test_jj: AsymSquid = None,
-                           jjLoop_idx=None):
+                           jjLoop_idx=None, two_bot=False):
         bandages_regs_list: list[Region] = []
 
         import re
@@ -815,6 +822,11 @@ class Design8QTest(ChipDesign):
             bot_bandage_reg = self._get_bandage_reg(BC.end, jjLoop_idx)
             bandages_regs_list.append(bot_bandage_reg)
             self.dc_bandage_reg += bot_bandage_reg
+            if two_bot:
+                BC = test_jj.BC_list[1]
+                bot_bandage_reg = self._get_bandage_reg(BC.end, jjLoop_idx)
+                bandages_regs_list.append(bot_bandage_reg)
+                self.dc_bandage_reg += bot_bandage_reg
         return bandages_regs_list
 
     def _get_bandage_reg(self, center, i=None):
@@ -852,6 +864,10 @@ class Design8QTest(ChipDesign):
                 BC = squid.BC_list[0]
                 recess_reg = BC.metal_region.dup().size(-self.dc_cont_ph_clearance)
                 self.region_ph -= recess_reg
+                if squid in self.squids:
+                    BC = squid.BC_list[1]
+                    recess_reg = BC.metal_region.dup().size(-self.dc_cont_ph_clearance)
+                    self.region_ph -= recess_reg
 
     def draw_el_protection(self):
         protection_a = 300e3
