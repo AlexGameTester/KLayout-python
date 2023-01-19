@@ -13,11 +13,12 @@ from pya import Region, DPoint, DTrans, Box
 from sonnetSim import SonnetLab, SonnetPort, SimulationBox
 from classLib.chipDesign import ChipDesign
 
+
 # TODO: `reg` and `layer` will be no longer needed both after introducing
 #  region_ids global dictionary
 def simulate_cij(
-        design, layer, subregs, env_reg=None, resolution=(5e3, 5e3),
-        print_values=True
+    design, layer, subregs, env_reg=None, resolution=(5e3, 5e3),
+    print_values=True
 ):
     '''
     Measures capacity matrix between polygons supplied in `subregs`
@@ -53,7 +54,7 @@ def simulate_cij(
         # enlarge box around its center
         dr = crop_box.p2 - crop_box.p1
         center = crop_box.center()
-        crop_box = Box(center - 3/2*dr, center + 3/2*dr)
+        crop_box = Box(center - 3 / 2 * dr, center + 3 / 2 * dr)
     else:
         crop_box = env_reg.bbox()
 
@@ -67,12 +68,14 @@ def simulate_cij(
         for edge in edge_centers_it:
             if edge.length() < min_width:
                 # AUTOGROUNDED PORTS CANNOT BE DIAGONAL (TODO: CHANGE LATER)
-                if any([
-                    (edge.d().y == 0),
-                    (edge.d().x == 0)
-                ]):
+                if any(
+                        [
+                            (edge.d().y == 0),
+                            (edge.d().x == 0)
+                        ]
+                ):
                     min_width = edge.length()
-                    edge_center_best = (edge.p1 + edge.p2)/2
+                    edge_center_best = (edge.p1 + edge.p2) / 2
         design.sonnet_ports.append(edge_center_best)
     elif n_terminals == 2:
         # TODO: not tested
@@ -95,7 +98,7 @@ def simulate_cij(
                         any([(edge1.d().y == 0), (edge1.d().x == 0)]),
                         any([(edge1.d().y == 0), (edge1.d().x == 0)])
                     ]
-                ):
+            ):
                 edge1_best, edge2_best = edge1, edge2
                 max_distance = centers_d
             else:
@@ -114,8 +117,10 @@ def simulate_cij(
     print("sonnet ports positions BEFORE transform:")
     for sp in design.sonnet_ports:
         print(sp.x, sp.y)
-    design.transform_region(design.region_ph, DTrans(dr.x, dr.y),
-                            trans_ports=True)
+    design.transform_region(
+        design.region_ph, DTrans(dr.x, dr.y),
+        trans_ports=True
+        )
     design.layout.clear_layer(layer)
     design.show()
     ''' CROP + SNAP TO ORIGIN SECTION END '''
@@ -173,13 +178,17 @@ def simulate_cij(
         freq0 = float(data_row[0])
 
         # lowest frequency S-matrix will be stored here
-        s = np.zeros    ((n_terminals, n_terminals), dtype=complex)
+        s = np.zeros((n_terminals, n_terminals), dtype=complex)
         # print(data_row)
         for i in range(0, n_terminals):
             for j in range(0, n_terminals):
-                s[i, j] = complex(float(data_row[1 + 2 * (i * 2 + j)]),
-                                  float(data_row[
-                                            1 + 2 * (i * 2 + j) + 1]))
+                s[i, j] = complex(
+                    float(data_row[1 + 2 * (i * 2 + j)]),
+                    float(
+                        data_row[
+                            1 + 2 * (i * 2 + j) + 1]
+                        )
+                    )
         import math
         if n_terminals == 1:
             y11 = 1 / R * (1 - s[0, 0]) / (1 + s[0, 0])
