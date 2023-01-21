@@ -53,7 +53,7 @@ class Path_RS(ComplexBase):
         self.Z0 = Z0
         self.end = end
         self.dr = end - start
-        super().__init__(start, trans_in)
+        super().__init__(start.dup(), trans_in)
         self.start = self.connections[0]
         self.end = self.connections[1]
         self.alpha_start = self.angle_connections[0]

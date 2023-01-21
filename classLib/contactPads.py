@@ -41,7 +41,7 @@ class ContactPad(ComplexBase):
             self.back_metal_gap = self.pcb_cpw_params.gap
         self.transition_length = transition_len
 
-        super().__init__(origin, trans_in)
+        super().__init__(origin.dup(), trans_in)
 
         self.start = self.connections[0]
         self.end = self.connections[1]

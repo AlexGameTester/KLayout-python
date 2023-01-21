@@ -12,7 +12,7 @@ from pya import Point, Vector, DPoint, DVector, DEdge, \
     DSimplePolygon, \
     SimplePolygon, DPolygon, DBox, Polygon, Region
 
-from pya import DCplxTrans, DTrans
+from pya import DCplxTrans, DTrans, Trans
 
 # import self-made API
 import classLib
@@ -20,7 +20,7 @@ import classLib
 reload(classLib)
 
 from classLib.baseClasses import ComplexBase
-from classLib.coplanars import CPW
+from classLib.coplanars import CPW, CPWParameters
 from classLib.josJ import AsymSquidParams, AsymSquid
 
 # project specific files
@@ -74,7 +74,7 @@ class DiskConn8Pars:
     # side ground-gap of `CPW` that imitates connection
     conn_side_gap = 0e3
     # front gap of the `CPW` that imitates connection
-    conn_front_gap = 0e3
+    conn_front_gap = 20e3
 
 
 class DiskConn8(ComplexBase):
@@ -126,7 +126,9 @@ class DiskConn8(ComplexBase):
                 trans_in=trans,
                 region_id=self.region_id
             )
-            self.connections.append(cpw.end)
+            self.conn8_list.append(cpw)  # can be redundant
+            # TODO: remove hardcode 3e3 from here
+            self.connections.append(cpw.open_end_center + cpw.dr/cpw.dr.abs()*3e3)
             self.primitives["conn" + str(i)] = cpw
 
         self.disk = Disk(
@@ -134,6 +136,11 @@ class DiskConn8(ComplexBase):
             region_id=self.region_id
         )
         self.primitives["circle"] = self.disk
+
+        self.connections.append(origin)
+
+    def _refresh_named_connections(self):
+        self.origin = self.connections[-1]
 
 
 class QubitParams:
@@ -226,3 +233,76 @@ class Qubit(ComplexBase):
 
         self.primitives["squid"] = self.squid
         self.primitives["cap_shunt"] = self.cap_shunt
+
+        self.connections.append(origin)
+
+    def _refresh_named_connections(self):
+        self.origin = self.connections[-1]
+
+
+class ResonatorParams:
+    # see parameters details in `Design_fast.py`
+    L_coupling_list = [
+        1e3 * x for x in [310, 320, 320, 310] * 2
+    ]
+    L0_list = [986e3] * 8
+    L1_list = [
+        1e3 * x for x in
+        [114.5219, 95.1897, 99.0318, 83.7159, 88.8686, 70.3649,
+         74.0874, 59.6982]
+    ]
+    res_r_list = [60e3] * 8
+    tail_turn_radiuses_list = [60e3] * 8  # res_r_list
+    N_coils_list = [3, 3, 3, 3] * 2
+    L2_list = [60e3] * 8  # res_r_list
+    L3_list = []  # get numericals from Design_fast
+    L4_list = [60e3] * 8  # res_r_list
+    Z_res_list = [CPWParameters(10e3, 6e3)]*8
+    to_line_list = [45e3] * 8
+
+    # fork at the end of resonator parameters
+    fork_metal_width_list = [15e3]*8
+    fork_gnd_gap_list = [10e3]*8
+    xmon_fork_gnd_gap_list = [14e3]*8
+    # self.cross_width_y + 2 * (self.xmon_fork_gnd_gap + self.fork_metal_width)
+    fork_x_span_list = [45e3 + 2*(14e3 + 15e3)] * 8
+    # resonator-fork parameters
+    # from simulation of g_qr
+    fork_y_span_list = [
+        x * 1e3 for x in
+        [33.18, 91.43, 39.36, 95.31, 44.34, 96.58, 49.92, 99.59]
+    ]
+    tail_segments_list = [[60000.0, 215000.0, 60000.0]]*8
+    res_tail_shape = "LRLRL"
+
+    tail_turn_angles_list = [
+        [np.pi / 2, -np.pi / 2],
+        [np.pi / 2, -np.pi / 2],
+        [np.pi / 2, -np.pi / 2],
+        [np.pi / 2, -np.pi / 2]
+    ]
+    tail_turn_angles_list = tail_turn_angles_list + list(
+        reversed(
+            tail_turn_angles_list
+        )
+    )
+
+    @staticmethod
+    def get_resonator_params_by_qubit_idx(q_idx):
+        return {
+            "Z0": ResonatorParams.Z_res_list[q_idx],
+            "L_coupling": ResonatorParams.L_coupling_list[q_idx],
+            "L0": ResonatorParams.L0_list[q_idx],
+            "L1": ResonatorParams.L1_list[q_idx],
+            "r": ResonatorParams.res_r_list[q_idx],
+            "N": ResonatorParams.N_coils_list[q_idx],
+            "tail_shape": ResonatorParams.res_tail_shape,
+            "tail_turn_radiuses": ResonatorParams.tail_turn_radiuses_list[q_idx],
+            "tail_segment_lengths": ResonatorParams.tail_segments_list[q_idx],
+            "tail_turn_angles": ResonatorParams.tail_turn_angles_list[q_idx],
+            "tail_trans_in": Trans.R270,
+            "fork_x_span": ResonatorParams.fork_x_span_list[q_idx],
+            "fork_y_span": ResonatorParams.fork_y_span_list[q_idx],
+            "fork_metal_width": ResonatorParams.fork_metal_width_list[q_idx],
+            "fork_gnd_gap": ResonatorParams.fork_gnd_gap_list[q_idx]
+        }

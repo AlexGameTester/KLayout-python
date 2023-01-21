@@ -385,7 +385,7 @@ class EMResonator_TL2Qbit_worm3(ComplexBase):
         self.L2 = L2
         self.N = N
 
-        super().__init__(start, trans_in)
+        super().__init__(start.dup(), trans_in)
 
         self._geometry_parameters["cpw_width, um"] = Z0.width
         self._geometry_parameters["cpw_gap, um"] = Z0.gap
@@ -572,7 +572,7 @@ class EMResonator_TL2Qbit_worm3_2(ComplexBase):
         self.L3 = 0
         self.N = N
 
-        super().__init__(start, trans_in)
+        super().__init__(start.dup(), trans_in)
 
         self._geometry_parameters["cpw_width, um"] = Z0.width
         self._geometry_parameters["cpw_gap, um"] = Z0.gap
@@ -772,7 +772,7 @@ class   EMResonatorTL3QbitWormRLTail(ComplexBase):
         self.tail_turn_angles = tail_turn_angles
         self.tail_trans_in = tail_trans_in
 
-        super().__init__(start, trans_in)
+        super().__init__(start.dup(), trans_in)
 
         self._geometry_parameters["cpw_width, um"] = Z0.width / 1e3
         self._geometry_parameters["cpw_gap, um"] = Z0.gap / 1e3

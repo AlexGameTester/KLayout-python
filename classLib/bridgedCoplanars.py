@@ -27,7 +27,7 @@ class BridgedCPW(ElementBase):
         self.end = end
         self.start = start
         self.dr = end - start
-        super().__init__(start, trans_in)
+        super().__init__(start.dup(), trans_in)
         self.start = self.connections[0]
         self.end = self.connections[1]
         self.dr = self.end - self.start
@@ -96,7 +96,7 @@ class BridgedCPWArc(ElementBase):
         self.alpha_end = self.delta_alpha
         self._bridge_interval = bridge_interval
 
-        super().__init__(start, trans_in)
+        super().__init__(start.dup(), trans_in)
         self.start = self.connections[0]
         self.end = self.connections[1]
         self.center = self.connections[2]

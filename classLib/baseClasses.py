@@ -183,6 +183,7 @@ class ElementBase():
             self.initialized = True
 
     def make_trans(self, dCplxTrans):
+        # does not make "origin" transformation
         if (dCplxTrans is not None):
             regions = itertools.chain(
                 self.metal_regions.values(), self.empty_regions.values()
@@ -208,7 +209,9 @@ class ElementBase():
                 poly_temp = DSimplePolygon([pt])
                 poly_temp.transform(dCplxTrans)
                 self.connections[i] = poly_temp.point(0)
-        self._refresh_named_connections()
+
+            # refresh oether named connections (can be implemented in every child class)
+            self._refresh_named_connections()
 
     def _refresh_named_connections(self):
         """

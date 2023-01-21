@@ -23,7 +23,7 @@ class EMResonator_TL2Qbit_worm2(ComplexBase):
         self.L2 = L2  # tail length
 
         self.N = N  # number of Coil_type_1 structure utilized
-        super().__init__(start, trans_in)
+        super().__init__(start.dup(), trans_in)
 
         self.start = self.connections[0]
         self.end = self.connections[-1]

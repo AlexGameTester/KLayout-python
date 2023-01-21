@@ -7,6 +7,13 @@ Design is based on schematics located on YandexDisk:
 https://disk.yandex.com/d/F1Uz4Qk79VytSA
 Developing journal is also available on YandexDisk:
 https://disk.yandex.com/i/KLZmyRAYXG4mGA
+
+# TODO: change `self.origin` behaviour such it is always shows
+objects local coordinate system origin.
+Example: 
+    "get rid of this shite, this is a plague. Major refactoring will be needed"
+    def _refresh_named_connections(self):
+        self.origin = self.connections[0]
 '''
 
 # import built-ins
@@ -29,7 +36,7 @@ from pya import Point, Vector, DPoint, DVector, DEdge, \
     DSimplePolygon, \
     SimplePolygon, DPolygon, DBox, Polygon, Region
 
-from pya import DCplxTrans
+from pya import DCplxTrans, Trans
 
 # import project lib
 import classLib
@@ -42,25 +49,27 @@ from classLib.contactPads import ContactPad
 from classLib.helpers import fill_holes, split_polygons, extended_region
 from classLib.helpers import simulate_cij, save_sim_results
 from classLib.shapes import RingSector
-
-# import sonnet simulation self-made package
-import sonnetSim
-
-reload(sonnetSim)
-from sonnetSim import SonnetLab, SonnetPort, SimulationBox
+from classLib.resonators import EMResonatorTL3QbitWormRLTailXmonFork
 
 # import local dependencies in case project file is too big
 from classLib.baseClasses import ComplexBase
 from classLib.helpers import FABRICATION
+
 import globalDefinitions
 
 reload(globalDefinitions)
-from globalDefinitions import CHIP, VERT_ARR_SHIFT, SQUID_PARS
+from globalDefinitions import CHIP, VERT_ARR_SHIFT, SQUID_PARS, PROJECT_DIR
+
 import designElementsGeometry
 
 reload(designElementsGeometry)
-from designElementsGeometry import QubitParams, Qubit, QubitsGrid
+from designElementsGeometry import QubitParams, Qubit, QubitsGrid, ResonatorParams
 from designElementsGeometry import DiskConn8Pars
+
+import Cqq_couplings
+
+reload(Cqq_couplings)
+from Cqq_couplings import CqqCouplingType2, CqqCouplingParamsType2
 
 
 class Design8QStair(ChipDesign):
@@ -111,7 +120,7 @@ class Design8QStair(ChipDesign):
         ''' QUBITS GRID '''
         self.qubits_grid: QubitsGrid = QubitsGrid()
         self.qubits_n = len(self.qubits_grid.pts_grid)
-        self.qubits: List[Qubit] = []*self.qubits_n
+        self.qubits: List[Qubit] = [] * self.qubits_n
         ''' QUBIT COUPLINGS '''
         self.q_couplings: np.array = np.empty(
             (self.qubits_n, self.qubits_n),
@@ -120,11 +129,11 @@ class Design8QStair(ChipDesign):
         self.circle_hull_d = 5e3
 
         ''' READOUT RESONATORS '''
-        self.ro_resonators: List[object] = []*self.qubits_n
+        self.resonators: List[EMResonatorTL3QbitWormRLTailXmonFork] = [None] * self.qubits_n
 
         ''' READOUT LINES '''
         self.ro_lines: List[DPathCPW] = [None, None]
-        self.qCenter_roLine_distance = 1e6
+        self.qCenter_roLine_distance = None
 
     def draw(self):
         """
@@ -139,6 +148,7 @@ class Design8QStair(ChipDesign):
         self.draw_chip()
         self.draw_qubits_array()
         self.draw_qq_couplings()
+        self.draw_readout_resonators()
         self.draw_readout_lines()
 
     def draw_postpone(self):
@@ -225,24 +235,88 @@ class Design8QStair(ChipDesign):
                 pt_1 = self.qubits_grid.get_pt(pt_i)
                 pt_2 = self.qubits_grid.get_pt(pt_j)
                 dv = (pt_1 - pt_2)
-                dv = dv/dv.abs()
-                dv = dv*(
-                    self.qubits[row_i*3 + col_i].cap_shunt.pars.disk_r
-                    + self.circle_hull_d
+                dv = dv / dv.abs()
+                dv = dv * (
+                        self.qubits[row_i * 3 + col_i].cap_shunt.pars.disk_r
+                        + self.circle_hull_d
                 )
                 pt_1 -= dv
                 pt_2 += dv
-                cpw = CPW(start=pt_1, end=pt_2, width=40e3, gap=10e3)
-                cpw.place(self.region_ph)
-                self.q_couplings[row_i, row_j] = cpw
+                qq_coupling = CqqCouplingType2(
+                    origin=DPoint(0, 0),
+                    params=CqqCouplingParamsType2(
+                        disk1=self.qubits[pt_i].cap_shunt,
+                        disk2=self.qubits[pt_j].cap_shunt
+                    ),
+                    region_id="ph"
+                )
+                qq_coupling.place(self.region_ph, region_id="ph")
+                self.q_couplings[row_i, row_j] = qq_coupling
+
+    def draw_readout_resonators(self):
+        resonator_kw_args_list = list(
+            map(
+                ResonatorParams.get_resonator_params_by_qubit_idx, range(8)
+            )
+        )
+
+        '''
+        Resonators are placed at origin and then translated to their corresponding qubit.
+        See 8QStair.drawio for details 
+        '''
+
+        qubit_res_finger_lengths_list = [30e3]*8
+        qubit_res_finger_gaps_list = [10e3]*8
+
+        # resonator 0 for qubit 6
+        q_idx = 6
+        res_idx = 0
+
+        qubit = self.qubits[q_idx]
+        resonator_kw_args = resonator_kw_args_list[res_idx]
+        resonator_kw_args.update({"start": DPoint(0, 0), "trans_in": Trans.R90})
+        res = EMResonatorTL3QbitWormRLTailXmonFork(**resonator_kw_args)
+
+        # moving resonator to it's corresponding qubit
+        qubit_res_finger_length = qubit_res_finger_lengths_list[q_idx]
+        qubit_res_finger_gap = qubit_res_finger_gaps_list[q_idx]
+        qubit_res_d = qubit_res_finger_gap + qubit_res_finger_length
+        dv = res.start - (res.fork_y_cpw1.end + res.fork_y_cpw2.end) / 2 + qubit.origin + \
+             DVector(-(qubit.qubit_params.qubit_cap_params.disk_r + qubit_res_d), 0)
+        res.make_trans(DCplxTrans(1, 0, False, dv))
+        res.place(self.region_ph)
+        self.resonators[res_idx] = res
+
+        # drawing qubit finger coupling
+        dv_qubit_res = (res.fork_y_cpw1.end + res.fork_y_cpw2.end)/2 - qubit.origin
+        dv_qubit_res /= dv_qubit_res.abs()
+
+        qubit_res_finger_bandage = CPW(
+            start=qubit.origin,
+            end=qubit.origin + (qubit_res_finger_length +
+                  qubit.qubit_params.qubit_cap_params.disk_r)*dv_qubit_res,
+            width=res.fork_metal_width, gap=0,
+            open_end_gap=res.fork_gnd_gap
+        )
+        qubit_res_finger_bandage.place(self.region_ph)
+        qubit_res_finger = CPW(
+            start=qubit.origin + qubit.qubit_params.qubit_cap_params.disk_r*dv_qubit_res,
+            end=qubit.origin + (qubit_res_finger_length +
+                                qubit.qubit_params.qubit_cap_params.disk_r) * dv_qubit_res,
+            width=res.fork_metal_width, gap=res.fork_metal_width,
+            open_end_gap=res.fork_gnd_gap
+        )
+        qubit_res_finger.place(self.region_ph)
 
     def draw_readout_lines(self):
         # readout line is extended around qubit square in order to
         # fit readout resonators `L_couplings` and left a bit more space
         # for consistent and easy simulation of notch port resonator
         # TODO: put this variables into resonator/ro_line parameters structure
-        ro_line_extension = self.qCenter_roLine_distance/2
-        turn_radii = ro_line_extension/4
+        self.qCenter_roLine_distance = abs((self.qubits[6].origin - self.resonators[0].start).x) + \
+                                       ResonatorParams.to_line_list[6]
+        ro_line_extension = self.qCenter_roLine_distance / 2
+        turn_radii = ro_line_extension / 4
 
         # left readout line
         p0_start = self.contact_pads[-1].end
@@ -251,7 +325,7 @@ class Design8QStair(ChipDesign):
         p2 = DPoint(self.qubits[3].origin.x - self.qCenter_roLine_distance, p1.y)
         p3 = DPoint(p2.x, self.qubits[0].origin.y - self.qCenter_roLine_distance)
         p4 = DPoint(self.qubits[2].origin.x + ro_line_extension, p3.y)
-        p5 = p4 + DVector(0, -1e6)
+        p5 = p4 + DVector(0, -self.qCenter_roLine_distance)
         p6 = DPoint(p0_end.x, p5.y)
         pts = [p0_start, p1, p2, p3, p4, p5, p6, p0_end]
         self.ro_lines[0] = DPathCPW(
@@ -282,8 +356,6 @@ class Design8QStair(ChipDesign):
         )
         self.ro_lines[1].place(self.region_ph, region_id="ph")
 
-
-
     def _transfer_regs2cell(self):
         '''
 
@@ -301,7 +373,8 @@ class Design8QStair(ChipDesign):
         self.cell.shapes(self.layer_bridges1).insert(self.region_bridges1)
         self.cell.shapes(self.layer_bridges2).insert(self.region_bridges2)
         self.cell.shapes(self.layer_el_protection).insert(
-            self.region_el_protection)
+            self.region_el_protection
+        )
         self.lv.zoom_fit()
 
 
@@ -324,8 +397,10 @@ def simulate_Cqq(q1_idx, q2_idx=-1, resolution=(5e3, 5e3)):
         design.show()
         design.lv.zoom_fit()
         design.layout.write(
-            os.path.join(PROJECT_DIR, f"Cqq_{q1_idx}_{q2_idx}_"
-                                      f"{dl:.3f}_.gds")
+            os.path.join(
+                PROJECT_DIR, f"Cqq_{q1_idx}_{q2_idx}_"
+                             f"{dl:.3f}_.gds"
+            )
         )
         '''DRAWING SECTION END'''
         q1_reg = q1.metal_regions["ph"]
@@ -347,12 +422,40 @@ def simulate_Cqq(q1_idx, q2_idx=-1, resolution=(5e3, 5e3)):
         )
 
 
+class Cqq_type2(ChipDesign):
+    def __init__(self, cell_name):
+        super().__init__(cell_name)
+        self.disks_d = 1000e3
+
+    def draw(self):
+        self.region_ph.insert(
+            pya.DBox(DPoint(-2e6, -1e6), DPoint(2e6, 1e6))
+        )
+
+        origin = DPoint(0, 0)
+        # `q1.cap_shunt = None` if `postpone_drawing=True`
+        q1 = Qubit(origin=origin + DVector(-self.disks_d / 2, 0), postpone_drawing=False)
+        q2 = Qubit(origin=origin + DVector(self.disks_d / 2, 0), postpone_drawing=False)
+        q1.place(self.region_ph, region_id="ph")
+        q2.place(self.region_ph, region_id="ph")
+
+        coupling = CqqCouplingType2(
+            origin=origin,
+            params=CqqCouplingParamsType2(disk1=q1.cap_shunt, disk2=q2.cap_shunt),
+            postpone_drawing=False, region_id="ph", region_ids=["ph"]
+        )
+        coupling.place(self.region_ph, region_id="ph")
+
+
 if __name__ == "__main__":
     ''' draw and show design for manual design evaluation '''
     FABRICATION.OVERETCHING = 0.0e3
     design = Design8QStair("testScript")
     design.draw()
     design.show()
+    # test = Cqq_type2("cellName")
+    # test.draw()
+    # test.show()
 
     # design.save_as_gds2(
     #     os.path.join(

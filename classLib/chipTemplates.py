@@ -32,7 +32,7 @@ class Chip5x10_with_contactPads(ComplexBase):
         self.chip_y = 5e6
         self.center = DPoint(self.chip_x / 2, self.chip_y / 2)
         self.Z_params = [Z_params] * 8 if not isinstance(Z_params, list) else Z_params
-        super().__init__(origin, trans_in)
+        super().__init__(origin.dup(), trans_in)
         self.center = self.connections[-1]
 
     def init_primitives(self):

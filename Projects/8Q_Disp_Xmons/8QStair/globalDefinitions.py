@@ -1,6 +1,7 @@
 # import built-ins
 from typing import List
 from importlib import reload
+import os
 from dataclasses import dataclass
 
 # import good 3rd party
@@ -23,6 +24,9 @@ CHIP = CHIP_14x14_20pads
 # represents shift from qubit center for CPW's central conductor
 # open-ended center
 VERT_ARR_SHIFT = DVector(-50e3, -150e3)
+
+# directory to output files
+PROJECT_DIR = os.path.dirname(__file__)
 
 # print("global definitions loaded")
 BC_dx = 2.5e3 * np.sqrt(2) + 1e3

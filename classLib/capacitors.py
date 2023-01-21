@@ -41,7 +41,7 @@ class CWave2CPW(ElementBase):
             self.width2 = params[6]
             self.gap2 = params[7]
         self.n_pts = n_pts
-        super().__init__(self.c_wave_ref.origin, trans_in)
+        super().__init__(self.c_wave_ref.origin.dup(), trans_in)
 
     def _get_solid_arc(self, center, R, width, alpha_start, alpha_end, n_inner, n_outer):
         pts = []
@@ -259,7 +259,7 @@ class XmonCross(ComplexBase):
 
         # for saving
         self.center = origin
-        super().__init__(origin, trans_in)
+        super().__init__(self.center.dup(), trans_in)
         self._geometry_parameters[
             "sideX_length, um"] = self.sideX_length / 1e3
         self._geometry_parameters[
@@ -407,7 +407,7 @@ class TmonT(ComplexBase):
 
         # for saving
         self.center = origin
-        super().__init__(origin, trans_in)
+        super().__init__(origin.dup(), trans_in)
         self._geometry_parameters[
             "sideX_length, um"] = self.sideX_length / 1e3
         self._geometry_parameters[

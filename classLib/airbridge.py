@@ -8,7 +8,7 @@ from classLib.baseClasses import *
 class Airbridge(ElementBase):
 
     def __init__(self, origin, trans_in):
-        super().__init__(origin, trans_in)
+        super().__init__(origin.dup(), trans_in)
 
     def init_regions(self):
         bridge_length = 85e3

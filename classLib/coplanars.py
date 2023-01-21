@@ -39,7 +39,7 @@ class CPW(ElementBase):
     """
 
     def __init__(self, width=0, gap=0, start=DPoint(0, 0),
-                 end=DPoint(0, 0), open_end_gap=0, trans_in=None,
+                 end=DPoint(0, 0), open_end_gap=0, open_start_gap=0, trans_in=None,
                  cpw_params=None, region_id="default"):
         if (cpw_params is None):
             self.width = width
@@ -50,11 +50,12 @@ class CPW(ElementBase):
             self.gap = cpw_params.gap
             self.b = 2 * self.gap + self.width
         self.open_end_gap = open_end_gap
+        self.open_start_gap = open_start_gap
         self.end = end
         self.start = start
         self.dr = end - start
         super().__init__(
-            origin=start,
+            origin=start.dup(),
             trans_in=trans_in,
             region_id=region_id
         )
@@ -75,7 +76,7 @@ class CPW(ElementBase):
         alpha = atan2(self.dr.y, self.dr.x)
         dr_abs = self.dr.abs()
         self.connections = [
-            origin,  # start
+            origin,
             DPoint(dr_abs, 0),  # end
             # open_end_end
             DPoint(dr_abs, 0) + DVector(self.open_end_gap, 0)
@@ -112,6 +113,15 @@ class CPW(ElementBase):
                     Point().from_dpoint(DPoint(dr_abs, -self.b / 2)),
                     Point().from_dpoint(
                         DPoint(dr_abs + self.open_end_gap, self.b / 2)
+                    )
+                )
+            )
+        if (self.open_start_gap != 0):
+            self.empty_region.insert(
+                pya.Box(
+                    Point().from_dpoint(DPoint(-self.open_start_gap, -self.b / 2)),
+                    Point().from_dpoint(
+                        DPoint(0, self.b / 2)
                     )
                 )
             )
@@ -167,7 +177,7 @@ class CPWArc(ElementBase):
         self.alpha_start = 0
         self.alpha_end = self.delta_alpha
 
-        super().__init__(start, trans_in, region_id=region_id)
+        super().__init__(start.dup(), trans_in, region_id=region_id)
         self.start = self.connections[0]
         self.end = self.connections[1]
         self.center = self.connections[2]
@@ -257,7 +267,7 @@ class CPW2CPW(ElementBase):
         self.start = start
         self.end = end
         self.dr = self.end - self.start
-        super().__init__(start, trans_in, region_id=region_id)
+        super().__init__(start.dup(), trans_in, region_id=region_id)
         self.start = self.connections[0]
         self.end = self.connections[1]
         self.alpha_start = self.angle_connections[0]
@@ -483,7 +493,7 @@ class Coil_type_1(ComplexBase):
         self.L1 = L1
         self.r = r
         self.L2 = L2
-        super().__init__(start, trans_in)
+        super().__init__(start.dup(), trans_in)
         self.start = self.connections[0]
         self.end = self.connections[-1]
         self.dr = self.end - self.start
