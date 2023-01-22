@@ -24,6 +24,7 @@ import classLib
 reload(classLib)
 from classLib.baseClasses import ComplexBase
 from classLib.coplanars import CPW, CPWParameters, DPathCPW
+from classLib.helpers import rotate_around
 from classLib.chipDesign import ChipDesign
 from classLib.contactPads import ContactPad
 
@@ -58,7 +59,7 @@ class TwoTeethFork(ComplexBase):
         self, origin, params: TwoTeethForkParams = TwoTeethForkParams(), trans_in=None,
         region_id="ph"
     ):
-        self.foundation_cpw: CPW= None
+        self.foundation_cpw: CPW = None
         self.upper_tooth_cpw: CPW = None
         self.lower_tooth_cpw: CPW = None
         self.params: TwoTeethForkParams = params
@@ -94,7 +95,7 @@ class TwoTeethFork(ComplexBase):
         # foundation goes from bottom to top, hence start is at the end of
         # the foundation of the fork
         start = self.foundation_cpw.end + DVector(
-            self.params.metal_width/2,
+            self.params.metal_width / 2,
             -self.params.teeth_metal_width / 2
         )
         self.upper_tooth_cpw = CPW(
@@ -109,7 +110,7 @@ class TwoTeethFork(ComplexBase):
         #
         # lower fork cpw
         start = self.foundation_cpw.start + DVector(
-            self.params.metal_width/2,
+            self.params.metal_width / 2,
             self.params.teeth_metal_width / 2
         )
         self.lower_tooth_cpw = CPW(
@@ -127,6 +128,7 @@ class TwoTeethFork(ComplexBase):
 class CqqCouplingParamsType2:
     # central 2 sided fork with 2 teeth
     length_without_forks = 500e3
+    bendings_disk_d = 280e3
     fork_params = TwoTeethForkParams()
 
     # finger growing from qubit's disk
@@ -134,10 +136,12 @@ class CqqCouplingParamsType2:
     finger_metal_width = 10e3
     finger_gnd_gap = 15e3
 
+    finger_fork_d = 10e3
+
     disk1: DiskConn8 = None
-    disk1_connector_idx = 0
+    disk1_connector_idx: int = 1
     disk2: DiskConn8 = None
-    disk2_connector_idx = 1
+    disk2_connector_idx: int = 1
 
 
 class CqqCouplingType2(ComplexBase):
@@ -154,62 +158,82 @@ class CqqCouplingType2(ComplexBase):
         )
 
     def init_primitives(self):
-        origin = (self.params.disk1.origin + self.params.disk2.origin)/2
-
+        origin = (self.params.disk1.origin + self.params.disk2.origin) / 2
         # declare helping structures
         q12_dv = self.params.disk2.origin - self.params.disk1.origin
         q12_dv /= q12_dv.abs()
         angle = np.arctan2(q12_dv.y, q12_dv.x)
-        rotation = DCplxTrans(1, angle*180/np.pi, False, 0, 0)
 
         ### DRAW disk fingers ###
-        finger1 = CPW(
-            start=self.params.disk1.origin + self.params.disk1.pars.disk_r * q12_dv,
+        angle1 = self.params.disk1.angle_connections[self.params.disk1_connector_idx]
+        self.finger1 = CPW(
+            start=self.params.disk1.origin + DVector(self.params.disk1.pars.disk_r, 0),
             end=self.params.disk1.origin + \
-                (self.params.finger_extension_l + self.params.disk1.pars.disk_r) * q12_dv,
+                DVector((self.params.finger_extension_l + self.params.disk1.pars.disk_r), 0),
             width=self.params.finger_metal_width,
             gap=self.params.finger_gnd_gap,
+            open_end_gap=self.params.finger_gnd_gap,
             region_id=self.region_id
         )
-        self.primitives["finger1"] = finger1
+        rotate_around(
+            primitive=self.finger1,
+            rotation_center=self.params.disk1.origin, angle_deg=angle1 * 180 / np.pi
+        )
+        self.primitives["finger1"] = self.finger1
 
-        finger2 = CPW(
-            start=self.params.disk2.origin - self.params.disk2.pars.disk_r * q12_dv,
-            end=self.params.disk2.origin - \
-                (self.params.finger_extension_l + self.params.disk2.pars.disk_r) * q12_dv,
+        angle2 = self.params.disk2.angle_connections[self.params.disk2_connector_idx]
+        self.finger2 = CPW(
+            start=self.params.disk2.origin + DVector(self.params.disk2.pars.disk_r, 0),
+            end=self.params.disk2.origin + \
+                DVector((self.params.finger_extension_l + self.params.disk2.pars.disk_r), 0),
             width=self.params.finger_metal_width,
             gap=self.params.finger_gnd_gap,
+            open_end_gap=self.params.finger_gnd_gap,
             region_id=self.region_id
         )
-        self.primitives["finger2"] = finger2
+        rotate_around(
+            primitive=self.finger2,
+            rotation_center=self.params.disk2.origin, angle_deg=angle2 * 180 / np.pi
+        )
+        self.primitives["finger2"] = self.finger2
 
-        # ### DRAW Cqq coupler central part ###
-        # central horizontal cpw
-        p1 = (self.params.disk1.origin + self.params.disk2.origin) / 2 - \
-             self.params.length_without_forks / 2 * q12_dv
-        p2 = p1 + self.params.length_without_forks * q12_dv
-
-
-        # right fork #2
-        right_fork = TwoTeethFork(
-            origin=p2,
+        # fork 1
+        finger1_dv_n = self.finger1.dr/self.finger1.dr.abs()
+        # origin and transformation
+        self.fork1 = TwoTeethFork(
+            origin=self.finger1.end + (self.params.finger_fork_d +
+                                       self.params.fork_params.metal_width)*finger1_dv_n,
             params=self.params.fork_params,
             region_id=self.region_id,
-            trans_in=rotation
+            trans_in=DCplxTrans(1, angle1*180/np.pi + 180, False, 0, 0)
         )
-        self.primitives["right_fork"] = right_fork
+        self.primitives["fork1"] = self.fork1
 
-        left_fork = TwoTeethFork(
-            origin=p1,
+        # fork 2
+        finger2_dv_n = self.finger2.dr / self.finger2.dr.abs()
+        self.fork2 = TwoTeethFork(
+            origin=self.finger2.end + (self.params.finger_fork_d +
+                                       self.params.fork_params.metal_width)*finger2_dv_n,
             params=self.params.fork_params,
             region_id=self.region_id,
-            trans_in=DCplxTrans(1, 180, False, 0, 0) * rotation
+            trans_in=DCplxTrans(1, angle2*180/np.pi + 180, False, 0, 0)
         )
-        self.primitives["left_fork"] = left_fork
+        self.primitives["fork2"] = self.fork2
 
-        cpw_central = CPW(
-            start=p1, end=p2, width=self.params.fork_params.metal_width,
-            gap=self.params.fork_params.gnd_gap,
+        ### DRAW Cqq coupler central part ###
+        p_start = self.fork1.origin
+        p1 = self.finger1.start + self.params.bendings_disk_d*finger1_dv_n
+        p2 = self.finger2.start + self.params.bendings_disk_d*finger2_dv_n
+        p_end = self.fork2.origin
+        cpw_central = DPathCPW(
+            points=[p_start, p1, p2, p_end],
+            cpw_parameters=[
+                CPWParameters(
+                    width=self.params.fork_params.metal_width,
+                    gap=self.params.fork_params.gnd_gap
+                )
+            ],
+            turn_radii=[self.params.bendings_disk_d/5],
             region_id=self.region_id
         )
         self.primitives["cpw_central"] = cpw_central
@@ -219,24 +243,23 @@ class CqqCouplingType2(ComplexBase):
         and draw finger, if fork tooth `self.params.fork_params.gnd_gap` is large
         such that tooth's ground gap erased fingers
         '''
-        finger1_bandage = CPW(
+        self.finger1_bandage = CPW(
             start=self.params.disk1.origin,
-            end=self.params.disk1.origin + q12_dv * (self.params.disk1.pars.disk_r +
-                                                     self.params.finger_extension_l),
+            end=self.finger1.end,
             width=self.params.finger_metal_width,
             gap=0,
             region_id=self.region_id
         )
-        self.primitives["finger1_bandage"] = finger1_bandage
-        finger2_bandage = CPW(
+        self.primitives["finger1_bandage"] = self.finger1_bandage
+
+        self.finger2_bandage = CPW(
             start=self.params.disk2.origin,
-            end=self.params.disk2.origin - q12_dv * (self.params.disk2.pars.disk_r +
-                                                     self.params.finger_extension_l),
+            end=self.finger2.end,
             width=self.params.finger_metal_width,
             gap=0,
             region_id=self.region_id
         )
-        self.primitives["finger2_bandage"] = finger2_bandage
+        self.primitives["finger2_bandage"] = self.finger2_bandage
 
         self.connections.append(origin)
 

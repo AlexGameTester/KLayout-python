@@ -222,16 +222,38 @@ class Design8QStair(ChipDesign):
             qubit.place(self.region_el, region_id="el")
 
     def draw_qq_couplings(self):
+        # TODO: maybe transfer this datastructure to another file
+        # entry with idx=[i,j] for coupling between qubits [i,j] is  of integers
+        # corresponding to qubits connections terminals (see schematics)
+        qq_coupling_connections_map = np.zeros((8, 8, 2), dtype=int)
+        # TODO: fill structure automatically for more qubits
+        # horizontal
+        qq_coupling_connections_map[0, 1] = np.array((0, 4))
+        qq_coupling_connections_map[1, 2] = np.array((0, 4))
+        qq_coupling_connections_map[3, 4] = np.array((0, 4))
+        qq_coupling_connections_map[4, 5] = np.array((7, 4))
+        qq_coupling_connections_map[6, 7] = np.array((0, 4))
+
+        # vertical
+        qq_coupling_connections_map[0, 3] = np.array((2, 6))
+        qq_coupling_connections_map[1, 4] = np.array((2, 6))
+        qq_coupling_connections_map[2, 5] = np.array((2, 6))
+        qq_coupling_connections_map[3, 6] = np.array((2, 6))
+        qq_coupling_connections_map[4, 7] = np.array((3, 5))
+
         it_1d = list(range(len(self.qubits_grid.pts_grid)))
         it_2d = itertools.product(it_1d, it_1d)
         for pt_i, pt_j in it_2d:
-            if (pt_i < pt_j):
+            if (pt_i >= pt_j):
                 continue
             row_i = pt_i // 3
             col_i = pt_i % 3
             row_j = pt_j // 3
             col_j = pt_j % 3
             if (abs(row_i - row_j) + abs(col_i - col_j)) == 1:
+                print(pt_i, pt_j)
+                print(qq_coupling_connections_map[pt_i, pt_j])
+                print()
                 pt_1 = self.qubits_grid.get_pt(pt_i)
                 pt_2 = self.qubits_grid.get_pt(pt_j)
                 dv = (pt_1 - pt_2)
@@ -246,7 +268,9 @@ class Design8QStair(ChipDesign):
                     origin=DPoint(0, 0),
                     params=CqqCouplingParamsType2(
                         disk1=self.qubits[pt_i].cap_shunt,
-                        disk2=self.qubits[pt_j].cap_shunt
+                        disk2=self.qubits[pt_j].cap_shunt,
+                        disk1_connector_idx=qq_coupling_connections_map[pt_i, pt_j, 0],
+                        disk2_connector_idx=qq_coupling_connections_map[pt_i, pt_j, 1]
                     ),
                     region_id="ph"
                 )
@@ -293,7 +317,7 @@ class Design8QStair(ChipDesign):
             qubit_res_finger_width = qubit_res_finger_width_list[q_idx]
             qubit_res_d = 254e3
             dv = res.start - res.end + qubit.origin + \
-                 trans_res_rotation*DVector(0, qubit_res_d)
+                 trans_res_rotation * DVector(0, qubit_res_d)
             res.make_trans(DCplxTrans(1, 0, False, dv))
             res.place(self.region_ph)
             self.resonators[res_idx] = res
@@ -444,14 +468,17 @@ class Cqq_type2(ChipDesign):
 
         origin = DPoint(0, 0)
         # `q1.cap_shunt = None` if `postpone_drawing=True`
-        q1 = Qubit(origin=origin + DVector(-self.disks_d / 2, 0), postpone_drawing=False)
-        q2 = Qubit(origin=origin + DVector(self.disks_d / 2, 0), postpone_drawing=False)
+        q1 = Qubit(origin=origin + DVector(0, -self.disks_d / 2), postpone_drawing=False)
+        q2 = Qubit(origin=origin + DVector(0, self.disks_d / 2), postpone_drawing=False)
         q1.place(self.region_ph, region_id="ph")
         q2.place(self.region_ph, region_id="ph")
 
         coupling = CqqCouplingType2(
             origin=origin,
-            params=CqqCouplingParamsType2(disk1=q1.cap_shunt, disk2=q2.cap_shunt),
+            params=CqqCouplingParamsType2(
+                disk1=q1.cap_shunt, disk2=q2.cap_shunt,
+                disk1_connector_idx=3, disk2_connector_idx=5
+            ),
             postpone_drawing=False, region_id="ph", region_ids=["ph"]
         )
         coupling.place(self.region_ph, region_id="ph")

@@ -2,19 +2,19 @@ from importlib import reload
 
 from classLib.helpers import polygon_splitting
 reload(polygon_splitting)
+split_polygons = polygon_splitting.split_polygons
 
 from classLib.helpers import pinning_grid
 reload(pinning_grid)
+fill_holes = pinning_grid.fill_holes
 
 from classLib.helpers import region_manipulation
 reload(region_manipulation)
+extended_region = region_manipulation.extended_region
+rotate_around = region_manipulation.rotate_around
 
 from classLib.helpers import capacitance_sim
 reload(capacitance_sim)
-
-fill_holes = pinning_grid.fill_holes
-split_polygons = polygon_splitting.split_polygons
-extended_region = region_manipulation.extended_region
 simulate_cij = capacitance_sim.simulate_cij
 save_sim_results = capacitance_sim.save_sim_results
 

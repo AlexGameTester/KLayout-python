@@ -36,7 +36,8 @@ class QubitsGrid:
     dy: float = 1e6
     pts_grid: np.ndarray = np.array(
         [
-            # grid iterates from left to right, from bottom to top,
+            # grid iterates from left to right (direct),
+            # from bottom to top (style of recording is inverted),
             # starting from bl corner.
             (0, 0), (1, 0), (2, 0),
             (0, 1), (1, 1), (2, 1),
@@ -112,9 +113,10 @@ class DiskConn8(ComplexBase):
         self.primitives["empty_disk"] = self.empty_disk
 
         # draw star-like connection flanges
-        angles = self.pars.connector_angles  # degree
-        for i, angle in enumerate(angles):
-            trans = DCplxTrans(1, angle, False, 0, 0)
+        self.angle_connections = self.pars.connector_angles/180*np.pi  # degree
+        angles_deg = self.pars.connector_angles
+        for i, angle_deg in enumerate(angles_deg):
+            trans = DCplxTrans(1, angle_deg, False, 0, 0)
             # finger with side gap
             cpw_l = self.pars.disk_r + self.pars.pimp_l
             cpw = CPW(
