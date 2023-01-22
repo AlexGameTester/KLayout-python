@@ -265,54 +265,64 @@ class Design8QStair(ChipDesign):
         See 8QStair.drawio for details 
         '''
 
-        qubit_res_finger_lengths_list = [30e3]*8
-        qubit_res_finger_gaps_list = [10e3]*8
+        # TODO: create separeta structure for this?
+        qubit_res_finger_lengths_list = [30e3] * 8
+        qubit_res_finger_gaps_list = [10e3] * 8
+        qubit_res_finger_width_list = [45e3] * 8
 
-        # resonator 0 for qubit 6
-        q_idx = 6
-        res_idx = 0
+        q_res_idxs_pairs = [[6, 0], [3, 1], [0, 2], [1, 3],
+                            [2, 7], [5, 6], [4, 5], [7, 4]]
+        resonator_rotation_angles = [90, 90, 90, 180,
+                                     270, 270, 270 + 45, 0]
 
-        qubit = self.qubits[q_idx]
-        resonator_kw_args = resonator_kw_args_list[res_idx]
-        resonator_kw_args.update({"start": DPoint(0, 0), "trans_in": Trans.R90})
-        res = EMResonatorTL3QbitWormRLTailXmonFork(**resonator_kw_args)
+        for (q_idx, res_idx), res_trans_angle in zip(q_res_idxs_pairs, resonator_rotation_angles):
+            qubit = self.qubits[q_idx]
+            resonator_kw_args = resonator_kw_args_list[res_idx]
+            trans_res_rotation = DCplxTrans(1, res_trans_angle, False, 0, 0)
+            resonator_kw_args.update(
+                {
+                    "start"   : DPoint(0, 0),
+                    "trans_in": trans_res_rotation
+                }
+            )
+            res = EMResonatorTL3QbitWormRLTailXmonFork(**resonator_kw_args)
 
-        # moving resonator to it's corresponding qubit
-        qubit_res_finger_length = qubit_res_finger_lengths_list[q_idx]
-        qubit_res_finger_gap = qubit_res_finger_gaps_list[q_idx]
-        qubit_res_d = qubit_res_finger_gap + qubit_res_finger_length
-        dv = res.start - (res.fork_y_cpw1.end + res.fork_y_cpw2.end) / 2 + qubit.origin + \
-             DVector(-(qubit.qubit_params.qubit_cap_params.disk_r + qubit_res_d), 0)
-        res.make_trans(DCplxTrans(1, 0, False, dv))
-        res.place(self.region_ph)
-        self.resonators[res_idx] = res
+            # moving resonator to it's corresponding qubit
+            qubit_res_finger_length = qubit_res_finger_lengths_list[q_idx]
+            qubit_res_finger_gap = qubit_res_finger_gaps_list[q_idx]
+            qubit_res_finger_width = qubit_res_finger_width_list[q_idx]
+            qubit_res_d = 254e3
+            dv = res.start - res.end + qubit.origin + \
+                 trans_res_rotation*DVector(0, qubit_res_d)
+            res.make_trans(DCplxTrans(1, 0, False, dv))
+            res.place(self.region_ph)
+            self.resonators[res_idx] = res
 
-        # drawing qubit finger coupling
-        dv_qubit_res = (res.fork_y_cpw1.end + res.fork_y_cpw2.end)/2 - qubit.origin
-        dv_qubit_res /= dv_qubit_res.abs()
+            # drawing qubit finger coupling
+            dv_qubit_res = (res.fork_y_cpw1.end + res.fork_y_cpw2.end) / 2 - qubit.origin
+            dv_qubit_res /= dv_qubit_res.abs()
 
-        qubit_res_finger_bandage = CPW(
-            start=qubit.origin,
-            end=qubit.origin + (qubit_res_finger_length +
-                  qubit.qubit_params.qubit_cap_params.disk_r)*dv_qubit_res,
-            width=res.fork_metal_width, gap=0,
-            open_end_gap=res.fork_gnd_gap
-        )
-        qubit_res_finger_bandage.place(self.region_ph)
-        qubit_res_finger = CPW(
-            start=qubit.origin + qubit.qubit_params.qubit_cap_params.disk_r*dv_qubit_res,
-            end=qubit.origin + (qubit_res_finger_length +
-                                qubit.qubit_params.qubit_cap_params.disk_r) * dv_qubit_res,
-            width=res.fork_metal_width, gap=res.fork_metal_width,
-            open_end_gap=res.fork_gnd_gap
-        )
-        qubit_res_finger.place(self.region_ph)
+            qubit_res_finger_bandage = CPW(
+                start=qubit.origin,
+                end=qubit.origin + (qubit_res_finger_length +
+                                    qubit.qubit_params.qubit_cap_params.disk_r) * dv_qubit_res,
+                width=qubit_res_finger_width, gap=0,
+                open_end_gap=res.fork_gnd_gap
+            )
+            qubit_res_finger_bandage.place(self.region_ph)
+            qubit_res_finger = CPW(
+                start=qubit.origin + qubit.qubit_params.qubit_cap_params.disk_r * dv_qubit_res,
+                end=qubit.origin + (qubit_res_finger_length +
+                                    qubit.qubit_params.qubit_cap_params.disk_r) * dv_qubit_res,
+                width=qubit_res_finger_width, gap=qubit_res_finger_gap,
+                open_end_gap=res.fork_gnd_gap
+            )
+            qubit_res_finger.place(self.region_ph)
 
     def draw_readout_lines(self):
         # readout line is extended around qubit square in order to
         # fit readout resonators `L_couplings` and left a bit more space
         # for consistent and easy simulation of notch port resonator
-        # TODO: put this variables into resonator/ro_line parameters structure
         self.qCenter_roLine_distance = abs((self.qubits[6].origin - self.resonators[0].start).x) + \
                                        ResonatorParams.to_line_list[6]
         ro_line_extension = self.qCenter_roLine_distance / 2
