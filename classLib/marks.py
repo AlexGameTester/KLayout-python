@@ -4,7 +4,7 @@ from pya import Point, DPoint, DSimplePolygon, SimplePolygon, DPolygon, Polygon,
 from pya import Trans, DTrans, CplxTrans, DCplxTrans, ICplxTrans
 
 from classLib.baseClasses import ElementBase, ComplexBase
-from classLib.shapes import Ring, Disk, Rectangle, Cross, IsoTrapezoid, Cross2
+from classLib.shapes import Donut, Disk, Rectangle, Cross, IsoTrapezoid, Cross2
 from classLib.coplanars import CPW, CPWParameters, CPWArc
 
 
@@ -67,8 +67,8 @@ class Mark2(ComplexBase):
 
     def init_primitives(self):
         origin = DPoint(0, 0)
-        self.primitives["empty_ring1"] = Ring(origin, self.ring1_outer_r, self.ring1_thickness, inverse=True)
-        self.primitives["empty_ring2"] = Ring(origin, self.ring2_outer_r, self.ring2_thickness, inverse=True)
+        self.primitives["empty_ring1"] = Donut(origin, self.ring1_outer_r, self.ring1_thickness, inverse=True)
+        self.primitives["empty_ring2"] = Donut(origin, self.ring2_outer_r, self.ring2_thickness, inverse=True)
         self.primitives["inner_circle"] = Disk(origin, self.inner_circle_radius, inverse=True)
         self.primitives["trap_top"] = IsoTrapezoid(
             origin + DPoint(-self.trap_b / 2, self.trap_dist),
@@ -108,11 +108,11 @@ class MarkBolgar(ComplexBase):
         self.primitives["empty_circle"] = self.empty_circle
 
         # outer ring
-        self.ring1 = Ring(center, self.ring1_outer_r, self.ring1_thickness)
+        self.ring1 = Donut(center, self.ring1_outer_r, self.ring1_thickness)
         self.primitives["ring1"] = self.ring1
 
         # inner ring
-        self.ring2 = Ring(center, self.ring2_outer_r, self.ring2_thickness)
+        self.ring2 = Donut(center, self.ring2_outer_r, self.ring2_thickness)
         self.primitives["ring2"] = self.ring2
 
         ## four aim lines ##

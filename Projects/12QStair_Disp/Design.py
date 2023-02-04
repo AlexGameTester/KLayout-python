@@ -187,10 +187,10 @@ class Design8QStair(ChipDesign):
             int
                 qubit disk's connector idx
             """
-            if qubit_idx in [0, 1, 3, 6]:
-                return 5
+            if qubit_idx in [0, 1, 2, 3, 4, 7, 10]:
+                return 6
             else:
-                return 1
+                return 2
 
         for qubit_idx in range(len(self.qubits_grid.pts_grid)):
             pt = self.qubits_grid.get_pt(qubit_idx)
@@ -243,9 +243,9 @@ class Design8QStair(ChipDesign):
         qq_coupling_connectors_map[10, 11] = np.array((0, 4))
 
         # vertical
-        qq_coupling_connectors_map[1, 4] = np.array((2, 6))
-        qq_coupling_connectors_map[2, 5] = np.array((2, 6))
-        qq_coupling_connectors_map[3, 6] = np.array((2, 6))
+        qq_coupling_connectors_map[0, 4] = np.array((2, 6))
+        qq_coupling_connectors_map[1, 5] = np.array((2, 6))
+        qq_coupling_connectors_map[2, 6] = np.array((2, 6))
         #
         qq_coupling_connectors_map[3, 7] = np.array((2, 6))
         qq_coupling_connectors_map[4, 8] = np.array((2, 6))
@@ -255,8 +255,10 @@ class Design8QStair(ChipDesign):
         qq_coupling_connectors_map[8, 11] = np.array((2, 6))
 
         it_1d = list(enumerate(self.qubits_grid.pts_grid))
-        print(it_1d)
         it_2d = itertools.product(it_1d, it_1d)
+        # TODO: refactor code:
+        #  `it_2d` and `qq_coupling_connectors_map` has to be putted into the QubitsGrid
+        #  datastructure
         for (pt1_1d_idx, pt1), (pt2_1d_idx, pt2) in it_2d:
             # cast (1,2) float arrays into points
             pt1 = DPoint(pt1[0], pt1[1])
@@ -266,15 +268,6 @@ class Design8QStair(ChipDesign):
                 continue
 
             qq_coupling_connectors_idxs = qq_coupling_connectors_map[pt1_1d_idx, pt2_1d_idx]
-            # print()
-            # print(pt1, " ", pt2)
-            # print((pt1 - pt2).abs())
-            print()
-            print(qq_coupling_connectors_idxs)
-            print("q1 coords:", pt1, "q2 coords: ", pt2)
-            if (qq_coupling_connectors_idxs >= 0).all():
-                print("coupled q_idxs:", pt1_1d_idx, pt2_1d_idx)
-                print("coupled qubits distance:", (pt1 - pt2).abs())
 
             if all(
                     [
@@ -282,8 +275,6 @@ class Design8QStair(ChipDesign):
                         (qq_coupling_connectors_idxs >= 0).all()  # if coupled
                     ]
             ):
-                print(pt1, " ", pt2)
-                print("connector idxs:", qq_coupling_connectors_idxs, flush=True)
                 q1_connector_idx = qq_coupling_connectors_idxs[0]
                 q2_connector_idx = qq_coupling_connectors_idxs[1]
                 qq_coupling = CqqCouplingType2(

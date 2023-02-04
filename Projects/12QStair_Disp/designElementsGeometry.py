@@ -27,7 +27,7 @@ from classLib.josJ import AsymSquidParams, AsymSquid
 from globalDefinitions import CHIP
 
 
-@dataclass()
+@dataclass()  # dataclass is used for simplicity of class declaration and readability only
 class QubitsGrid:
     # in fractions of chip dimensions
     origin: float = DVector(CHIP.dx / 2, CHIP.dy / 2)
@@ -53,7 +53,7 @@ class QubitsGrid:
     def __centralize_grid(self):
         # grid is centralized such that bbox center of the grid has
         # origin (0,0)
-        grid_center = np.array([0, 0], dtype=float)
+        grid_center = np.array([0.5, 1.5], dtype=float)
         for i, pt_pos in enumerate(self.pts_grid):
             self.pts_grid[i] -= grid_center
 
@@ -65,7 +65,7 @@ class QubitsGrid:
         return origin + DVector(pt_x, pt_y)
 
 
-@dataclass()
+@dataclass()  # dataclass is used for simplicity of class declaration and readability only
 class DiskConn8Pars:
     connector_angles = np.linspace(0, 360, 8, endpoint=False)
     disk_r = 120e3
@@ -244,6 +244,10 @@ class Qubit(ComplexBase):
 
 
 class ResonatorParams:
+    """
+    Static class that contains information on readout resonators geometry parameters.
+    Geometry parameters has to be verified by simulation.
+    """
     # see parameters details in `Design_fast.py`
     L_coupling_list = [
         1e3 * x for x in [310, 320, 320, 310] * 2

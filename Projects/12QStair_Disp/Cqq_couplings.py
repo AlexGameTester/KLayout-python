@@ -27,6 +27,7 @@ from classLib.coplanars import CPW, CPWParameters, DPathCPW
 from classLib.helpers import rotate_around
 from classLib.chipDesign import ChipDesign
 from classLib.contactPads import ContactPad
+from classLib.shapes import Donut
 
 from designElementsGeometry import DiskConn8, DiskConn8Pars
 
