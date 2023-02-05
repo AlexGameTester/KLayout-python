@@ -60,7 +60,7 @@ def simulate_cij(
             subregs_dy_list.append(bbox.height())
         extension_dx = 1 * np.mean(subregs_dx_list)
         extension_dy = 1 * np.mean(subregs_dy_list)
-        
+
         crop_box.left -= extension_dx
         crop_box.right += extension_dx
         crop_box.top += extension_dy
@@ -112,7 +112,7 @@ def simulate_cij(
                 max_distance = centers_d
             else:
                 continue
-        print(edge1_center_best, edge2_center_best)
+        # print(edge1_center_best, edge2_center_best)
         design.sonnet_ports.append(edge1_center_best)
         design.sonnet_ports.append(edge2_center_best)
     # [print(port.x, port.y) for port in design.sonnet_ports]
@@ -147,7 +147,7 @@ def simulate_cij(
         crop_box.width() / resolution_dx,
         crop_box.height() / resolution_dy
     )
-    print(simBox.y, simBox.x, simBox.x_n, simBox.x_n)
+    # print(simBox.y, simBox.x, simBox.x_n, simBox.x_n)
     ml_terminal.set_boxProps(simBox)
     # print("sending cell and layer")
     from sonnetSim.pORT_TYPES import PORT_TYPES
@@ -161,9 +161,9 @@ def simulate_cij(
             )
         )
 
-    print("sonnet ports positions after transform:")
-    for sp in ports:
-        print(sp.point)
+    # print("sonnet ports positions after transform:")
+    # for sp in ports:
+    #     print(sp.point)
     ml_terminal.set_ports(ports)
 
     ml_terminal.send_polygons(design.cell, layer_i=layer)
