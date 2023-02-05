@@ -70,6 +70,7 @@ import Cqq_couplings
 
 reload(Cqq_couplings)
 from Cqq_couplings import CqqCouplingType2, CqqCouplingParamsType2
+from Cqq_couplings import CqqCouplingType1, CqqCouplingParamsType1
 
 
 class Design8QStair(ChipDesign):
@@ -148,7 +149,7 @@ class Design8QStair(ChipDesign):
         self.draw_chip()
         self.draw_qubits_array()
         self.draw_qq_couplings()
-        # self.draw_readout_resonators()
+        self.draw_readout_resonators()
         # self.draw_readout_lines()
 
     def draw_postpone(self):
@@ -277,9 +278,19 @@ class Design8QStair(ChipDesign):
             ):
                 q1_connector_idx = qq_coupling_connectors_idxs[0]
                 q2_connector_idx = qq_coupling_connectors_idxs[1]
-                qq_coupling = CqqCouplingType2(
+                # qq_coupling = CqqCouplingType2(
+                #     origin=DPoint(0, 0),
+                #     params=CqqCouplingParamsType2(
+                #         disk1=self.qubits[pt1_1d_idx].cap_shunt,
+                #         disk2=self.qubits[pt2_1d_idx].cap_shunt,
+                #         disk1_connector_idx=q1_connector_idx,
+                #         disk2_connector_idx=q2_connector_idx
+                #     ),
+                #     region_id="ph"
+                # )
+                qq_coupling = CqqCouplingType1(
                     origin=DPoint(0, 0),
-                    params=CqqCouplingParamsType2(
+                    params=CqqCouplingParamsType1(
                         disk1=self.qubits[pt1_1d_idx].cap_shunt,
                         disk2=self.qubits[pt2_1d_idx].cap_shunt,
                         disk1_connector_idx=q1_connector_idx,
@@ -293,7 +304,7 @@ class Design8QStair(ChipDesign):
     def draw_readout_resonators(self):
         resonator_kw_args_list = list(
             map(
-                ResonatorParams.get_resonator_params_by_qubit_idx, range(8)
+                ResonatorParams.get_resonator_params_by_qubit_idx, range(12)
             )
         )
 
@@ -450,12 +461,15 @@ def simulate_Cqq(q1_idx, q2_idx=-1, resolution=(5e3, 5e3)):
             )
         )
         '''DRAWING SECTION END'''
+
+        ''' SIMULATION SECTION START '''
         q1_reg = q1.metal_regions["ph"]
         C1, _, _ = simulate_cij(
             design, env_reg=None, layer=design.layer_ph,
             subregs=[q1_reg],
             resolution=resolution, print_values=True
         )
+        ''' SIMULATION SECTION END '''
 
         '''SAVING REUSLTS SECTION START'''
         output_filepath = os.path.join(

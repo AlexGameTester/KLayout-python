@@ -250,49 +250,55 @@ class ResonatorParams:
     """
     # see parameters details in `Design_fast.py`
     L_coupling_list = [
-        1e3 * x for x in [310, 320, 320, 310] * 2
+        1e3 * x for x in [310, 320, 320, 310] * 3
     ]
-    L0_list = [986e3] * 8
+    L0_list = [986e3] * 12
     L1_list = [
         1e3 * x for x in
-        [114.5219, 95.1897, 99.0318, 83.7159, 88.8686, 70.3649,
-         74.0874, 59.6982]
+        [
+            114.5219, 95.1897, 99.0318, 83.7159,
+             114.5219, 95.1897, 99.0318, 83.7159,
+             114.5219, 95.1897, 99.0318, 83.7159
+        ]
     ]
-    res_r_list = [60e3] * 8
-    tail_turn_radiuses_list = [60e3] * 8  # res_r_list
-    N_coils_list = [3, 3, 3, 3] * 2
-    L2_list = [60e3] * 8  # res_r_list
+    res_r_list = [60e3] * 12
+    tail_turn_radiuses_list = [60e3] * 12  # res_r_list
+    N_coils_list = [3, 3, 3, 3] * 12
+    L2_list = [60e3] * 12  # res_r_list
     L3_list = []  # get numericals from Design_fast
-    L4_list = [60e3] * 8  # res_r_list
-    Z_res_list = [CPWParameters(10e3, 6e3)]*8
-    to_line_list = [45e3] * 8
+    L4_list = [60e3] * 12  # res_r_list
+    Z_res_list = [CPWParameters(10e3, 6e3)]*12
+    to_line_list = [45e3] * 12
 
     # fork at the end of resonator parameters
-    fork_metal_width_list = [15e3]*8
-    fork_gnd_gap_list = [10e3]*8
-    xmon_fork_gnd_gap_list = [14e3]*8
+    fork_metal_width_list = [15e3]*12
+    fork_gnd_gap_list = [10e3]*12
+    xmon_fork_gnd_gap_list = [14e3]*12
     # self.cross_width_y + 2 * (self.xmon_fork_gnd_gap + self.fork_metal_width)
-    fork_x_span_list = [45e3 + 2*(14e3 + 15e3)] * 8
+    fork_x_span_list = [45e3 + 2*(14e3 + 15e3)] * 12
     # resonator-fork parameters
     # from simulation of g_qr
     fork_y_span_list = [
         x * 1e3 for x in
-        [33.18, 91.43, 39.36, 95.31, 44.34, 96.58, 49.92, 99.59]
+        [
+            33.18, 91.43, 39.36, 95.31,
+            44.34, 96.58, 49.92, 99.59,
+            33.18, 91.43, 39.36, 95.31
+        ]
     ]
-    tail_segments_list = [[60000.0, 215000.0, 60000.0]]*8
+    tail_segments_list = [[60000.0, 215000.0, 60000.0]]*12
     res_tail_shape = "LRLRL"
 
     tail_turn_angles_list = [
         [np.pi / 2, -np.pi / 2],
         [np.pi / 2, -np.pi / 2],
         [np.pi / 2, -np.pi / 2],
-        [np.pi / 2, -np.pi / 2]
+        [np.pi / 2, -np.pi / 2],
+        [-np.pi / 2, np.pi / 2],
+        [-np.pi / 2, np.pi / 2],
+        [-np.pi / 2, np.pi / 2],
+        [-np.pi / 2, np.pi / 2]
     ]
-    tail_turn_angles_list = tail_turn_angles_list + list(
-        reversed(
-            tail_turn_angles_list
-        )
-    )
 
     @staticmethod
     def get_resonator_params_by_qubit_idx(q_idx):

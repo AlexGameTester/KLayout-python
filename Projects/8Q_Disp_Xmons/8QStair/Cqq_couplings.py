@@ -250,7 +250,7 @@ class CqqCouplingType2(ComplexBase):
             gap=0,
             region_id=self.region_id
         )
-        self.primitives["finger1_bandage"] = self.finger1_bandage
+        self.primitives["coupling1_bandage"] = self.finger1_bandage
 
         self.finger2_bandage = CPW(
             start=self.params.disk2.origin,
@@ -259,7 +259,7 @@ class CqqCouplingType2(ComplexBase):
             gap=0,
             region_id=self.region_id
         )
-        self.primitives["finger2_bandage"] = self.finger2_bandage
+        self.primitives["coupling2_bandage"] = self.finger2_bandage
 
         self.connections.append(origin)
 

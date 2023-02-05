@@ -248,174 +248,6 @@ class DiskSector(ElementBase):
         self.metal_regions[self.region_id].insert(disk_arc_polygon)
 
 
-class Donut(ElementBase):
-    def __init__(
-        self, origin, inner_r=None, outer_r=None, ring_width=None,
-        alpha_start=0, alpha_end=2 * np.pi, n_pts=50,
-        trans_in=None,
-        inverse=False, region_id="default"
-    ):
-        """
-        Class that draw circles/rings and their angled sectors.
-        Angles supplied is counted counter-clockwise from Ox axis in radii.
-
-        Inspired by the structure of the same name from the sonnet 14.52 geometry design toolbox.
-
-        Parameters
-        ----------
-        origin : DPoint
-            the center of the ring
-        inner_r: float
-            inner radius of the ring
-        outer_r : float
-            outer radius of the ring
-        ring_width : float
-            thickness of the ring
-            If all 3 parameters from the set {`inner_r`, `outer_r`, `ring_width`} are supplied
-            than `ring_width` will be ignored.
-        alpha_start : float
-            start angle in degree. For ring sector. Count starts from x axis in counter-clockwise
-            direction.
-            Default = 0
-        alpha_end : float
-            end angle in degree. For ring sector
-            Default = 360
-        n_pts : int
-            number of points comprising the circumference of the ring (50 by default)
-        trans_in : Union[DCplxTrans, CplxTrans, DTrans, Trans]
-            Represent object's local coordinate system transformation
-            see more at
-            https://www.klayout.de/doc-qt4/code/class_DCplxTrans.html
-        inverse : bool
-            Whether to interchange `empty_polygon` and
-            `metal_polygon` before placing
-        region_id : str
-            region identifier to object if object is part of a compound
-            object and/or resides in objects tree.
-        """
-
-        def parseRinRoutRwidth(inner_r, outer_r, ring_width):
-            # parsing {`inner_r`, `outer_r`, `ring_width`} set to be self-consistent
-            # If 2 out of 3 are supplied - third is calculated automatically
-            # If <2 or all 3 are supplied - ValueError will be thrown
-            counter = 0
-            for entry in [outer_r, inner_r, ring_width]:
-                if entry is not None:
-                    counter += 1
-            if (counter == 3) or (counter < 2):
-                raise ValueError(
-                    "Only 2 out of 3 keyword arguments with following names has to be \n"
-                    "suuplied: {`inner_r`, `outer_r`, `ring_width`}\n"
-                    f"You supplied {counter} arguments"
-                )
-
-            if inner_r is None:
-                inner_r = outer_r - ring_width
-            if outer_r is None:
-                outer_r = inner_r + ring_width
-            if ring_width is None:
-                ring_width = outer_r - inner_r
-
-            return inner_r, outer_r, ring_width
-
-        inner_r, outer_r, ring_width = parseRinRoutRwidth(
-            inner_r=inner_r, outer_r=outer_r, ring_width=ring_width
-        )
-        self.inner_r = inner_r
-        self.outer_r = outer_r
-        self.ring_width = ring_width
-        self.n_pts = n_pts
-        self.alpha_start = alpha_start
-        self.alpha_end = alpha_end
-        super().__init__(
-            origin=origin, trans_in=trans_in, inverse=inverse,
-            region_id=region_id
-        )
-
-    def init_regions(self):
-        # name aliases for short adressing
-        Rout = self.outer_r
-        Rin = self.inner_r
-
-        ''' Check if values are self-consistent '''
-
-        # unpredicted behaviour in supplied parameters point
-        if Rin >= Rout:
-            print(
-                f"{self.__class__.__name__} error:\n"
-                f"{Rin} = inner_r >= outer_r = {Rout}\n"
-                f"unpredicted behaviour for this supplied parameters region"
-            )
-        if self.alpha_start > self.alpha_end:
-            print(
-                f"{self.__class__.__name__} error:\n"
-                f"{self.alpha_start} = alpha_start >= alpha_end = {self.alpha_end}\n"
-                f"unpredicted behaviour for this supplied parameters region"
-            )
-        if abs(self.alpha_end - self.alpha_start) >= 2*np.pi:
-            print(
-                f"{self.__class__.__name__} error:\n"
-                f"angle difference surpass 2pi: alpha difference\n"
-                f" = {abs(self.alpha_end-self.alpha_start)}\n"
-                f"underfined behaviour for this parameter point"
-            )
-
-        # empty region returned
-        if Rout == 0:
-            print(
-                f"{self.__class__.__name__} error:\n"
-                f"outer radius = {Rout} <= 0\n"
-                f"empty region will be constructed"
-            )
-        elif self.alpha_start == self.alpha_end:
-            print(
-                f"{self.__class__.__name__} error:\n"
-                f"alpha_start =  alpha_end = {self.alpha_end}\n"
-                f"empty region will be constructed"
-            )
-        else:
-            ''' Drawing multiple scenarious '''
-            alphas = np.linspace(self.alpha_start, self.alpha_end, self.n_pts)
-            # always draw hull (exterior part)
-            dpts_arr_Rout = Rout * np.transpose(
-                [np.cos(alphas), np.sin(alphas)]
-            )
-            dpts_arr_Rout = [DPoint(x, y) for x, y in dpts_arr_Rout]
-            donut_dpolygon = DPolygon()
-            if abs((self.alpha_start - self.alpha_end) % (2 * np.pi)) <= 1e-8:  # complete donut
-                # exclude endpoint for closed hull contour since first and last points coincide
-                donut_dpolygon.hull = dpts_arr_Rout[:-1]  # DPolygon allow holes inside
-                if Rin != 0:  # insert disk hole
-                    dpts_arr_Rin = Rin * np.transpose([np.cos(alphas), np.sin(alphas)])
-                    # exclude endpoint for closed inner contour since first and last points simply
-                    # coincide
-                    dpts_arr_Rin = [DPoint(x, y) for x, y in dpts_arr_Rin[:-1]]
-                    donut_dpolygon.insert_hole(dpts_arr_Rin)
-                else:  # complete disk
-                    # no holes needed
-                    pass
-            else:  # angle sector of a donut
-                # no endpoints excluded
-                angle_sector_pts = dpts_arr_Rout
-                if Rin == 0:  # disk sector
-                    # add center to the hull to complete contour
-                    angle_sector_pts += [DPoint(0, 0)]
-                else:
-                    # donut angle sector
-                    dpts_arr_Rin = Rin * np.transpose([np.cos(alphas), np.sin(alphas)])
-                    # clockwise direction due to `dpts_arr_Rin[::-1]`
-                    dpts_arr_Rin = [DPoint(x, y) for x, y in dpts_arr_Rin[::-1]]
-                    angle_sector_pts += dpts_arr_Rin
-                donut_dpolygon = DPolygon(angle_sector_pts)
-
-            self.metal_region.insert(donut_dpolygon)
-
-        self.connections = [DPoint(0, 0)]
-
-    def _refresh_named_connections(self):
-        self.center = self.connections[0]
-
-
 # DEPRECATED: USE `classlib.shapes.Donut` instead
 class RingSector(ElementBase):
     def __init__(
@@ -549,6 +381,183 @@ class Cross2(ElementBase):
             self.empty_region.insert(cross)
         else:
             self.metal_region.insert(cross)
+
+
+class Donut(ElementBase):
+    def __init__(
+        self, origin, inner_r=None, outer_r=None, ring_width=None,
+        alpha_start=0, alpha_end=360, n_pts=50,
+        trans_in=None,
+        inverse=False, region_id="default"
+    ):
+        """
+        Class that draw circles/rings and their angled sectors.
+        Angles supplied is counted counter-clockwise from Ox axis in radii.
+
+        Inspired by the structure of the same name from the sonnet 14.52 geometry design toolbox.
+
+        Parameters
+        ----------
+        origin : DPoint
+            the center of the ring
+        inner_r: float
+            inner radius of the ring
+        outer_r : float
+            outer radius of the ring
+        ring_width : float
+            thickness of the ring
+            If all 3 parameters from the set {`inner_r`, `outer_r`, `ring_width`} are supplied
+            than `ring_width` will be ignored.
+        alpha_start : float
+            start angle in degree. For ring sector. Count starts from x axis in counter-clockwise
+            direction.
+            Default = 0
+        alpha_end : float
+            end angle in degree. For ring sector
+            Default = 360
+        n_pts : int
+            number of points comprising the circumference of the ring (50 by default)
+        trans_in : Union[DCplxTrans, CplxTrans, DTrans, Trans]
+            Represent object's local coordinate system transformation
+            see more at
+            https://www.klayout.de/doc-qt4/code/class_DCplxTrans.html
+        inverse : bool
+            Whether to interchange `empty_polygon` and
+            `metal_polygon` before placing
+        region_id : str
+            region identifier to object if object is part of a compound
+            object and/or resides in objects tree.
+        """
+
+        def parseRinRoutRwidth(inner_r, outer_r, ring_width):
+            # parsing {`inner_r`, `outer_r`, `ring_width`} set to be self-consistent
+            # If 2 out of 3 are supplied - third is calculated automatically
+            # If <2 or all 3 are supplied - ValueError will be thrown
+            counter = 0
+            for entry in [outer_r, inner_r, ring_width]:
+                if entry is not None:
+                    counter += 1
+            if (counter == 3) or (counter < 2):
+                raise ValueError(
+                    "Only 2 out of 3 keyword arguments with following names has to be \n"
+                    "suuplied: {`inner_r`, `outer_r`, `ring_width`}\n"
+                    f"You supplied {counter} arguments"
+                )
+
+            if inner_r is None:
+                inner_r = outer_r - ring_width
+            if outer_r is None:
+                outer_r = inner_r + ring_width
+            if ring_width is None:
+                ring_width = outer_r - inner_r
+
+            return inner_r, outer_r, ring_width
+
+        inner_r, outer_r, ring_width = parseRinRoutRwidth(
+            inner_r=inner_r, outer_r=outer_r, ring_width=ring_width
+        )
+        self.inner_r = inner_r
+        self.outer_r = outer_r
+        self.ring_width = ring_width
+        self.n_pts = n_pts
+        self.alpha_start = alpha_start
+        self.alpha_end = alpha_end
+        self.outer_arc_center: DPoint = None
+        self.inner_arc_center: DPoint = None
+        super().__init__(
+            origin=origin, trans_in=trans_in, inverse=inverse,
+            region_id=region_id
+        )
+
+    def init_regions(self):
+        # name aliases for short adressing
+        Rout = self.outer_r
+        Rin = self.inner_r
+
+        ''' Check if values are self-consistent '''
+
+        # unpredicted behaviour in supplied parameters point
+        if Rin >= Rout:
+            print(
+                f"{self.__class__.__name__} error:\n"
+                f"{Rin} = inner_r >= outer_r = {Rout}\n"
+                f"unpredicted behaviour for this supplied parameters region"
+            )
+        if self.alpha_start > self.alpha_end:
+            print(
+                f"{self.__class__.__name__} error:\n"
+                f"{self.alpha_start} = alpha_start >= alpha_end = {self.alpha_end}\n"
+                f"unpredicted behaviour for this supplied parameters region"
+            )
+        if abs(self.alpha_end - self.alpha_start) >= 360:
+            print(
+                f"{self.__class__.__name__} error:\n"
+                f"angle difference surpass 2pi: alpha difference\n"
+                f" = {abs(self.alpha_end-self.alpha_start)}\n"
+                f"underfined behaviour for this parameter point"
+            )
+
+        # empty region returned
+        if Rout == 0:
+            print(
+                f"{self.__class__.__name__} error:\n"
+                f"outer radius = {Rout} <= 0\n"
+                f"empty region will be constructed"
+            )
+        elif self.alpha_start == self.alpha_end:
+            print(
+                f"{self.__class__.__name__} error:\n"
+                f"alpha_start =  alpha_end = {self.alpha_end}\n"
+                f"empty region will be constructed"
+            )
+        else:  # proper region returned
+            ''' Drawing multiple scenarious '''
+            alphas = 2*np.pi/360*np.linspace(self.alpha_start, self.alpha_end, self.n_pts)
+            # always draw hull (exterior part)
+            dpts_arr_Rout = Rout * np.transpose(
+                [np.cos(alphas), np.sin(alphas)]
+            )
+            dpts_arr_Rout = [DPoint(x, y) for x, y in dpts_arr_Rout]
+            donut_dpolygon = DPolygon()
+            if abs((self.alpha_start - self.alpha_end) % (360)) <= 1e-8:  # complete donut
+                # exclude endpoint for closed hull contour since first and last points coincide
+                donut_dpolygon.hull = dpts_arr_Rout[:-1]  # DPolygon allow holes inside
+                if Rin != 0:  # insert disk hole
+                    dpts_arr_Rin = Rin * np.transpose([np.cos(alphas), np.sin(alphas)])
+                    # exclude endpoint for closed inner contour since first and last points simply
+                    # coincide
+                    dpts_arr_Rin = [DPoint(x, y) for x, y in dpts_arr_Rin[:-1]]
+                    donut_dpolygon.insert_hole(dpts_arr_Rin)
+                else:  # complete disk
+                    # no holes needed
+                    pass
+            else:  # angle sector of a donut
+                # no endpoints excluded
+                angle_sector_pts = dpts_arr_Rout
+                if Rin == 0:  # disk sector
+                    # add center to the hull to complete contour
+                    angle_sector_pts += [DPoint(0, 0)]
+                else:
+                    # donut angle sector
+                    dpts_arr_Rin = Rin * np.transpose([np.cos(alphas), np.sin(alphas)])
+                    # clockwise direction due to `dpts_arr_Rin[::-1]`
+                    dpts_arr_Rin = [DPoint(x, y) for x, y in dpts_arr_Rin[::-1]]
+                    angle_sector_pts += dpts_arr_Rin
+                donut_dpolygon = DPolygon(angle_sector_pts)
+
+            if self.inverse:  # TODO: implement inverse in `ElementBase` and `ComplexBase` probably.
+                self.empty_region.insert(donut_dpolygon)
+            else:
+                self.metal_region.insert(donut_dpolygon)
+            alpha_center_rad = (self.alpha_start + self.alpha_end)/2*(2*np.pi/360)
+            outer_arc_center = Rout*DVector(np.cos(alpha_center_rad), np.sin(alpha_center_rad))
+            inner_arc_center = Rin*DVector(np.cos(alpha_center_rad), np.sin(alpha_center_rad))
+            self.connections = [DPoint(0, 0), outer_arc_center, inner_arc_center]
+
+    def _refresh_named_connections(self):
+        self.center = self.connections[0]
+        self.outer_arc_center = self.connections[1]
+        self.inner_arc_center = self.connections[2]
 
 
 ''' NOT SO FREQUENTLY USED '''

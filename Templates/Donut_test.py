@@ -17,13 +17,14 @@ from classLib.shapes import Donut
 class MyDesign(ChipDesign):
     def draw(self):
         origin = DPoint(0, 0)
-        donut = Donut(
+        self.region_ph.insert(DBox(DPoint(-1e6, -1e6), DPoint(1e6, 1e6)))
+        self.donut = Donut(
             origin, inner_r=200e3, outer_r=300e3,
-            alpha_start=0, alpha_end=10*np.pi/2,
+            alpha_start=0, alpha_end=90,
             n_pts=100,
-            inverse=False
+            inverse=True
         )
-        donut.place(self.region_ph)
+        self.donut.place(self.region_ph)
 
 
 ### MAIN FUNCTION ###

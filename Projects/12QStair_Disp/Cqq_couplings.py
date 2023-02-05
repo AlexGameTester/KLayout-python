@@ -146,7 +146,7 @@ class CqqCouplingParamsType2:
 
 
 class CqqCouplingType2(ComplexBase):
-    # TODO: document this class properly if in production even once - assigned to @Shamil777
+    # TODO: document this class properly if in production more than once - assigned to @Shamil777
     def __init__(
         self, origin, params:
         CqqCouplingParamsType2 = CqqCouplingParamsType2(),
@@ -251,7 +251,7 @@ class CqqCouplingType2(ComplexBase):
             gap=0,
             region_id=self.region_id
         )
-        self.primitives["finger1_bandage"] = self.finger1_bandage
+        self.primitives["coupling1_bandage"] = self.finger1_bandage
 
         self.finger2_bandage = CPW(
             start=self.params.disk2.origin,
@@ -260,7 +260,160 @@ class CqqCouplingType2(ComplexBase):
             gap=0,
             region_id=self.region_id
         )
-        self.primitives["finger2_bandage"] = self.finger2_bandage
+        self.primitives["coupling2_bandage"] = self.finger2_bandage
+
+        self.connections.append(origin)
+
+    def _refresh_named_connections(self):
+        # TODO: make `self.origin` the default point which coordinates follows all the
+        #  transformations of the object it attributes to
+        self.origin = self.connections[-1]
+
+
+@dataclass()
+class CqqCouplingParamsType1:
+    # central 2 sided fork with 2 teeth
+    length_without_forks = 500e3
+
+    # distance betweeen bendings of the coupling cpw and center of the qubit disks.
+    bendings_disk_center_d = 280e3
+
+    central_metal_width = 40e3
+    central_gnd_gap = 10e3
+
+    donut_delta_alpha_deg = 360/9 * 2/3
+    donut_metal_width = 40e3
+    donut_gnd_gap = 15e3
+    donut_disk_d = 10e3
+
+    disk1: DiskConn8 = None
+    disk1_connector_idx: int = 1
+    disk2: DiskConn8 = None
+    disk2_connector_idx: int = 1
+
+
+class CqqCouplingType1(ComplexBase):
+    # TODO: document this class properly if in production more than once - assigned to @Shamil777
+    def __init__(
+        self, origin, params:
+        CqqCouplingParamsType1 = CqqCouplingParamsType1(),
+        trans_in=None, region_id="ph", postpone_drawing=False, region_ids=["ph"]
+    ):
+        self.params: CqqCouplingParamsType1 = params
+        super().__init__(
+            origin.dup(), trans_in=trans_in, region_id=region_id, postpone_drawing=postpone_drawing,
+            region_ids=region_ids
+        )
+
+    def init_primitives(self):
+        origin = (self.params.disk1.origin + self.params.disk2.origin) / 2
+        # declare helping structures
+        q12_dv = self.params.disk2.origin - self.params.disk1.origin
+        q12_dv /= q12_dv.abs()
+        angle = np.arctan2(q12_dv.y, q12_dv.x)
+
+        donut_delta_alpha_deg = self.params.donut_delta_alpha_deg
+
+        ### DRAW disk fingers ###
+        angle1 = self.params.disk1.angle_connections[self.params.disk1_connector_idx]/(2*np.pi)*360
+        self.arc_coupler1 = Donut(
+            origin=self.params.disk1.origin,
+            inner_r=self.params.donut_disk_d + self.params.disk1.pars.disk_r,
+            ring_width=self.params.donut_metal_width,
+            alpha_start=-donut_delta_alpha_deg/2,
+            alpha_end=donut_delta_alpha_deg/2,
+            region_id=self.region_id
+        )
+        rotate_around(self.arc_coupler1, self.arc_coupler1.origin, angle1)
+        # calculate angle required for gnd gap at the faces to be proper
+        d_alpha_deg = 360/2/np.pi * self.params.donut_gnd_gap/((self.arc_coupler1.inner_r +
+                                                               self.arc_coupler1.outer_r)/2)
+        self.arc_coupler1_empty = Donut(
+            origin = self.arc_coupler1.origin,
+            inner_r=self.arc_coupler1.inner_r - self.params.donut_disk_d,
+            outer_r=self.arc_coupler1.outer_r + self.params.donut_gnd_gap,
+            alpha_start=self.arc_coupler1.alpha_start - d_alpha_deg,
+            alpha_end=self.arc_coupler1.alpha_end + d_alpha_deg,
+            inverse=True,
+            region_id=self.region_id
+        )
+        rotate_around(self.arc_coupler1_empty, self.arc_coupler1_empty.origin, angle1)
+        # empty first, filling metal later
+        self.primitives["arc_coupler1_empty"] = self.arc_coupler1_empty
+        self.primitives["arc_coupler1"] = self.arc_coupler1
+
+        angle2 = self.params.disk2.angle_connections[self.params.disk2_connector_idx]/(2*np.pi)*360
+        self.arc_coupler2 = Donut(
+            origin=self.params.disk2.origin,
+            inner_r=self.params.donut_disk_d + self.params.disk2.pars.disk_r,
+            ring_width=self.params.donut_metal_width,
+            alpha_start=-donut_delta_alpha_deg / 2,
+            alpha_end=donut_delta_alpha_deg / 2,
+            region_id=self.region_id
+        )
+        rotate_around(self.arc_coupler2, self.arc_coupler2.origin, angle2)
+        # calculate angle required for gnd gap at the faces to be proper
+        d_alpha_deg = 360 / 2 / np.pi * self.params.donut_gnd_gap / ((self.arc_coupler2.inner_r +
+                                                                      self.arc_coupler2.outer_r)
+                                                                     / 2)
+        self.arc_coupler2_empty = Donut(
+            origin=self.arc_coupler2.origin,
+            inner_r=self.arc_coupler2.inner_r - self.params.donut_disk_d,
+            outer_r=self.arc_coupler2.outer_r + self.params.donut_gnd_gap,
+            alpha_start=self.arc_coupler2.alpha_start - d_alpha_deg,
+            alpha_end=self.arc_coupler2.alpha_end + d_alpha_deg,
+            inverse=True,
+            region_id=self.region_id
+        )
+        rotate_around(self.arc_coupler2_empty, self.arc_coupler2_empty.origin, angle2)
+        # empty first, filling metal later
+        self.primitives["arc_coupler2_empty"] = self.arc_coupler2_empty
+        self.primitives["arc_coupler2"] = self.arc_coupler2
+
+
+        ### DRAW Cqq coupler central part ###
+        dv1_n = self.arc_coupler1.outer_arc_center - self.arc_coupler1.origin
+        dv1_n = dv1_n/dv1_n.abs()
+        dv2_n = self.arc_coupler2.outer_arc_center - self.arc_coupler2.origin
+        dv2_n = dv2_n/dv2_n.abs()
+        p_start = self.arc_coupler1.outer_arc_center
+        p1 = self.arc_coupler1.origin + self.params.bendings_disk_center_d * dv1_n
+        p2 = self.arc_coupler2.origin + self.params.bendings_disk_center_d * dv2_n
+        p_end = self.arc_coupler2.outer_arc_center
+        self.cpw_central = DPathCPW(
+            points=[p_start, p1, p2, p_end],
+            cpw_parameters=[
+                CPWParameters(
+                    width=self.params.central_metal_width,
+                    gap=self.params.central_gnd_gap
+                )
+            ],
+            turn_radii=[self.params.bendings_disk_center_d / 5],
+            region_id=self.region_id
+        )
+        self.primitives["cpw_central"] = self.cpw_central
+
+        '''
+        eliminate gap between donut sector and coupling stick
+        and draw finger, if fork tooth `self.params.fork_params.gnd_gap` is large
+        '''
+        self.coupling1_bandage = CPW(
+            start=self.cpw_central.start,
+            end=(self.arc_coupler1.inner_arc_center + self.arc_coupler1.outer_arc_center)/2,
+            width=self.params.central_metal_width,
+            gap=0,
+            region_id=self.region_id
+        )
+        self.primitives["coupling1_bandage"] = self.coupling1_bandage
+
+        self.coupling2_bandage = CPW(
+            start=self.cpw_central.end,
+            end=(self.arc_coupler2.inner_arc_center + self.arc_coupler2.outer_arc_center) / 2,
+            width=self.params.central_metal_width,
+            gap=0,
+            region_id=self.region_id
+        )
+        self.primitives["coupling2_bandage"] = self.coupling2_bandage
 
         self.connections.append(origin)
 
