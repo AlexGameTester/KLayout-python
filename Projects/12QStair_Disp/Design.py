@@ -222,7 +222,7 @@ class Design8QStair(ChipDesign):
             qubit.place(self.region_ph, region_id="ph")
             qubit.place(self.region_el, region_id="el")
 
-    def draw_qq_couplings(self):
+    def draw_qq_couplings(self, donut_metal_width=40e3):
         # TODO: maybe transfer this datastructure to another file
         # incidence matrix for qubits graph
         # incidence matrix entries consists of 2 numbers - corresponding
@@ -291,6 +291,7 @@ class Design8QStair(ChipDesign):
                 qq_coupling = CqqCouplingType1(
                     origin=DPoint(0, 0),
                     params=CqqCouplingParamsType1(
+                        donut_metal_width=donut_metal_width,
                         disk1=self.qubits[pt1_1d_idx].cap_shunt,
                         disk2=self.qubits[pt2_1d_idx].cap_shunt,
                         disk1_connector_idx=q1_connector_idx,
@@ -438,14 +439,14 @@ class Design8QStair(ChipDesign):
 
 def simulate_Cqq(q1_idx, q2_idx=None, resolution=(5e3, 5e3)):
     resolution_dx, resolution_dy = resolution
-    dl_list = [-5e3, 0, 5e3]
+    dl_list = [0, 10e3, 20e3]
     # x_distance_dx_list = [0]
     for dl in dl_list:
         ''' DRAWING SECTION START '''
         design = Design8QStair("testScript")
         design.draw_chip()
-        design.draw_qubits_array(new_disk_r=DiskConn8Pars().disk_r + dl)
-        design.draw_qq_couplings()
+        design.draw_qubits_array(new_disk_r=DiskConn8Pars().disk_r)
+        design.draw_qq_couplings(donut_metal_width=CqqCouplingParamsType1().donut_metal_width + dl)
 
         design.show()
         design.lv.zoom_fit()
