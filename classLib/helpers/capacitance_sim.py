@@ -52,9 +52,19 @@ def simulate_cij(
     if env_reg is None:
         crop_box = sum(subregs, Region()).bbox()
         # enlarge box around its center
-        dr = crop_box.p2 - crop_box.p1
-        center = crop_box.center()
-        crop_box = Box(center - 3 / 2 * dr, center + 3 / 2 * dr)
+        subregs_dx_list = []
+        subregs_dy_list = []
+        for subreg in subregs:
+            bbox = subreg.bbox()
+            subregs_dx_list.append(bbox.width())
+            subregs_dy_list.append(bbox.height())
+        extension_dx = 1 * np.mean(subregs_dx_list)
+        extension_dy = 1 * np.mean(subregs_dy_list)
+        
+        crop_box.left -= extension_dx
+        crop_box.right += extension_dx
+        crop_box.top += extension_dy
+        crop_box.bottom -= extension_dy
     else:
         crop_box = env_reg.bbox()
 
@@ -64,8 +74,8 @@ def simulate_cij(
         # find smallest width terminal
         edge_center_best = None
         min_width = 1e9
-        edge_centers_it = subregs[0].edges().each()
-        for edge in edge_centers_it:
+        edges_it = subregs[0].edges().each()
+        for edge in edges_it:
             if edge.length() < min_width:
                 # AUTOGROUNDED PORTS CANNOT BE DIAGONAL (TODO: CHANGE LATER)
                 if any(
@@ -80,43 +90,42 @@ def simulate_cij(
     elif n_terminals == 2:
         # TODO: not tested
         from itertools import product
-        edge1_best, edge2_best = None, None
+        edge1_center_best, edge2_center_best = None, None
         max_distance = 0
-        edge_centers_it = product(
-            subregs[0].edges().centers(0, 0).each(),
-            subregs[1].edges().centers(0, 0).each()
+        edges_it = product(
+            subregs[0].edges().each(),
+            subregs[1].edges().each()
         )
-        edge_centers_it = map(
-            lambda edge_tuple: (edge_tuple[0].p1, edge_tuple[1].p1),
-            edge_centers_it
-        )
-        for edge1, edge2 in edge_centers_it:
-            centers_d = edge1.distance(edge2)
+        for edge1, edge2 in edges_it:
+            edge1_center = (edge1.p1 + edge1.p2)/2
+            edge2_center = (edge2.p1 + edge2.p2)/2
+            centers_dv = edge1_center - edge2_center
+            centers_d = centers_dv.abs()
             if all(
                     [
                         centers_d > max_distance,
-                        any([(edge1.d().y == 0), (edge1.d().x == 0)]),
-                        any([(edge1.d().y == 0), (edge1.d().x == 0)])
+                        any([(edge1.dy() == 0), (edge1.dx() == 0)]),
+                        any([(edge2.dy() == 0), (edge2.dx() == 0)])
                     ]
             ):
-                edge1_best, edge2_best = edge1, edge2
+                edge1_center_best, edge2_center_best = edge1_center, edge2_center
                 max_distance = centers_d
             else:
                 continue
-
-        design.sonnet_ports.append(edge1_best)
-        design.sonnet_ports.append(edge2_best)
+        print(edge1_center_best, edge2_center_best)
+        design.sonnet_ports.append(edge1_center_best)
+        design.sonnet_ports.append(edge2_center_best)
     # [print(port.x, port.y) for port in design.sonnet_ports]
     ''' SONNET PORTS POSITIONS SECTION END '''
 
     ''' CROP + SNAP TO ORIGIN SECTION START '''
     dr = DPoint(0, 0) - crop_box.p1
-    print(crop_box.p1.x, crop_box.p1.y)
-    print(crop_box.p2.x, crop_box.p2.y)
+    # print(crop_box.p1.x, crop_box.p1.y)
+    # print(crop_box.p2.x, crop_box.p2.y)
     design.crop(crop_box, design.region_ph)
-    print("sonnet ports positions BEFORE transform:")
-    for sp in design.sonnet_ports:
-        print(sp.x, sp.y)
+    # print("sonnet ports positions BEFORE transform:")
+    # for sp in design.sonnet_ports:
+    #     print(sp.x, sp.y)
     design.transform_region(
         design.region_ph, DTrans(dr.x, dr.y),
         trans_ports=True

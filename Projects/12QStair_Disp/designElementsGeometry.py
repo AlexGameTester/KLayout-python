@@ -27,7 +27,7 @@ from classLib.josJ import AsymSquidParams, AsymSquid
 from globalDefinitions import CHIP
 
 
-@dataclass()  # dataclass is used for simplicity of class declaration and readability only
+@dataclass  # dataclass is used for simplicity of class declaration and readability only
 class QubitsGrid:
     # in fractions of chip dimensions
     origin: float = DVector(CHIP.dx / 2, CHIP.dy / 2)
@@ -65,10 +65,10 @@ class QubitsGrid:
         return origin + DVector(pt_x, pt_y)
 
 
-@dataclass()  # dataclass is used for simplicity of class declaration and readability only
+@dataclass  # dataclass is used for simplicity of class declaration and readability only
 class DiskConn8Pars:
     connector_angles = np.linspace(0, 360, 8, endpoint=False)
-    disk_r = 120e3
+    disk_r: float = 120e3
     disk_gap = 20e3
     # extension beyond `disk_r` of `CPW` that imitates connection
     pimp_l = 0e3
@@ -294,6 +294,10 @@ class ResonatorParams:
         [np.pi / 2, -np.pi / 2],
         [np.pi / 2, -np.pi / 2],
         [np.pi / 2, -np.pi / 2],
+        [-np.pi / 2, np.pi / 2],
+        [-np.pi / 2, np.pi / 2],
+        [-np.pi / 2, np.pi / 2],
+        [-np.pi / 2, np.pi / 2],
         [-np.pi / 2, np.pi / 2],
         [-np.pi / 2, np.pi / 2],
         [-np.pi / 2, np.pi / 2],

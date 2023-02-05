@@ -149,7 +149,7 @@ class Design8QStair(ChipDesign):
         self.draw_chip()
         self.draw_qubits_array()
         self.draw_qq_couplings()
-        self.draw_readout_resonators()
+        # self.draw_readout_resonators()
         # self.draw_readout_lines()
 
     def draw_postpone(self):
@@ -174,7 +174,7 @@ class Design8QStair(ChipDesign):
         for contact_pad in self.contact_pads:
             contact_pad.place(self.region_ph)
 
-    def draw_qubits_array(self):
+    def draw_qubits_array(self, new_disk_r=120e3):
         def get_squid_connector_idx(qubit_idx: int):
             """
             Returns squid connector idx based on qubit idx
@@ -197,7 +197,7 @@ class Design8QStair(ChipDesign):
             pt = self.qubits_grid.get_pt(qubit_idx)
             qubit_pars = QubitParams(
                 squid_params=SQUID_PARS,
-                qubit_cap_params=DiskConn8Pars(),
+                qubit_cap_params=DiskConn8Pars(disk_r=new_disk_r),
                 squid_connector_idx=get_squid_connector_idx(qubit_idx)
             )
             qubit = Qubit(
@@ -436,21 +436,16 @@ class Design8QStair(ChipDesign):
         self.lv.zoom_fit()
 
 
-def simulate_Cqq(q1_idx, q2_idx=-1, resolution=(5e3, 5e3)):
+def simulate_Cqq(q1_idx, q2_idx=None, resolution=(5e3, 5e3)):
     resolution_dx, resolution_dy = resolution
     dl_list = [-5e3, 0, 5e3]
     # x_distance_dx_list = [0]
     for dl in dl_list:
         ''' DRAWING SECTION START '''
         design = Design8QStair("testScript")
-        design.draw()
-
-        # design.N_coils = [1] * design.NQUBITS
-
-        q1 = design.qubits[q1_idx]
-        q1.qubit_params.qubit_cap_params.disk_r = 120e3 + dl
-        # q2 = design.qubits[q2_idx]
-        design.draw_postpone()
+        design.draw_chip()
+        design.draw_qubits_array(new_disk_r=DiskConn8Pars().disk_r + dl)
+        design.draw_qq_couplings()
 
         design.show()
         design.lv.zoom_fit()
@@ -463,12 +458,21 @@ def simulate_Cqq(q1_idx, q2_idx=-1, resolution=(5e3, 5e3)):
         '''DRAWING SECTION END'''
 
         ''' SIMULATION SECTION START '''
-        q1_reg = q1.metal_regions["ph"]
-        C1, _, _ = simulate_cij(
-            design, env_reg=None, layer=design.layer_ph,
-            subregs=[q1_reg],
-            resolution=resolution, print_values=True
-        )
+        if q2_idx is None:  # 1 terminal calculation: self-capacitance calculation
+            q1_reg = design.qubits[q1_idx].metal_regions["ph"]
+            C1, _, _ = simulate_cij(
+                design, env_reg=None, layer=design.layer_ph,
+                subregs=[q1_reg],
+                resolution=resolution, print_values=True
+            )
+        else:  # 2 terminal calculation: C1, C2 and C12 capacitances calculated
+            q1_reg = design.qubits[q1_idx].metal_regions["ph"]
+            q2_reg = design.qubits[q2_idx].metal_regions["ph"]
+            C1, C12, C2 = simulate_cij(
+                design, env_reg=None, layer=design.layer_ph,
+                subregs=[q1_reg, q2_reg],
+                resolution=resolution, print_values=True
+            )
         ''' SIMULATION SECTION END '''
 
         '''SAVING REUSLTS SECTION START'''
@@ -476,11 +480,19 @@ def simulate_Cqq(q1_idx, q2_idx=-1, resolution=(5e3, 5e3)):
             PROJECT_DIR,
             f"Xmon_Cqq_{q1_idx}_{q2_idx}_results.csv"
         )
-        save_sim_results(
-            output_filepath=output_filepath,
-            design=design,
-            additional_pars={"C1, fF": C1}
-        )
+
+        if q2_idx is None:
+            save_sim_results(
+                output_filepath=output_filepath,
+                design=design,
+                additional_pars={"C1, fF": C1}
+            )
+        else:
+            save_sim_results(
+                output_filepath=output_filepath,
+                design=design,
+                additional_pars={"C1, fF": C1, "C2, fF": C2, "C12, fF": C12}
+            )
 
 
 class Cqq_type2(ChipDesign):
@@ -514,9 +526,9 @@ class Cqq_type2(ChipDesign):
 if __name__ == "__main__":
     ''' draw and show design for manual design evaluation '''
     FABRICATION.OVERETCHING = 0.0e3
-    design = Design8QStair("testScript")
-    design.draw()
-    design.show()
+    # design = Design8QStair("testScript")
+    # design.draw()
+    # design.show()
     # test = Cqq_type2("cellName")
     # test.draw()
     # test.show()
@@ -545,7 +557,7 @@ if __name__ == "__main__":
     # simulate_Cqr(resolution=(1e3, 1e3), mode="Cqr")
 
     ''' Simulation of C_{q1,q2} in fF '''
-    # simulate_Cqq(0, resolution=(2e3, 2e3))
+    simulate_Cqq(q1_idx=5, q2_idx=6, resolution=(2e3, 2e3))
 
     ''' MD line C_qd for md1,..., md6 '''
     # for md_idx in [0,1]:
