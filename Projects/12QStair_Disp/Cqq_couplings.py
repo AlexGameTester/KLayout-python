@@ -282,7 +282,7 @@ class CqqCouplingParamsType1:
     central_gnd_gap = 10e3
 
     donut_delta_alpha_deg = 360/9 * 2/3
-    donut_metal_width: float = 70e3
+    donut_metal_width: float = 90e3
     donut_gnd_gap = 15e3
     donut_disk_d = 10e3
 

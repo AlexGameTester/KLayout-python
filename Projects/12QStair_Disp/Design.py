@@ -149,7 +149,7 @@ class Design8QStair(ChipDesign):
         self.draw_chip()
         self.draw_qubits_array()
         self.draw_qq_couplings()
-        # self.draw_readout_resonators()
+        self.draw_readout_resonators()
         # self.draw_readout_lines()
 
     def draw_postpone(self):
@@ -315,9 +315,9 @@ class Design8QStair(ChipDesign):
         '''
 
         # TODO: create separeta structure for this?
-        qubit_res_finger_lengths_list = [30e3] * 8
-        qubit_res_finger_gaps_list = [10e3] * 8
-        qubit_res_finger_width_list = [45e3] * 8
+        qubit_res_finger_lengths_list = [30e3] * 12
+        qubit_res_finger_gaps_list = [10e3] * 12
+        qubit_res_finger_width_list = [45e3] * 12
 
         q_res_idxs_pairs = [[6, 0], [3, 1], [0, 2], [1, 3],
                             [2, 7], [5, 6], [4, 5], [7, 4]]
@@ -527,9 +527,9 @@ class Cqq_type2(ChipDesign):
 if __name__ == "__main__":
     ''' draw and show design for manual design evaluation '''
     FABRICATION.OVERETCHING = 0.0e3
-    # design = Design8QStair("testScript")
-    # design.draw()
-    # design.show()
+    design = Design8QStair("testScript")
+    design.draw()
+    design.show()
     # test = Cqq_type2("cellName")
     # test.draw()
     # test.show()
@@ -558,7 +558,7 @@ if __name__ == "__main__":
     # simulate_Cqr(resolution=(1e3, 1e3), mode="Cqr")
 
     ''' Simulation of C_{q1,q2} in fF '''
-    simulate_Cqq(q1_idx=5, q2_idx=6, resolution=(2e3, 2e3))
+    # simulate_Cqq(q1_idx=5, q2_idx=6, resolution=(2e3, 2e3))
 
     ''' MD line C_qd for md1,..., md6 '''
     # for md_idx in [0,1]:

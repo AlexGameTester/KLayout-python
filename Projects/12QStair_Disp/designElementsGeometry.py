@@ -68,8 +68,8 @@ class QubitsGrid:
 @dataclass  # dataclass is used for simplicity of class declaration and readability only
 class DiskConn8Pars:
     connector_angles = np.linspace(0, 360, 8, endpoint=False)
-    disk_r: float = 130e3
-    disk_gap = 25e3
+    disk_r: float = 150e3
+    disk_gap = 30e3
     # extension beyond `disk_r` of `CPW` that imitates connection
     pimp_l = 0e3
     conn_width = 0e3
@@ -323,3 +323,7 @@ class ResonatorParams:
             "fork_metal_width": ResonatorParams.fork_metal_width_list[q_idx],
             "fork_gnd_gap": ResonatorParams.fork_gnd_gap_list[q_idx]
         }
+
+
+class ROResonator:
+
