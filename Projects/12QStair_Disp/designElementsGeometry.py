@@ -68,8 +68,8 @@ class QubitsGrid:
 @dataclass  # dataclass is used for simplicity of class declaration and readability only
 class DiskConn8Pars:
     connector_angles = np.linspace(0, 360, 8, endpoint=False)
-    disk_r: float = 120e3
-    disk_gap = 20e3
+    disk_r: float = 130e3
+    disk_gap = 25e3
     # extension beyond `disk_r` of `CPW` that imitates connection
     pimp_l = 0e3
     conn_width = 0e3
