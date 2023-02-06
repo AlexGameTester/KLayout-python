@@ -276,7 +276,7 @@ class CqqCouplingParamsType1:
     length_without_forks = 500e3
 
     # distance betweeen bendings of the coupling cpw and center of the qubit disks.
-    bendings_disk_center_d = 280e3
+    bendings_disk_center_d = 320e3
 
     central_metal_width = 40e3
     central_gnd_gap = 10e3

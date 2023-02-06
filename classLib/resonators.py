@@ -837,6 +837,14 @@ class   EMResonatorTL3QbitWormRLTail(ComplexBase):
         self.connections = [DPoint(0, 0), self.cpw_end_open_RLPath.end]
         self.angle_connections = [0, self.cpw_end_open_RLPath.alpha_end]
 
+    def _refresh_named_connections(self):
+        self.start = self.connections[0]
+        self.end = self.connections[1]
+
+    def _refresh_named_angles(self):
+        self.alpha_start = self.angle_connections[0]
+        self.alpha_end = self.angle_connections[1]
+
 
 class EMResonatorTL3QbitWormRLTailXmonFork(EMResonatorTL3QbitWormRLTail):
     def __init__(

@@ -334,7 +334,7 @@ from classLib.coplanars import DPathCPW
 @dataclass()
 class CqrCouplingParamsType1:
     # distance betweeen bendings of the coupling cpw and center of the qubit disks.
-    bendings_disk_center_d = 280e3
+    bendings_disk_center_d = 320e3
 
     donut_delta_alpha_deg = 360/9 * 2/3
     donut_metal_width: float = 50e3
@@ -343,6 +343,67 @@ class CqrCouplingParamsType1:
 
     disk1: DiskConn8 = None
     disk1_connector_idx: int = 1
+
+class ROResonatorParams():
+    """
+        Static class that contains information on readout resonators geometry parameters.
+        Geometry parameters has to be verified by simulation.
+        """
+    # see parameters details in `Design_fast.py`
+    L_coupling_list = [
+        1e3 * x for x in [310, 320, 320, 310] * 3
+    ]
+    L0_list = [986e3] * 12
+    L1_list = [
+        1e3 * x for x in
+        [
+            114.5219, 95.1897, 99.0318, 83.7159,
+            114.5219, 95.1897, 99.0318, 83.7159,
+            114.5219, 95.1897, 99.0318, 83.7159
+        ]
+    ]
+    res_r_list = [60e3] * 12
+    tail_turn_radiuses_list = [60e3] * 12  # res_r_list
+    N_coils_list = [3, 3, 3, 3] * 12
+    L2_list = [60e3] * 12  # res_r_list
+    L3_list = []  # get numericals from Design_fast
+    L4_list = [60e3] * 12  # res_r_list
+    Z_res_list = [CPWParameters(10e3, 6e3)] * 12
+    to_line_list = [45e3] * 12
+
+    tail_segments_list = [[60000.0, 215000.0, 60000.0]] * 12
+    res_tail_shape = "LRLRL"
+
+    tail_turn_angles_list = [
+        [np.pi / 2, -np.pi / 2],
+        [np.pi / 2, -np.pi / 2],
+        [np.pi / 2, -np.pi / 2],
+        [np.pi / 2, -np.pi / 2],
+        [-np.pi / 2, np.pi / 2],
+        [-np.pi / 2, np.pi / 2],
+        [-np.pi / 2, np.pi / 2],
+        [-np.pi / 2, np.pi / 2],
+        [-np.pi / 2, np.pi / 2],
+        [-np.pi / 2, np.pi / 2],
+        [-np.pi / 2, np.pi / 2],
+        [-np.pi / 2, np.pi / 2]
+    ]
+
+    @staticmethod
+    def get_resonator_params_by_qubit_idx(q_idx):
+        return {
+            "Z0"                  : ResonatorParams.Z_res_list[q_idx],
+            "L_coupling"          : ResonatorParams.L_coupling_list[q_idx],
+            "L0"                  : ResonatorParams.L0_list[q_idx],
+            "L1"                  : ResonatorParams.L1_list[q_idx],
+            "r"                   : ResonatorParams.res_r_list[q_idx],
+            "N"                   : ResonatorParams.N_coils_list[q_idx],
+            "tail_shape"          : ResonatorParams.res_tail_shape,
+            "tail_turn_radiuses"  : ResonatorParams.tail_turn_radiuses_list[q_idx],
+            "tail_segment_lengths": ResonatorParams.tail_segments_list[q_idx],
+            "tail_turn_angles"    : ResonatorParams.tail_turn_angles_list[q_idx],
+            "tail_trans_in"       : Trans.R270
+        }
 
 
 class ROResonator(EMResonatorTL3QbitWormRLTail):
@@ -367,9 +428,6 @@ class ROResonator(EMResonatorTL3QbitWormRLTail):
         self._geometry_parameters["donut_gnd_gap, um"] = coupling_pars.donut_gnd_gap / 1e3
         self._geometry_parameters["donut_delta_alpha_deg, deg"] = \
             coupling_pars.donut_delta_alpha_deg
-        self._geometry_parameters["central_metal_width, um"] = \
-            coupling_pars.central_metal_width / 1e3
-        self._geometry_parameters["central_gnd_gap, um"] = coupling_pars.central_gnd_gap / 1e3
 
     def init_primitives(self):
         super().init_primitives()
@@ -413,10 +471,14 @@ class ROResonator(EMResonatorTL3QbitWormRLTail):
         self.primitives["arc_coupler_empty"] = self.arc_coupler_empty
         self.primitives["arc_coupler"] = self.arc_coupler
 
-        resonator_end = self.cpw_end_open_gap.start
+        resonator_end = self.end
         connector_dv_n = DVector(np.cos(angle1), np.sin(angle1))
         disk_far_bending_point = self.coupling_pars.disk1.origin + \
                                  self.coupling_pars.bendings_disk_center_d*connector_dv_n
+        print((disk_far_bending_point - resonator_end).abs())
+        print((self.arc_coupler.outer_arc_center - disk_far_bending_point).abs())
+        print(self.r)
+        print()
         self.res_donut_cpw_path = DPathCPW(
             points=[resonator_end, disk_far_bending_point, self.arc_coupler.outer_arc_center],
             cpw_parameters=[self.Z0],

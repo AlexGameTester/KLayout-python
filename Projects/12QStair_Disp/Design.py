@@ -47,9 +47,9 @@ from classLib.chipDesign import ChipDesign
 from classLib.marks import MarkBolgar
 from classLib.contactPads import ContactPad
 from classLib.helpers import fill_holes, split_polygons, extended_region
-from classLib.helpers import simulate_cij, save_sim_results
-from classLib.shapes import RingSector
-from classLib.resonators import EMResonatorTL3QbitWormRLTailXmonFork
+from classLib.helpers import simulate_cij, save_sim_results, rotate_around
+from classLib.shapes import Donut
+from classLib.resonators import EMResonatorTL3QbitWormRLTail
 
 # import local dependencies in case project file is too big
 from classLib.baseClasses import ComplexBase
@@ -65,6 +65,8 @@ import designElementsGeometry
 reload(designElementsGeometry)
 from designElementsGeometry import QubitParams, Qubit, QubitsGrid, ResonatorParams
 from designElementsGeometry import DiskConn8Pars
+from designElementsGeometry import ROResonator, ROResonatorParams
+from designElementsGeometry import CqrCouplingParamsType1
 
 import Cqq_couplings
 
@@ -130,7 +132,7 @@ class Design8QStair(ChipDesign):
         self.circle_hull_d = 5e3
 
         ''' READOUT RESONATORS '''
-        self.resonators: List[EMResonatorTL3QbitWormRLTailXmonFork] = [None] * self.qubits_n
+        self.resonators: List[EMResonatorTL3QbitWormRLTail] = [None] * self.qubits_n
 
         ''' READOUT LINES '''
         self.ro_lines: List[DPathCPW] = [None, None]
@@ -150,7 +152,7 @@ class Design8QStair(ChipDesign):
         self.draw_qubits_array()
         self.draw_qq_couplings()
         self.draw_readout_resonators()
-        # self.draw_readout_lines()
+        self.draw_readout_lines()
 
     def draw_postpone(self):
         """
@@ -174,7 +176,7 @@ class Design8QStair(ChipDesign):
         for contact_pad in self.contact_pads:
             contact_pad.place(self.region_ph)
 
-    def draw_qubits_array(self, new_disk_r=120e3):
+    def draw_qubits_array(self, new_disk_r=DiskConn8Pars().disk_r):
         def get_squid_connector_idx(qubit_idx: int):
             """
             Returns squid connector idx based on qubit idx
@@ -222,7 +224,7 @@ class Design8QStair(ChipDesign):
             qubit.place(self.region_ph, region_id="ph")
             qubit.place(self.region_el, region_id="el")
 
-    def draw_qq_couplings(self, donut_metal_width=40e3):
+    def draw_qq_couplings(self, donut_metal_width=CqqCouplingParamsType1().donut_metal_width):
         # TODO: maybe transfer this datastructure to another file
         # incidence matrix for qubits graph
         # incidence matrix entries consists of 2 numbers - corresponding
@@ -248,11 +250,11 @@ class Design8QStair(ChipDesign):
         qq_coupling_connectors_map[1, 5] = np.array((2, 6))
         qq_coupling_connectors_map[2, 6] = np.array((2, 6))
         #
-        qq_coupling_connectors_map[3, 7] = np.array((2, 6))
+        qq_coupling_connectors_map[3, 7] = np.array((2, 7))
         qq_coupling_connectors_map[4, 8] = np.array((2, 6))
         qq_coupling_connectors_map[5, 9] = np.array((3, 6))
         #
-        qq_coupling_connectors_map[7, 10] = np.array((2, 6))
+        qq_coupling_connectors_map[7, 10] = np.array((2, 7))
         qq_coupling_connectors_map[8, 11] = np.array((3, 6))
 
         it_1d = list(enumerate(self.qubits_grid.pts_grid))
@@ -305,68 +307,179 @@ class Design8QStair(ChipDesign):
     def draw_readout_resonators(self):
         resonator_kw_args_list = list(
             map(
-                ResonatorParams.get_resonator_params_by_qubit_idx, range(12)
+                ROResonatorParams.get_resonator_params_by_qubit_idx, range(12)
             )
         )
 
         '''
         Resonators are placed at origin and then translated to their corresponding qubit.
-        See 8QStair.drawio for details 
         '''
 
-        # TODO: create separeta structure for this?
-        qubit_res_finger_lengths_list = [30e3] * 12
-        qubit_res_finger_gaps_list = [10e3] * 12
-        qubit_res_finger_width_list = [45e3] * 12
-
-        q_res_idxs_pairs = [[10, 0], [7, 1], [3, 2], [4, 3],
-                            [11, 3], [8, 2], [9, 1], [5, 0],
-                            [6, 3], [2, 2], [1, 1], [0, 0]]
-        q_res_connector_idx = [4, 7, 0,
-                               6, 6, 0, 0,
-                               6, 0, 0,
-                               6, 0]
+        q_res_connector_idxs_pairs = [
+            [10, 0, 4], [7, 1, 4], [3, 2, 4], [4, 3, 4],
+            [11, 3, 0], [8, 2, 0], [9, 1, 0], [5, 0, 0],
+            [6, 3, 0], [2, 2, 0], [1, 1, 4], [0, 0, 4]
+        ]
         resonator_rotation_angles = [90, 90, 90, 90 + 45,
                                      0, -45, -45, -45,
                                      270, 270, 180, 180]
 
-        for (q_idx, res_idx), res_trans_angle in zip(q_res_idxs_pairs, resonator_rotation_angles):
+        for (q_idx, res_idx, q_res_connector_idx), res_trans_angle in zip(
+                q_res_connector_idxs_pairs,
+                resonator_rotation_angles
+        ):
             qubit = self.qubits[q_idx]
             resonator_kw_args = resonator_kw_args_list[res_idx]
             trans_res_rotation = DCplxTrans(1, res_trans_angle, False, 0, 0)
             resonator_kw_args.update(
                 {
-                    "start"   : DPoint(0, 0),
-                    "trans_in": trans_res_rotation
+                    "start": DPoint(0, 0),
+                    "trans_in": trans_res_rotation,
                 }
             )
-            res = EMResonatorTL3QbitWormRLTailXmonFork(**resonator_kw_args)
+            res = EMResonatorTL3QbitWormRLTail(**resonator_kw_args)
 
             # moving resonator to it's corresponding qubit
-            qubit_res_d = 400e3
+            qubit_res_d = 500e3
             dv = res.start - res.end + qubit.origin + \
                  trans_res_rotation * DVector(0, qubit_res_d)
             res.make_trans(DCplxTrans(1, 0, False, dv))
+
+            # move resonators a bit more
+            if q_idx in [0, 1, 4]:
+                res.make_trans(
+                    DCplxTrans(
+                        1, 0, False,
+                        DVector(
+                            -CqrCouplingParamsType1().bendings_disk_center_d,
+                            0
+                        )
+                    )
+                )
+                if q_idx == 4:
+                    res.make_trans(
+                        DCplxTrans(
+                            1, 0, False,
+                            DVector(
+                                -self.qubits_grid.dx/2,
+                                -self.qubits_grid.dy/2
+                            )
+                        )
+                    )
+            elif q_idx in [5, 8, 9]:
+                res.make_trans(
+                    DCplxTrans(
+                        1, 0, False,
+                        DVector(
+                            CqrCouplingParamsType1().bendings_disk_center_d,
+                            0
+                        )
+                    )
+                )
+                if q_idx in [5, 8]:
+                    res.make_trans(
+                        DCplxTrans(
+                            1, 0, False,
+                            DVector(
+                                self.qubits_grid.dx/2,
+                                self.qubits_grid.dy/2
+                            )
+                        )
+                    )
+            elif q_idx in [11]:
+                res.make_trans(
+                    DCplxTrans(
+                        1, 0, False,
+                        DVector(
+                            CqrCouplingParamsType1().bendings_disk_center_d,
+                            0
+                        )
+                    )
+                )
             res.place(self.region_ph)
             self.resonators[res_idx] = res
+
+            # draw res-q coupling
+            coupling_pars = CqrCouplingParamsType1(
+                disk1=qubit.cap_shunt, disk1_connector_idx=q_res_connector_idx,
+
+            )
+            angle1 = coupling_pars.disk1.angle_connections[
+                         coupling_pars.disk1_connector_idx
+                     ] / (2 * np.pi) * 360
+
+            arc_coupler = Donut(
+                origin=coupling_pars.disk1.origin,
+                inner_r=coupling_pars.donut_disk_d + coupling_pars.disk1.pars.disk_r,
+                ring_width=coupling_pars.donut_metal_width,
+                alpha_start=-coupling_pars.donut_delta_alpha_deg / 2,
+                alpha_end=coupling_pars.donut_delta_alpha_deg / 2,
+            )
+            rotate_around(arc_coupler, arc_coupler.origin, angle1)
+
+            d_alpha_deg = 360 / 2 / np.pi * coupling_pars.donut_gnd_gap / (
+                    (arc_coupler.inner_r +
+                     arc_coupler.outer_r)
+                    / 2)
+            arc_coupler_empty = Donut(
+                origin=arc_coupler.origin,
+                inner_r=arc_coupler.inner_r - coupling_pars.donut_disk_d,
+                outer_r=arc_coupler.outer_r + coupling_pars.donut_gnd_gap,
+                alpha_start=arc_coupler.alpha_start - d_alpha_deg,
+                alpha_end=arc_coupler.alpha_end + d_alpha_deg,
+                inverse=True
+            )
+            rotate_around(arc_coupler_empty, arc_coupler_empty.origin, angle1)
+            # first clear metal, then fill with donut
+            arc_coupler_empty.place(self.region_ph)
+            arc_coupler.place(self.region_ph)
+
+            # empty first, filling metal later
+
+            resonator_end = res.end
+            connector_dv_n = DVector(
+                np.cos(2 * np.pi * (angle1 / 360)), np.sin(2 * np.pi * (angle1 / 360))
+                )
+            disk_far_bending_point = coupling_pars.disk1.origin + \
+                                     coupling_pars.bendings_disk_center_d * connector_dv_n
+            res_end_dv_n = DVector(np.cos(res.alpha_end), np.sin(res.alpha_end))
+            resonator_first_bending = resonator_end + resonator_kw_args["r"] * res_end_dv_n
+            res_donut_cpw_path = DPathCPW(
+                points=[resonator_end, resonator_first_bending, disk_far_bending_point,
+                        arc_coupler.outer_arc_center],
+                cpw_parameters=[resonator_kw_args["Z0"]],
+                turn_radii=[resonator_kw_args["r"]]
+            )
+            res_donut_cpw_path.place(self.region_ph)
+
+            coupling_bandage = CPW(
+                start=res_donut_cpw_path.end,
+                end=(arc_coupler.inner_arc_center + arc_coupler.outer_arc_center) / 2,
+                width=resonator_kw_args["Z0"].width,
+                gap=0
+            )
+            coupling_bandage.place(self.region_ph)
 
     def draw_readout_lines(self):
         # readout line is extended around qubit square in order to
         # fit readout resonators `L_couplings` and left a bit more space
         # for consistent and easy simulation of notch port resonator
-        self.qCenter_roLine_distance = abs((self.qubits[6].origin - self.resonators[0].start).x) + \
-                                       ResonatorParams.to_line_list[6]
+        self.qCenter_roLine_distance = abs((self.qubits[10].origin - self.resonators[0].start).x)\
+                                       + \
+                                       ResonatorParams.to_line_list[10]
         ro_line_extension = self.qCenter_roLine_distance / 2
         turn_radii = ro_line_extension / 4
 
         # left readout line
-        p0_start = self.contact_pads[-1].end
-        p0_end = self.contact_pads[8].end
-        p1 = DPoint(p0_start.x, self.qubits[3].origin.y + ro_line_extension)
-        p2 = DPoint(self.qubits[3].origin.x - self.qCenter_roLine_distance, p1.y)
-        p3 = DPoint(p2.x, self.qubits[0].origin.y - self.qCenter_roLine_distance)
-        p4 = DPoint(self.qubits[2].origin.x + ro_line_extension, p3.y)
-        p5 = p4 + DVector(0, -self.qCenter_roLine_distance)
+        p0_start = self.contact_pads[0].end
+        p0_end = self.contact_pads[5].end
+        p1 = DPoint(p0_start.x, self.qubits[10].origin.y + ro_line_extension)
+        p2 = DPoint(self.qubits[10].origin.x - self.qCenter_roLine_distance, p1.y)
+        p3 = DPoint(p2.x, self.qubits[3].origin.y - self.qCenter_roLine_distance)
+        p4 = self.resonators[3].start + DVector(
+            -ResonatorParams.to_line_list[10], -ResonatorParams.to_line_list[10]
+        ) + 3*DVector(-ro_line_extension, ro_line_extension)
+        p5 = p4 + 6*DVector(ro_line_extension, -ro_line_extension)
         p6 = DPoint(p0_end.x, p5.y)
         pts = [p0_start, p1, p2, p3, p4, p5, p6, p0_end]
         self.ro_lines[0] = DPathCPW(
@@ -379,23 +492,23 @@ class Design8QStair(ChipDesign):
         self.ro_lines[0].place(self.region_ph, region_id="ph")
 
         # right readout line
-        p1_start = self.contact_pads[-2].end
-        p1_end = self.contact_pads[9].end
-        p1 = p1_start + DVector(0, -1e6)
-        p2 = DPoint(self.qubits[6].origin.x - ro_line_extension, p1.y)
-        p3 = DPoint(p2.x, self.qubits[6].origin.y + self.qCenter_roLine_distance)
-        p4 = DPoint(self.qubits[2].origin.x + self.qCenter_roLine_distance, p3.y)
-        p5 = DPoint(p4.x, self.qubits[2].origin.y - ro_line_extension)
-        p6 = DPoint(p1_end.x, p5.y)
-        pts = [p1_start, p1, p2, p3, p4, p5, p6, p1_end]
-        self.ro_lines[1] = DPathCPW(
-            points=pts,
-            cpw_parameters=[CPWParameters(width=20e3, gap=10e3)],
-            turn_radii=[turn_radii],
-            trans_in=None,
-            region_id="ph"
-        )
-        self.ro_lines[1].place(self.region_ph, region_id="ph")
+        # p1_start = self.contact_pads[-2].end
+        # p1_end = self.contact_pads[9].end
+        # p1 = p1_start + DVector(0, -1e6)
+        # p2 = DPoint(self.qubits[6].origin.x - ro_line_extension, p1.y)
+        # p3 = DPoint(p2.x, self.qubits[6].origin.y + self.qCenter_roLine_distance)
+        # p4 = DPoint(self.qubits[2].origin.x + self.qCenter_roLine_distance, p3.y)
+        # p5 = DPoint(p4.x, self.qubits[2].origin.y - ro_line_extension)
+        # p6 = DPoint(p1_end.x, p5.y)
+        # pts = [p1_start, p1, p2, p3, p4, p5, p6, p1_end]
+        # self.ro_lines[1] = DPathCPW(
+        #     points=pts,
+        #     cpw_parameters=[CPWParameters(width=20e3, gap=10e3)],
+        #     turn_radii=[turn_radii],
+        #     trans_in=None,
+        #     region_id="ph"
+        # )
+        # self.ro_lines[1].place(self.region_ph, region_id="ph")
 
     def _transfer_regs2cell(self):
         '''
