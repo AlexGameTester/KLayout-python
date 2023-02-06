@@ -839,7 +839,7 @@ class DPathCPW(ComplexBase):
                     f"{len(cpw_parameters)}"
                 )
             else:
-                self._cpw_parameters = [cpw_parameters] * self._N_elements
+                self._cpw_parameters = cpw_parameters
 
         turn_radii = copy.deepcopy(turn_radii)
         if len(turn_radii) == 1:
