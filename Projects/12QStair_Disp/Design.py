@@ -231,29 +231,29 @@ class Design8QStair(ChipDesign):
         qq_coupling_connectors_map = np.zeros((12, 12, 2), dtype=int) - 1
         # TODO: fill structure automatically for more qubits
         # horizontal
-        qq_coupling_connectors_map[0, 1] = np.array((0, 4))
+        qq_coupling_connectors_map[0, 1] = np.array((0, 3))
         qq_coupling_connectors_map[1, 2] = np.array((0, 4))
         #
-        qq_coupling_connectors_map[3, 4] = np.array((0, 4))
+        qq_coupling_connectors_map[3, 4] = np.array((0, 3))
         qq_coupling_connectors_map[4, 5] = np.array((0, 4))
-        qq_coupling_connectors_map[5, 6] = np.array((0, 4))
+        qq_coupling_connectors_map[5, 6] = np.array((7, 4))
         #
         qq_coupling_connectors_map[7, 8] = np.array((0, 4))
-        qq_coupling_connectors_map[8, 9] = np.array((0, 4))
+        qq_coupling_connectors_map[8, 9] = np.array((7, 4))
 
         qq_coupling_connectors_map[10, 11] = np.array((0, 4))
 
         # vertical
-        qq_coupling_connectors_map[0, 4] = np.array((2, 6))
+        qq_coupling_connectors_map[0, 4] = np.array((2, 7))
         qq_coupling_connectors_map[1, 5] = np.array((2, 6))
         qq_coupling_connectors_map[2, 6] = np.array((2, 6))
         #
         qq_coupling_connectors_map[3, 7] = np.array((2, 6))
         qq_coupling_connectors_map[4, 8] = np.array((2, 6))
-        qq_coupling_connectors_map[5, 9] = np.array((2, 6))
+        qq_coupling_connectors_map[5, 9] = np.array((3, 6))
         #
         qq_coupling_connectors_map[7, 10] = np.array((2, 6))
-        qq_coupling_connectors_map[8, 11] = np.array((2, 6))
+        qq_coupling_connectors_map[8, 11] = np.array((3, 6))
 
         it_1d = list(enumerate(self.qubits_grid.pts_grid))
         it_2d = itertools.product(it_1d, it_1d)
@@ -319,10 +319,16 @@ class Design8QStair(ChipDesign):
         qubit_res_finger_gaps_list = [10e3] * 12
         qubit_res_finger_width_list = [45e3] * 12
 
-        q_res_idxs_pairs = [[6, 0], [3, 1], [0, 2], [1, 3],
-                            [2, 7], [5, 6], [4, 5], [7, 4]]
-        resonator_rotation_angles = [90, 90, 90, 180,
-                                     270, 270, 270 + 45, 0]
+        q_res_idxs_pairs = [[10, 0], [7, 1], [3, 2], [4, 3],
+                            [11, 3], [8, 2], [9, 1], [5, 0],
+                            [6, 3], [2, 2], [1, 1], [0, 0]]
+        q_res_connector_idx = [4, 7, 0,
+                               6, 6, 0, 0,
+                               6, 0, 0,
+                               6, 0]
+        resonator_rotation_angles = [90, 90, 90, 90 + 45,
+                                     0, -45, -45, -45,
+                                     270, 270, 180, 180]
 
         for (q_idx, res_idx), res_trans_angle in zip(q_res_idxs_pairs, resonator_rotation_angles):
             qubit = self.qubits[q_idx]
@@ -337,36 +343,12 @@ class Design8QStair(ChipDesign):
             res = EMResonatorTL3QbitWormRLTailXmonFork(**resonator_kw_args)
 
             # moving resonator to it's corresponding qubit
-            qubit_res_finger_length = qubit_res_finger_lengths_list[q_idx]
-            qubit_res_finger_gap = qubit_res_finger_gaps_list[q_idx]
-            qubit_res_finger_width = qubit_res_finger_width_list[q_idx]
-            qubit_res_d = 254e3
+            qubit_res_d = 400e3
             dv = res.start - res.end + qubit.origin + \
                  trans_res_rotation * DVector(0, qubit_res_d)
             res.make_trans(DCplxTrans(1, 0, False, dv))
             res.place(self.region_ph)
             self.resonators[res_idx] = res
-
-            # drawing qubit finger coupling
-            dv_qubit_res = (res.fork_y_cpw1.end + res.fork_y_cpw2.end) / 2 - qubit.origin
-            dv_qubit_res /= dv_qubit_res.abs()
-
-            qubit_res_finger_bandage = CPW(
-                start=qubit.origin,
-                end=qubit.origin + (qubit_res_finger_length +
-                                    qubit.qubit_params.qubit_cap_params.disk_r) * dv_qubit_res,
-                width=qubit_res_finger_width, gap=0,
-                open_end_gap=res.fork_gnd_gap
-            )
-            qubit_res_finger_bandage.place(self.region_ph)
-            qubit_res_finger = CPW(
-                start=qubit.origin + qubit.qubit_params.qubit_cap_params.disk_r * dv_qubit_res,
-                end=qubit.origin + (qubit_res_finger_length +
-                                    qubit.qubit_params.qubit_cap_params.disk_r) * dv_qubit_res,
-                width=qubit_res_finger_width, gap=qubit_res_finger_gap,
-                open_end_gap=res.fork_gnd_gap
-            )
-            qubit_res_finger.place(self.region_ph)
 
     def draw_readout_lines(self):
         # readout line is extended around qubit square in order to

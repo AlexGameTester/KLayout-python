@@ -339,7 +339,7 @@ class CqqCouplingType1(ComplexBase):
         )
         rotate_around(self.arc_coupler1_empty, self.arc_coupler1_empty.origin, angle1)
         # empty first, filling metal later
-        self.primitives["arc_coupler1_empty"] = self.arc_coupler1_empty
+        self.primitives["arc_coupler_empty"] = self.arc_coupler1_empty
         self.primitives["arc_coupler1"] = self.arc_coupler1
 
         angle2 = self.params.disk2.angle_connections[self.params.disk2_connector_idx]/(2*np.pi)*360
