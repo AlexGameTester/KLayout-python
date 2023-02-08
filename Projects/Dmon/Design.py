@@ -1476,7 +1476,7 @@ class DesignDmon(ChipDesign):
                     start=p1, end=p2,
                     width=el_pad_height, gap=0
                 )
-                self.region_ph -= tp_cpw.metal_region.dup().size(20e3)
+                self.region_ph -= tp_cpw.metal_region.sized(20e3)
                 tp_cpw.place(self.region_el)
 
                 p3 = squid.SQLTT.center()
@@ -1494,7 +1494,7 @@ class DesignDmon(ChipDesign):
                     start=p1, end=p2,
                     width=el_pad_height, gap=0
                 )
-                self.region_ph -= tp_cpw.metal_region.dup().size(20e3)
+                self.region_ph -= tp_cpw.metal_region.sized(20e3)
                 tp_cpw.place(self.region_el)
 
                 p3 = squid.BCW_list[0].center()
@@ -1517,7 +1517,7 @@ class DesignDmon(ChipDesign):
                     gap=0
                 )
                 etc1.place(self.region_kinInd)
-                self.region_ph -= etc1.metal_region.dup().size(20e3)
+                self.region_ph -= etc1.metal_region.sized(20e3)
 
                 p1 = squid.BCW_list[1].center()
                 p2 = DPoint(etc1.center().x, p1.y)
@@ -1536,7 +1536,7 @@ class DesignDmon(ChipDesign):
                     gap=0
                 )
                 etc3.place(self.region_kinInd)
-                self.region_ph -= etc3.metal_region.dup().size(20e3)
+                self.region_ph -= etc3.metal_region.size(20e3)
 
                 p1 = squid.TC_KI.end + DPoint(0, 5/4*c_cpw.b)
                 p2 = DPoint(etc3.center().x, p1.y)
