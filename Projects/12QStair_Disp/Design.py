@@ -197,7 +197,7 @@ class Design12QStair(ChipDesign):
         self.draw_litography_alignment_marks()
         # self.draw_bridges()
         # self.draw_pinning_holes()
-        # # v.0.3.0.8 p.12 - ensure that contact pads has no holes
+        # # 4Q_Disp_Xmon v.0.3.0.8 p.12 - ensure that contact pads has no holes
         # for contact_pad in self.contact_pads:
         #     contact_pad.place(self.region_ph)
         # self.extend_photo_overetching()
