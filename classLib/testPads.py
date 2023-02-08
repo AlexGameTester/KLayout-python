@@ -14,6 +14,7 @@ reload(classLib)
 from classLib.baseClasses import ComplexBase
 from classLib.shapes import Rectangle
 
+
 class TestStructurePadsSquare(ComplexBase):
     def __init__(self, center, trans_in=None, square_a=200e3,
                  gnd_gap=20e3, pads_gap=20e3):

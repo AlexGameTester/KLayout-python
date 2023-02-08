@@ -1,4 +1,4 @@
-__version__ = "8QS_0.0.0.1"
+__version__ = "12QStair_0.0.0.1"
 
 '''
 Changes log
@@ -20,6 +20,7 @@ Example:
 from typing import List
 import os
 import itertools
+import copy
 
 PROJECT_DIR = os.path.dirname(__file__)
 import sys
@@ -36,20 +37,24 @@ from pya import Point, Vector, DPoint, DVector, DEdge, \
     DSimplePolygon, \
     SimplePolygon, DPolygon, DBox, Polygon, Region
 
-from pya import DCplxTrans, Trans
+from pya import DCplxTrans, Trans, ICplxTrans
 
 # import project lib
 import classLib
 
 reload(classLib)
-from classLib.coplanars import CPW, CPW2CPW, CPWParameters, DPathCPW
+from classLib.coplanars import CPW, CPW2CPW, CPWParameters, DPathCPW, Bridge1
 from classLib.chipDesign import ChipDesign
+from classLib.chipTemplates import CHIP_14x14_20pads
 from classLib.marks import MarkBolgar
 from classLib.contactPads import ContactPad
 from classLib.helpers import fill_holes, split_polygons, extended_region
 from classLib.helpers import simulate_cij, save_sim_results, rotate_around
 from classLib.shapes import Donut
 from classLib.resonators import EMResonatorTL3QbitWormRLTail
+from classLib.josJ import AsymSquid
+from classLib.testPads import TestStructurePadsSquare
+from classLib.shapes import Rectangle
 
 # import local dependencies in case project file is too big
 from classLib.baseClasses import ComplexBase
@@ -75,7 +80,7 @@ from Cqq_couplings import CqqCouplingType2, CqqCouplingParamsType2
 from Cqq_couplings import CqqCouplingType1, CqqCouplingParamsType1
 
 
-class Design8QStair(ChipDesign):
+class Design12QStair(ChipDesign):
     def __init__(self, cell_name):
         super().__init__(cell_name)
 
@@ -124,6 +129,7 @@ class Design8QStair(ChipDesign):
         self.qubits_grid: QubitsGrid = QubitsGrid()
         self.qubits_n = len(self.qubits_grid.pts_grid)
         self.qubits: List[Qubit] = [] * self.qubits_n
+        self.squids: List[AsymSquid] = [] * self.qubits_n
         ''' QUBIT COUPLINGS '''
         self.q_couplings: np.array = np.empty(
             (self.qubits_n, self.qubits_n),
@@ -159,6 +165,18 @@ class Design8QStair(ChipDesign):
         # Z = 50.136  E_eff = 6.28826 (E = 11.45)
         self.z_fl2: CPWParameters = CPWParameters(10e3, 5.7e3)
 
+        ''' Test structures '''
+        self.test_squids_pads: List[TestStructurePadsSquare] = []
+        self.test_squids: List[AsymSquid] = []
+
+        ''' Squid bandages '''
+        self.bandages_regs_list: List = []
+        self.bandage_width = 2.5e3 * np.sqrt(2)
+        self.bandage_height = 5e3 * np.sqrt(2)
+        self.bandage_r_outer = 2e3
+        self.bandage_r_inner = 2e3
+        self.bandage_curve_pts_n = 40
+
     def draw(self):
         """
 
@@ -172,10 +190,13 @@ class Design8QStair(ChipDesign):
         self.draw_chip()
         self.draw_qubits_array()
         self.draw_qq_couplings()
+
         self.draw_readout_resonators()
         self.draw_readout_lines()
         self.draw_microwave_drvie_lines()
         self.draw_flux_control_lines()
+
+        # self.draw_test_structures()
 
     def draw_postpone(self):
         """
@@ -587,11 +608,12 @@ class Design8QStair(ChipDesign):
         md_origin_disp = DVector(md_origin_x_disp, md_origin_y_disp)
         p_start = self.contact_pads[13].end
         p1 = p_start + DVector(-0.25e6, 0)
-        p2 = DPoint(7.475e6, 9.777e6)
-        p3 = DPoint(7.27e6, 8.704e6)
+        p2 = DPoint(7.934e6, 10.05e6)
+        p3 = DPoint(7.475e6, 9.777e6)
+        p4 = DPoint(7.27e6, 8.704e6)
         p_end = self.qubits[8].origin + md_origin_disp
         cpwrl_md = DPathCPW(
-            points=[p_start, p1, p2, p3, p_end],
+            points=[p_start, p1, p2, p3, p4, p_end],
             cpw_parameters=[self.z_md1],
             turn_radii=[r_turn]
         )
@@ -624,6 +646,48 @@ class Design8QStair(ChipDesign):
             turn_radii=[r_turn]
         )
         self.cpw_md_lines[5] = cpwrl_md
+
+        q_idx = 7
+        md_origin_disp = DVector(0, -md_origin_y_disp)
+        p_start = self.contact_pads[2].end
+        p1 = p_start + DVector(0.25e6, 0)
+        p2 = DPoint(3.426e6, 6.905e6)
+        p3 = DPoint(5.010e6, 6.905e6)
+        p_end = self.qubits[q_idx].origin + md_origin_disp
+        cpwrl_md = DPathCPW(
+            points=[p_start, p1, p2, p3, p_end],
+            cpw_parameters=[self.z_md1],
+            turn_radii=[r_turn]
+        )
+        self.cpw_md_lines[q_idx] = cpwrl_md
+
+        q_idx = 3
+        md_origin_disp = DVector(0, -md_origin_y_disp)
+        p_start = self.contact_pads[4].end
+        p1 = p_start + DVector(0.25e6, 0)
+        p2 = DPoint(3.87e6, 5.21e6)
+        p3 = DPoint(4.89e6, 5.79e6)
+        p_end = self.qubits[q_idx].origin + md_origin_disp
+        cpwrl_md = DPathCPW(
+            points=[p_start, p1, p2, p3, p_end],
+            cpw_parameters=[self.z_md1],
+            turn_radii=[r_turn]
+        )
+        self.cpw_md_lines[q_idx] = cpwrl_md
+
+        q_idx = 4
+        md_origin_disp = DVector(0, -md_origin_y_disp)
+        p_start = self.contact_pads[6].end
+        p1 = p_start + DVector(0, 0.25e6)
+        p2 = DPoint(4.82e6, 4.23e6)
+        p3 = DPoint(5.84e6, 5.23e6)
+        p_end = self.qubits[q_idx].origin + md_origin_disp
+        cpwrl_md = DPathCPW(
+            points=[p_start, p1, p2, p3, p_end],
+            cpw_parameters=[self.z_md1],
+            turn_radii=[r_turn]
+        )
+        self.cpw_md_lines[q_idx] = cpwrl_md
 
         for i, cpw_md_line in enumerate(self.cpw_md_lines):
             if cpw_md_line is not None:
@@ -769,11 +833,12 @@ class Design8QStair(ChipDesign):
             0,
             self.qubits[8].cap_shunt.pars.disk_r + self.qubits[8].cap_shunt.pars.disk_gap
         ) + DVector(8.0169e3, 0)
-        p2 = DPoint(7.2e6, 9.8e6)
-        p3 = DPoint(7.1e6, 8.7e6)
+        p2 = DPoint(7.703e6, 10.215e6)
+        p3 = DPoint(7.2e6, 9.8e6)
+        p4 = DPoint(7.1e6, 8.7e6)
         p_tr_start = DPoint(p_end.x, 7.90e6)
         fl_dpath = DPathCPW(
-            points=[p_start, p1, p2, p3, p_tr_start, p_end],
+            points=[p_start, p1, p2, p3, p4, p_tr_start, p_end],
             cpw_parameters=[self.z_fl1],
             turn_radii=[r_turn]
         )
@@ -808,7 +873,7 @@ class Design8QStair(ChipDesign):
             self.qubits[5].cap_shunt.pars.disk_r + self.qubits[5].cap_shunt.pars.disk_gap,
             self.qubits[5].cap_shunt.pars.disk_r + self.qubits[5].cap_shunt.pars.disk_gap
         ) + 1 / np.sqrt(2) * DVector(8.0169e3, -8.0169e3)
-        p3 = DPoint(10.7e6, 8.35e6)
+        p3 = DPoint(11.1e6, 8.31e6)
         p4 = DPoint(9.525e6, 8.414e6)
         p5 = DPoint(8.632e6, 7.466e6)
         p_tr_start = p_end + \
@@ -822,6 +887,69 @@ class Design8QStair(ChipDesign):
             turn_radii=[r_turn]
         )
         self.cpw_fl_lines[5] = fl_dpath
+
+        q_idx = 7
+        p_start = self.contact_pads[1].end
+        p1 = p_start + DVector(0.25e6, 0)
+        p_end = self.qubits[q_idx].origin - 1 / np.sqrt(2) * DVector(
+            self.qubits[q_idx].cap_shunt.pars.disk_r + self.qubits[q_idx].cap_shunt.pars.disk_gap,
+            self.qubits[q_idx].cap_shunt.pars.disk_r + self.qubits[q_idx].cap_shunt.pars.disk_gap
+        ) + 1 / np.sqrt(2) * DVector(-8.0169e3, 8.0169e3)
+        p2 = DPoint(3.426e6, 7.137e6)
+        p3 = DPoint(4.010e6, 7.137e6)
+        p_tr_start = p_end - \
+                     1 / np.sqrt(2) * DVector(
+            CqqCouplingParamsType1().bendings_disk_center_d,
+            CqqCouplingParamsType1().bendings_disk_center_d
+        )
+        fl_dpath = DPathCPW(
+            points=[p_start, p1, p2, p3, p_tr_start, p_end],
+            cpw_parameters=[self.z_fl1],
+            turn_radii=[r_turn]
+        )
+        self.cpw_fl_lines[q_idx] = fl_dpath
+
+        q_idx = 3
+        p_start = self.contact_pads[3].end
+        p1 = p_start + DVector(0.25e6, 0)
+        p_end = self.qubits[q_idx].origin - 1 / np.sqrt(2) * DVector(
+            self.qubits[q_idx].cap_shunt.pars.disk_r + self.qubits[q_idx].cap_shunt.pars.disk_gap,
+            self.qubits[q_idx].cap_shunt.pars.disk_r + self.qubits[q_idx].cap_shunt.pars.disk_gap
+        ) + 1 / np.sqrt(2) * DVector(-8.0169e3, 8.0169e3)
+        p2 = DPoint(3.72e6, 5.68e6)
+        p3 = DPoint(4.56e6, 5.92e6)
+        p_tr_start = p_end - \
+                     1 / np.sqrt(2) * DVector(
+            CqqCouplingParamsType1().bendings_disk_center_d,
+            CqqCouplingParamsType1().bendings_disk_center_d
+        )
+        fl_dpath = DPathCPW(
+            points=[p_start, p1, p2, p3, p_tr_start, p_end],
+            cpw_parameters=[self.z_fl1],
+            turn_radii=[r_turn]
+        )
+        self.cpw_fl_lines[q_idx] = fl_dpath
+
+        q_idx = 4
+        p_start = self.contact_pads[5].end
+        p1 = p_start + DVector(0, 0.25e6)
+        p_end = self.qubits[q_idx].origin - 1 / np.sqrt(2) * DVector(
+            self.qubits[q_idx].cap_shunt.pars.disk_r + self.qubits[q_idx].cap_shunt.pars.disk_gap,
+            self.qubits[q_idx].cap_shunt.pars.disk_r + self.qubits[q_idx].cap_shunt.pars.disk_gap
+        ) + 1 / np.sqrt(2) * DVector(-8.0169e3, 8.0169e3)
+        p2 = DPoint(4.70e6, 4.43e6)
+        p3 = DPoint(5.57e6, 5.36e6)
+        p_tr_start = p_end - \
+                     1 / np.sqrt(2) * DVector(
+            CqqCouplingParamsType1().bendings_disk_center_d,
+            CqqCouplingParamsType1().bendings_disk_center_d
+        )
+        fl_dpath = DPathCPW(
+            points=[p_start, p1, p2, p3, p_tr_start, p_end],
+            cpw_parameters=[self.z_fl1],
+            turn_radii=[r_turn]
+        )
+        self.cpw_fl_lines[q_idx] = fl_dpath
 
         for flux_line in self.cpw_fl_lines:
             if flux_line is not None:
@@ -898,6 +1026,255 @@ class Design8QStair(ChipDesign):
         flux_line._refresh_named_connections()
         flux_line.place(self.region_ph)
 
+    def draw_test_structures(self):
+        struct_centers = [
+            DPoint(1.8e6, 6.0e6),
+            DPoint(11e6, 10.7e6),
+            DPoint(8.5e6, 4e6)
+            ]
+        for struct_center in struct_centers:
+            ## JJ test structures ##
+            dx = SQUID_PARS.SQB_dx / 2 - SQUID_PARS.SQLBT_dx / 2
+
+            # test structure with big critical current (#1)
+            test_struct1 = TestStructurePadsSquare(
+                struct_center,
+                # gnd gap in test structure is now equal to
+                # the same of first xmon cross, where polygon is placed
+                gnd_gap=20e3,
+                pads_gap=self.qubits[0].cap_shunt.pars.disk_gap
+            )
+            self.test_squids_pads.append(test_struct1)
+            test_struct1.place(self.region_ph)
+
+            text_reg = pya.TextGenerator.default_generator().text(
+                "56 nA", 0.001, 25, False, 0, 0)
+            text_bl = test_struct1.empty_rectangle.p1 - DVector(0, 20e3)
+            text_reg.transform(
+                ICplxTrans(1.0, 0, False, text_bl.x, text_bl.y))
+            self.region_ph -= text_reg
+
+            pars_local = copy.deepcopy(SQUID_PARS)
+            pars_local.SQRBT_dx = 0
+            pars_local.SQRBJJ_dy = 0
+            pars_local.bot_wire_x = [-dx]
+
+            squid_center = test_struct1.center
+            test_jj = AsymSquid(
+                squid_center + DVector(0, -9.501234e3),
+                pars_local
+            )
+            self.test_squids.append(test_jj)
+            test_jj.place(self.region_el)
+
+            # test structure with low critical current (#2)
+            test_struct2 = TestStructurePadsSquare(
+                struct_center + DPoint(0.3e6, 0),
+                gnd_gap=20e3,
+                pads_gap=self.qubits[0].cap_shunt.pars.disk_gap
+            )
+            self.test_squids_pads.append(test_struct2)
+            test_struct2.place(self.region_ph)
+
+            text_reg = pya.TextGenerator.default_generator().text(
+                "11 nA", 0.001, 25, False, 0, 0)
+            text_bl = test_struct2.empty_rectangle.p1 - DVector(0, 20e3)
+            text_reg.transform(
+                ICplxTrans(1.0, 0, False, text_bl.x, text_bl.y))
+            self.region_ph -= text_reg
+
+            pars_local = copy.deepcopy(SQUID_PARS)
+            pars_local.SQLBT_dx = 0
+            pars_local.SQLBJJ_dy = 0
+            pars_local.bot_wire_x = [dx]
+
+            squid_center = test_struct2.center
+            test_jj = AsymSquid(
+                squid_center + DVector(0, -9.501234e3),
+                pars_local
+            )
+            self.test_squids.append(test_jj)
+            test_jj.place(self.region_el)
+
+            # test structure for bridge DC contact (#3)
+            test_struct3 = TestStructurePadsSquare(
+                struct_center + DPoint(0.6e6, 0))
+            test_struct3.place(self.region_ph)
+            text_reg = pya.TextGenerator.default_generator().text(
+                "3xBrg 100um", 0.001, 25, False, 0, 0
+            )
+            text_bl = test_struct3.empty_rectangle.p1 - DVector(0, 20e3)
+            text_reg.transform(
+                ICplxTrans(1.0, 0, False, text_bl.x, text_bl.y)
+            )
+            self.region_ph -= text_reg
+
+            test_bridges = []
+            for i in range(3):
+                bridge = Bridge1(
+                    test_struct3.center + DPoint(50e3 * (i - 1), 0),
+                    gnd2gnd_dy=100e3,
+                    gnd_touch_dx=20e3
+                )
+                test_bridges.append(bridge)
+                bridge.place(self.region_bridges1, region_id="bridges_1")
+                bridge.place(self.region_bridges2, region_id="bridges_2")
+
+        # bandages test structures
+        test_dc_el2_centers = [
+            DPoint(1.8e6, 7.8e6),
+            DPoint(12.5e6, 10.7e6),
+            DPoint(8.5e6, 3e6)
+        ]
+        for struct_center in test_dc_el2_centers:
+            test_struct1 = TestStructurePadsSquare(struct_center)
+            test_struct1.place(self.region_ph)
+            text_reg = pya.TextGenerator.default_generator().text(
+                "Bandage", 0.001, 40, False, 0, 0)
+            text_bl = test_struct1.empty_rectangle.origin + DPoint(
+                test_struct1.gnd_gap, -4 * test_struct1.gnd_gap
+            )
+            text_reg.transform(
+                ICplxTrans(1.0, 0, False, text_bl.x, text_bl.y))
+            self.region_ph -= text_reg
+
+            rec_width = 10e3
+            rec_height = test_struct1.pads_gap + 2 * rec_width
+            p1 = struct_center - DVector(rec_width / 2, rec_height / 2)
+            dc_rec = Rectangle(p1, rec_width, rec_height)
+            dc_rec.place(self.dc_bandage_reg)
+
+    def draw_express_test_structures_pads(self):
+        el_pad_height = 30e3
+        el_pad_width = 40e3
+        for squid, test_pad in zip(
+                self.test_squids,
+                self.test_squids_pads
+        ):
+            if squid.squid_params.SQRBJJ_dy == 0:
+                ## only left JJ is present ##
+                # test pad to the right
+                p1 = DPoint(test_pad.top_rec.p2.x, test_pad.center.y)
+                p2 = p1 + DVector(-el_pad_width, 0)
+                tp_cpw = CPW(
+                    start=p1, end=p2,
+                    width=el_pad_height, gap=0
+                )
+                tp_cpw.place(self.region_el)
+
+                p3 = squid.TCW.center()
+                p4 = tp_cpw.center()
+                etc3 = CPW(
+                    start=p3, end=p4,
+                    width=1e3,  # TODO: hardcoded value
+                    gap=0
+                )
+                etc3.place(self.region_el)
+
+                # test pad on the left
+                p1 = DPoint(test_pad.top_rec.p1.x, test_pad.center.y)
+                p2 = p1 + DVector(el_pad_width, 0)
+                tp_cpw = CPW(
+                    start=p1, end=p2,
+                    width=el_pad_height, gap=0
+                )
+                tp_cpw.place(self.region_el)
+
+                p3 = squid.BC0.center()
+                p4 = tp_cpw.center()
+                etc3 = CPW(
+                    start=p3, end=p4,
+                    width=1e3,  # TODO: hardcoded value
+                    gap=0
+                )
+                etc3.place(self.region_el)
+
+            # elif squid.squid_params.SQLBJJ_dy == 0:
+            #     pass
+
+    def draw_bandages(self):
+        """
+        Returns
+        -------
+
+        """
+        from itertools import chain
+        for squid in chain(
+                self.squids,
+                self.test_squids
+        ):
+            # dc contact pad has to be completely
+            # inside union of both  e-beam and photo deposed
+            # metal regions.
+            # `self.dc_cont_clearance` represents minimum distance
+            # from dc contact pad`s perimeter to the perimeter of the
+            # e-beam and photo-deposed metal perimeter.
+            self.bandages_regs_list += self._draw_squid_bandage(
+                squid,
+                shift2sq_center=0
+            )
+            # collect all bottom contacts
+
+    def _draw_squid_bandage(self, squid: AsymSquid = None,
+                           shift2sq_center=0):
+        # squid direction from bottom to top
+        squid_BT_dv = squid.TC.start - squid.TC.end
+        squid_BT_dv_s = squid_BT_dv / squid_BT_dv.abs()  # normalized
+
+        bandages_regs_list: List[Region] = []
+
+        # top bandage
+        top_bandage_reg = self._get_bandage_reg(
+            center=squid.TC.start,
+            shift=-shift2sq_center * squid_BT_dv_s
+        )
+        bandages_regs_list.append(top_bandage_reg)
+        self.dc_bandage_reg += top_bandage_reg
+
+        # bottom contacts
+        for i, _ in enumerate(squid.squid_params.bot_wire_x):
+            BC = getattr(squid, "BC" + str(i))
+            bot_bandage_reg = self._get_bandage_reg(
+                center=BC.end,
+                shift=shift2sq_center * squid_BT_dv_s
+            )
+            bandages_regs_list.append(bot_bandage_reg)
+            self.dc_bandage_reg += bot_bandage_reg
+
+        self._draw_recess(squid=squid)
+
+        return bandages_regs_list
+
+    def _get_bandage_reg(self, center, shift: DVector = DVector(0, 0)):
+        center += shift
+        rect_lb = center + \
+                  DVector(
+                      -self.bandage_width / 2,
+                      -self.bandage_height / 2
+                  )
+        bandage_reg = Rectangle(
+            origin=rect_lb,
+            width=self.bandage_width,
+            height=self.bandage_height
+        ).metal_region
+        bandage_reg.round_corners(
+            self.bandage_r_inner,
+            self.bandage_r_outer,
+            self.bandage_curve_pts_n
+        )
+
+        return bandage_reg
+
+    def _draw_recess(self, squid):
+        recess_reg = squid.TC.metal_region.dup().size(-1e3)
+        self.region_ph -= recess_reg
+
+        # bottom recess(es)
+        for i, _ in enumerate(squid.squid_params.bot_wire_x):
+                BC = getattr(squid, "BC" + str(i))
+                recess_reg = BC.metal_region.dup().size(-1e3)
+                self.region_ph -= recess_reg
+
     def _transfer_regs2cell(self):
         '''
 
@@ -926,7 +1303,7 @@ def simulate_Cqq(q1_idx, q2_idx=None, resolution=(5e3, 5e3)):
     # x_distance_dx_list = [0]
     for dl in dl_list:
         ''' DRAWING SECTION START '''
-        design = Design8QStair("testScript")
+        design = Design12QStair("testScript")
         design.draw_chip()
         design.draw_qubits_array(new_disk_r=DiskConn8Pars().disk_r)
         design.draw_qq_couplings(donut_metal_width=CqqCouplingParamsType1().donut_metal_width + dl)
@@ -1010,7 +1387,7 @@ class Cqq_type2(ChipDesign):
 if __name__ == "__main__":
     ''' draw and show design for manual design evaluation '''
     FABRICATION.OVERETCHING = 0.0e3
-    design = Design8QStair("testScript")
+    design = Design12QStair("testScript")
     design.draw()
     design.show()
     # test = Cqq_type2("cellName")
@@ -1025,7 +1402,7 @@ if __name__ == "__main__":
     # )
 
     # FABRICATION.OVERETCHING = 0.5e3
-    # design = Design8QStair("testScript")
+    # design = Design12QStair("testScript")
     # design.draw()
     # design.show()
     # design.save_as_gds2(
