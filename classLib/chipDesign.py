@@ -1,5 +1,6 @@
 import pya
 from pya import Region, DPoint, Cell, Vector, Trans, DSimplePolygon
+from pya import ICplxTrans
 
 from classLib._PROG_SETTINGS import PROGRAM
 
@@ -95,6 +96,14 @@ class ChipDesign:
         None
         """
         raise NotImplementedError
+
+    def add_chip_marking(self, text_bl:DPoint, text_scale=320, chip_name="forgotten chip_name"):
+        text_reg = pya.TextGenerator.default_generator().text(
+            chip_name, 0.001, text_scale, False, 0, 0)
+        text_reg.transform(
+            ICplxTrans(1.0, 0, False, text_bl.x, text_bl.y)
+        )
+        self.region_ph -= text_reg
 
     # Call this m
     def show(self, design_params=None):

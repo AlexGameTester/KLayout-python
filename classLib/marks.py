@@ -67,9 +67,15 @@ class Mark2(ComplexBase):
 
     def init_primitives(self):
         origin = DPoint(0, 0)
-        self.primitives["empty_ring1"] = Donut(origin, self.ring1_outer_r, self.ring1_thickness, inverse=True)
-        self.primitives["empty_ring2"] = Donut(origin, self.ring2_outer_r, self.ring2_thickness, inverse=True)
-        self.primitives["inner_circle"] = Disk(origin, self.inner_circle_radius, inverse=True)
+        self.primitives["empty_ring1"] = Donut(
+            origin, inner_r=self.ring1_outer_r, ring_width=self.ring1_thickness, inverse=True
+        )
+        self.primitives["empty_ring2"] = Donut(
+            origin, inner_r=self.ring2_outer_r, ring_width=self.ring2_thickness, inverse=True
+        )
+        self.primitives["inner_circle"] = Donut(
+            origin, inner_r=0, outer_r=self.inner_circle_radius, inverse=True
+        )
         self.primitives["trap_top"] = IsoTrapezoid(
             origin + DPoint(-self.trap_b / 2, self.trap_dist),
             self.trap_h, self.trap_b, self.trap_t
@@ -104,15 +110,23 @@ class MarkBolgar(ComplexBase):
     def init_primitives(self):
         center = DPoint(0, 0)
 
-        self.empty_circle = Disk(center, self.ring1_outer_r + self.ring1_thickness, inverse=True)
+        self.empty_circle = Donut(
+            origin=center,
+            inner_r=0, outer_r=self.ring1_outer_r + self.ring1_thickness,
+            inverse=True
+        )
         self.primitives["empty_circle"] = self.empty_circle
 
         # outer ring
-        self.ring1 = Donut(center, self.ring1_outer_r, self.ring1_thickness)
+        self.ring1 = Donut(
+            origin=center, outer_r=self.ring1_outer_r, ring_width=self.ring1_thickness
+        )
         self.primitives["ring1"] = self.ring1
 
         # inner ring
-        self.ring2 = Donut(center, self.ring2_outer_r, self.ring2_thickness)
+        self.ring2 = Donut(
+            origin=center, outer_r=self.ring2_outer_r, ring_width=self.ring2_thickness
+        )
         self.primitives["ring2"] = self.ring2
 
         ## four aim lines ##

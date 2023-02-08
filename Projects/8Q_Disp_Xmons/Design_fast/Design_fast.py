@@ -148,6 +148,11 @@ class Design8Q(ChipDesign):
         self.region_el_protection = Region()
         self.layer_el_protection = self.layout.layer(info_el_protection)
 
+        self.regions: List[Region] = [
+            self.region_ph, self.region_bridges1, self.region_bridges2,
+            self.region_el, self.dc_bandage_reg,
+            self.region_el_protection]
+
         # has to call it once more to add new layers
         self.lv.add_missing_layers()
 
@@ -1597,18 +1602,6 @@ class Design8Q(ChipDesign):
                 recess_reg = BC.metal_region.dup().size(-1e3)
                 self.region_ph -= recess_reg
 
-    def add_chip_marking(self, chip_name="forgotten chip_name"):
-        text_reg = pya.TextGenerator.default_generator().text(
-            chip_name, 0.001, 320, False, 0, 0)
-        if isinstance(self.chip, CHIP_14x14_20pads):
-            text_bl = DPoint(9e6, 4.5e6)
-        elif isinstance(self.chip, CHIP_16p5x16p5_20pads):
-            text_bl = DPoint(9e6, 4.5e6)
-        text_reg.transform(
-            ICplxTrans(1.0, 0, False, text_bl.x, text_bl.y)
-        )
-        self.region_ph -= text_reg
-
     def draw_el_protection(self):
         protection_a = 300e3
         for squid in (self.squids + self.test_squids):
@@ -1808,10 +1801,7 @@ class Design8Q(ChipDesign):
     # TODO: add layer or region
     #  arguments to the functions wich names end with "..._in_layers()"
     def resolve_holes(self):
-        for reg in (
-                self.region_ph, self.region_bridges1, self.region_bridges2,
-                self.region_el, self.dc_bandage_reg,
-                self.region_el_protection):
+        for reg in self.regions:
             tmp_reg = Region()
             for poly in reg:
                 tmp_reg.insert(poly.resolved_holes())

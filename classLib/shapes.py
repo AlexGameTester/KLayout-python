@@ -489,7 +489,7 @@ class Donut(ElementBase):
                 f"{self.alpha_start} = alpha_start >= alpha_end = {self.alpha_end}\n"
                 f"unpredicted behaviour for this supplied parameters region"
             )
-        if abs(self.alpha_end - self.alpha_start) >= 360:
+        if abs(self.alpha_end - self.alpha_start) > 360:
             print(
                 f"{self.__class__.__name__} error:\n"
                 f"angle difference surpass 2pi: alpha difference\n"

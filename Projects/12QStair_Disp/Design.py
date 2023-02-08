@@ -3,17 +3,6 @@ __version__ = "12QStair_0.0.0.1"
 '''
 Changes log
 
-Design is based on schematics located on YandexDisk: 
-https://disk.yandex.com/d/F1Uz4Qk79VytSA
-Developing journal is also available on YandexDisk:
-https://disk.yandex.com/i/KLZmyRAYXG4mGA
-
-# TODO: change `self.origin` behaviour such it is always shows
-objects local coordinate system origin.
-Example: 
-    "get rid of this shite, this is a plague. Major refactoring will be needed"
-    def _refresh_named_connections(self):
-        self.origin = self.connections[0]
 '''
 
 # import built-ins
@@ -177,6 +166,9 @@ class Design12QStair(ChipDesign):
         self.bandage_r_inner = 2e3
         self.bandage_curve_pts_n = 40
 
+        ''' Litography alignment marks '''
+        self.marks: List[MarkBolgar] = []
+
     def draw(self, design_params=None):
         """
 
@@ -191,13 +183,32 @@ class Design12QStair(ChipDesign):
         self.draw_qubits_array()
         self.draw_qq_couplings()
 
-        # self.draw_readout_resonators()
-        # self.draw_readout_lines()
-        # self.draw_microwave_drvie_lines()
-        # self.draw_flux_control_lines()
+        self.draw_readout_resonators()
+        self.draw_readout_lines()
+        self.draw_microwave_drvie_lines()
+        self.draw_flux_control_lines()
 
         self.draw_test_structures()
         self.draw_express_test_structures_pads()
+        self.draw_bandages()
+
+        self.add_chip_marking(text_bl=DPoint(7.5e6, 2e6), chip_name="8Q_0.0.0.1")
+
+        self.draw_litography_alignment_marks()
+        # self.draw_bridges()
+        # self.draw_pinning_holes()
+        # # v.0.3.0.8 p.12 - ensure that contact pads has no holes
+        # for contact_pad in self.contact_pads:
+        #     contact_pad.place(self.region_ph)
+        # self.extend_photo_overetching()
+        # self.inverse_destination(self.region_ph)
+        # # convert to gds acceptable polygons (without inner holes)
+        # self.draw_cut_marks()
+        # self.region_ph.merge()
+        # self.resolve_holes()
+        # # convert to litograph readable format. Litograph can't handle
+        # # polygons with more than 200 vertices.
+        # self.split_polygons_in_layers(max_pts=180)
 
     def draw_postpone(self):
         """
@@ -1317,6 +1328,159 @@ class Design12QStair(ChipDesign):
                 BC = squid.BC_list[i]
                 recess_reg = BC.metal_region.dup().size(-1e3)
                 self.region_ph -= recess_reg
+
+    def draw_litography_alignment_marks(self):
+        marks_centers = [
+            DPoint(0.5e6, 13.5e6), DPoint(8.3e6, 13.5e6), DPoint(13.5e6, 13.5e6),
+            DPoint(0.5e6, 8.3e6), DPoint(13.5e6, 8.3e6),
+            DPoint(0.5e6, 0.5e6), DPoint(8.3e6, 0.5e6), DPoint(13.5e6, 0.5e6)
+        ]
+        for mark_center in marks_centers:
+            self.marks.append(
+                MarkBolgar(mark_center)
+            )
+            self.marks[-1].place(self.region_ph)
+            self.marks[-1].place(self.region_bridges1)
+
+    def draw_bridges(self):
+        bridges_step = 130e3
+        fl_bridges_step = 130e3
+
+        # for readout resonators
+        for resonator in self.resonators:
+            for name, res_primitive in resonator.primitives.items():
+                if "coil" in name:
+                    subprimitives = res_primitive.primitives
+                    for primitive_name, primitive in subprimitives.items():
+                        # place bridges only at arcs of coils
+                        # but not on linear segments
+                        if "arc" in primitive_name:
+                            Bridge1.bridgify_CPW(
+                                primitive, bridges_step,
+                                gnd2gnd_dy=70e3,
+                                dest=self.region_bridges1,
+                                dest2=self.region_bridges2
+                            )
+                    continue
+                elif "fork" in name:  # skip fork primitives
+                    continue
+                else:
+                    # bridgify everything else except "arc1"
+                    # resonator.primitives["arc1"] is arc that connects
+                    # L_coupling with long vertical line for
+                    # `EMResonatorTL3QbitWormRLTailXmonFork`
+                    if name == "arc1":
+                        continue
+                    Bridge1.bridgify_CPW(
+                        res_primitive, bridges_step,
+                        gnd2gnd_dy=70e3,
+                        dest=self.region_bridges1,
+                        dest2=self.region_bridges2
+                    )
+
+        # for contact wires
+        for key, val in self.__dict__.items():
+            if "cpwrl_md" in key:
+                cpwrl_md = val
+                Bridge1.bridgify_CPW(
+                    cpwrl_md, bridges_step,
+                    gnd2gnd_dy=100e3,
+                    dest=self.region_bridges1, dest2=self.region_bridges2,
+                    avoid_points=[squid.origin for squid in self.squids],
+                    avoid_distances=900e3
+                )
+            elif "cpwrl_fl" in key:
+                cpwrl_fl = val
+                Bridge1.bridgify_CPW(
+                    cpwrl_fl, fl_bridges_step,
+                    gnd2gnd_dy=100e3,
+                    dest=self.region_bridges1, dest2=self.region_bridges2,
+                    avoid_points=[squid.origin for squid in self.squids],
+                    avoid_distances=900e3
+                )
+
+        # close bridges for cpw_fl line
+        for i, cpw_fl in enumerate(self.cpw_fl_lines):
+            dy_list = [30e3, 100e3, 235e3, 365e3, 495e3, 625e3, 755e3]
+            for dy in dy_list:
+                if i < 4:
+                    pass
+                elif i >= 4:
+                    dy = -dy
+                bridge_center1 = cpw_fl.end + DVector(0, -dy)
+                br = Bridge1(center=bridge_center1, gnd2gnd_dy=70e3,
+                             trans_in=Trans.R90)
+                br.place(dest=self.region_bridges1,
+                         region_id="bridges_1")
+                br.place(dest=self.region_bridges2,
+                         region_id="bridges_2")
+
+        for i, cpw_md in enumerate(self.cpw_md_lines):
+            dy_list = [110e3, 240e3, 370e3, 500e3, 630e3]
+            for dy in dy_list:
+                if i < 4:
+                    pass
+                elif i >= 4:
+                    dy = -dy
+                bridge_center1 = cpw_md.end + DVector(0, -dy)
+                br = Bridge1(center=bridge_center1, gnd2gnd_dy=70e3,
+                             trans_in=Trans.R90)
+                br.place(dest=self.region_bridges1,
+                         region_id="bridges_1")
+                br.place(dest=self.region_bridges2,
+                         region_id="bridges_2")
+
+        # for readout waveguides
+        avoid_points = []
+        avoid_distances = []
+        for res in self.resonators:
+            av_pt = res.primitives["coil0"].primitives["cop1"].center()
+            avoid_points.append(av_pt)
+            av_dist = res.L_coupling / 2 + res.r + res.Z0.b / 2
+            avoid_distances.append(av_dist)
+
+        Bridge1.bridgify_CPW(
+            self.ro_lines[0], gnd2gnd_dy=100e3,
+            bridges_step=bridges_step,
+            dest=self.region_bridges1, dest2=self.region_bridges2,
+            avoid_points=avoid_points, avoid_distances=avoid_distances
+        )
+        Bridge1.bridgify_CPW(
+            self.ro_lines[1], gnd2gnd_dy=100e3,
+            bridges_step=bridges_step,
+            dest=self.region_bridges1, dest2=self.region_bridges2,
+            avoid_points=avoid_points, avoid_distances=avoid_distances
+        )
+
+    def draw_pinning_holes(self):
+        # points that select polygons of interest if they were clicked at)
+        selection_pts = [
+            Point(0.1e6, 0.1e6),
+            (self.cpwrl_ro_line1.start + self.cpwrl_ro_line1.end) / 2,
+            (self.cpwrl_ro_line2.start + self.cpwrl_ro_line2.end) / 2
+        ]
+
+        # creating region of small boxes (polygon selection requires
+        # regions)
+        dv = DVector(1e3, 1e3)
+        selection_regions = [
+            Region(pya.Box(pt, pt + dv)) for pt in selection_pts
+        ]
+        selection_region = Region()
+        for reg in selection_regions:
+            selection_region += reg
+
+        other_polys_reg = self.region_ph.dup().select_not_interacting(
+            selection_region
+        )
+
+        reg_to_fill = self.region_ph.dup().select_interacting(
+            selection_region
+        )
+        filled_reg = fill_holes(reg_to_fill, d=40e3, width=15e3,
+                                height=15e3)
+
+        self.region_ph = filled_reg + other_polys_reg
 
     def _transfer_regs2cell(self):
         '''
