@@ -196,8 +196,8 @@ class Design12QStair(ChipDesign):
         self.draw_microwave_drvie_lines()
         self.draw_flux_control_lines()
 
-        # self.draw_test_structures()
-
+        self.draw_test_structures()
+        self.draw_express_test_structures_pads()
     def draw_postpone(self):
         """
         Placing elements that were scheduled for postpone drawing.
