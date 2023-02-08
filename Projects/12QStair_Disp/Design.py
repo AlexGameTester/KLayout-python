@@ -177,7 +177,7 @@ class Design12QStair(ChipDesign):
         self.bandage_r_inner = 2e3
         self.bandage_curve_pts_n = 40
 
-    def draw(self):
+    def draw(self, design_params=None):
         """
 
         Parameters
@@ -191,13 +191,14 @@ class Design12QStair(ChipDesign):
         self.draw_qubits_array()
         self.draw_qq_couplings()
 
-        self.draw_readout_resonators()
-        self.draw_readout_lines()
-        self.draw_microwave_drvie_lines()
-        self.draw_flux_control_lines()
+        # self.draw_readout_resonators()
+        # self.draw_readout_lines()
+        # self.draw_microwave_drvie_lines()
+        # self.draw_flux_control_lines()
 
         self.draw_test_structures()
         self.draw_express_test_structures_pads()
+
     def draw_postpone(self):
         """
         Placing elements that were scheduled for postpone drawing.
@@ -1161,7 +1162,9 @@ class Design12QStair(ChipDesign):
                     width=el_pad_height, gap=0
                 )
                 tp_cpw.place(self.region_el)
+                self.region_ph -= tp_cpw.metal_region.sized(10e3, 10e3)
 
+                # right contact
                 p3 = squid.TCW.center()
                 p4 = tp_cpw.center()
                 etc3 = CPW(
@@ -1179,8 +1182,10 @@ class Design12QStair(ChipDesign):
                     width=el_pad_height, gap=0
                 )
                 tp_cpw.place(self.region_el)
+                self.region_ph -= tp_cpw.metal_region.sized(10e3, 10e3)
 
-                p3 = squid.BC0.center()
+                # left contact
+                p3 = squid.BC_list[0].center()
                 p4 = tp_cpw.center()
                 etc3 = CPW(
                     start=p3, end=p4,
@@ -1233,7 +1238,7 @@ class Design12QStair(ChipDesign):
 
         # bottom contacts
         for i, _ in enumerate(squid.squid_params.bot_wire_x):
-            BC = getattr(squid, "BC" + str(i))
+            BC = squid.BC_list[i]
             bot_bandage_reg = self._get_bandage_reg(
                 center=BC.end,
                 shift=shift2sq_center * squid_BT_dv_s
@@ -1271,7 +1276,7 @@ class Design12QStair(ChipDesign):
 
         # bottom recess(es)
         for i, _ in enumerate(squid.squid_params.bot_wire_x):
-                BC = getattr(squid, "BC" + str(i))
+                BC = squid.BC_list[i]
                 recess_reg = BC.metal_region.dup().size(-1e3)
                 self.region_ph -= recess_reg
 
