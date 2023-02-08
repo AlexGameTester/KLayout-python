@@ -535,14 +535,15 @@ class Design8QStair(ChipDesign):
 
         # readout line 2
         p1_start = self.contact_pads[15].end
-        p1_end = self.contact_pads[12].end
+        p1_end = self.contact_pads[8].end
         p1 = p1_start + DVector(0, -0.5e6)
         p2 = DPoint(6.05e6, 10.2e6)
         p3 = DPoint(7.50e6, 10.2e6)
         p4 = DPoint(8.146e6, 9.6e6)
         p5 = p4 + 6*DVector(ro_line_extension, -ro_line_extension)
-        p6 = p1_end + DVector(-0.5e6, 0)
-        pts = [p1_start, p1, p2, p3, p4, p5, p6, p1_end]
+        p7 = p1_end + DVector(0, 0.5e6)
+        p6 = DPoint(p5.x, p6.y)
+        pts = [p1_start, p1, p2, p3, p4, p5, p6, p7, p1_end]
         self.ro_lines[1] = DPathCPW(
             points=pts,
             cpw_parameters=[CPWParameters(width=20e3, gap=10e3)],
@@ -595,6 +596,34 @@ class Design8QStair(ChipDesign):
             turn_radii=[r_turn]
         )
         self.cpw_md_lines[8] = cpwrl_md
+
+        md_origin_disp = DVector(0, md_origin_y_disp)
+        p_start = self.contact_pads[12].end
+        p1 = p_start + DVector(-0.25e6, 0)
+        p2 = DPoint(12.51e6, 9.15e6)
+        p3 = DPoint(8.650e6, 9.254e6)
+        p4 = DPoint(7.9731e6, 8.571e6)
+        p_end = self.qubits[9].origin + md_origin_disp
+        cpwrl_md = DPathCPW(
+            points=[p_start, p1, p2, p3, p4, p_end],
+            cpw_parameters=[self.z_md1],
+            turn_radii=[r_turn]
+        )
+        self.cpw_md_lines[9] = cpwrl_md
+
+        md_origin_disp = DVector(0, md_origin_y_disp)
+        p_start = self.contact_pads[10].end
+        p1 = p_start + DVector(-0.25e6, 0)
+        p2 = DPoint(11.4e6, 8.46e6)
+        p3 = DPoint(9.351e6, 8.577e6)
+        p4 = DPoint(8.092e6, 7.394e6)
+        p_end = self.qubits[5].origin + md_origin_disp
+        cpwrl_md = DPathCPW(
+            points=[p_start, p1, p2, p3, p4, p_end],
+            cpw_parameters=[self.z_md1],
+            turn_radii=[r_turn]
+        )
+        self.cpw_md_lines[5] = cpwrl_md
 
         for i, cpw_md_line in enumerate(self.cpw_md_lines):
             if cpw_md_line is not None:
@@ -723,7 +752,7 @@ class Design8QStair(ChipDesign):
         p1 = p_start + DVector(0, -0.25e6)
         p_end = self.qubits[11].origin + DVector(
             0,
-            self.qubits[11].cap_shunt.pars.disk_r + self.qubits[10].cap_shunt.pars.disk_gap
+            self.qubits[11].cap_shunt.pars.disk_r + self.qubits[11].cap_shunt.pars.disk_gap
         ) + DVector(8.0169e3, 0)
         p2 = DPoint(6.374e6, 11.471e6)
         p_tr_start = DPoint(p_end.x, 9.7e6)
@@ -738,7 +767,7 @@ class Design8QStair(ChipDesign):
         p1 = p_start + DVector(-0.25e6, 0)
         p_end = self.qubits[8].origin + DVector(
             0,
-            self.qubits[8].cap_shunt.pars.disk_r + self.qubits[10].cap_shunt.pars.disk_gap
+            self.qubits[8].cap_shunt.pars.disk_r + self.qubits[8].cap_shunt.pars.disk_gap
         ) + DVector(8.0169e3, 0)
         p2 = DPoint(7.2e6, 9.8e6)
         p3 = DPoint(7.1e6, 8.7e6)
@@ -749,6 +778,50 @@ class Design8QStair(ChipDesign):
             turn_radii=[r_turn]
         )
         self.cpw_fl_lines[8] = fl_dpath
+
+        p_start = self.contact_pads[11].end
+        p1 = p_start + DVector(-0.35e6, 0)
+        p_end = self.qubits[9].origin + 1/np.sqrt(2)*DVector(
+            self.qubits[9].cap_shunt.pars.disk_r + self.qubits[9].cap_shunt.pars.disk_gap,
+            self.qubits[9].cap_shunt.pars.disk_r + self.qubits[9].cap_shunt.pars.disk_gap
+        ) + 1/np.sqrt(2)*DVector(8.0169e3, -8.0169e3)
+        p2 = DPoint(11.6e6, 8.92e6)
+        p3 = DPoint(8.842e6, 9.081e6)
+        p4 = DPoint(7.902e6, 8.177e6)
+        p5 = DPoint(7.968e6, 7.925e6)
+        p_tr_start = p_end + \
+                     1/np.sqrt(2)*DVector(
+            CqqCouplingParamsType1().bendings_disk_center_d,
+            CqqCouplingParamsType1().bendings_disk_center_d
+        )
+        fl_dpath = DPathCPW(
+            points=[p_start, p1, p2, p3, p4, p5, p_tr_start, p_end],
+            cpw_parameters=[self.z_fl1],
+            turn_radii=[r_turn]
+        )
+        self.cpw_fl_lines[9] = fl_dpath
+
+        p_start = self.contact_pads[9].end
+        p1 = p_start + DVector(0, 0.25e6)
+        p2 = p1 + DVector(-0.25e6, 0)
+        p_end = self.qubits[5].origin + 1 / np.sqrt(2) * DVector(
+            self.qubits[5].cap_shunt.pars.disk_r + self.qubits[5].cap_shunt.pars.disk_gap,
+            self.qubits[5].cap_shunt.pars.disk_r + self.qubits[5].cap_shunt.pars.disk_gap
+        ) + 1 / np.sqrt(2) * DVector(8.0169e3, -8.0169e3)
+        p3 = DPoint(10.7e6, 8.35e6)
+        p4 = DPoint(9.525e6, 8.414e6)
+        p5 = DPoint(8.632e6, 7.466e6)
+        p_tr_start = p_end + \
+                     1 / np.sqrt(2) * DVector(
+            CqqCouplingParamsType1().bendings_disk_center_d,
+            CqqCouplingParamsType1().bendings_disk_center_d
+        )
+        fl_dpath = DPathCPW(
+            points=[p_start, p1, p2, p3, p4, p5, p_tr_start, p_end],
+            cpw_parameters=[self.z_fl1],
+            turn_radii=[r_turn]
+        )
+        self.cpw_fl_lines[5] = fl_dpath
 
         for flux_line in self.cpw_fl_lines:
             if flux_line is not None:
