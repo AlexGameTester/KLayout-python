@@ -1062,7 +1062,7 @@ class Design12QStair(ChipDesign):
 
             squid_center = test_struct1.center
             test_jj = AsymSquid(
-                squid_center + DVector(0, -9.501234e3),
+                squid_center + DVector(0, -8.0001234e3),
                 pars_local
             )
             self.test_squids.append(test_jj)
@@ -1091,7 +1091,7 @@ class Design12QStair(ChipDesign):
 
             squid_center = test_struct2.center
             test_jj = AsymSquid(
-                squid_center + DVector(0, -9.501234e3),
+                squid_center + DVector(0, -8.0001234e3),
                 pars_local
             )
             self.test_squids.append(test_jj)
@@ -1148,54 +1148,92 @@ class Design12QStair(ChipDesign):
     def draw_express_test_structures_pads(self):
         el_pad_height = 30e3
         el_pad_width = 40e3
+        # contact wire cpw parameters
+        c_cpw = CPWParameters(width=1e3, gap=0)
         for squid, test_pad in zip(
                 self.test_squids,
                 self.test_squids_pads
         ):
-            if squid.squid_params.SQRBJJ_dy == 0:
-                ## only left JJ is present ##
+            if not squid.squid_params.SQLBJJ_dy == 0:  # only left JJ is present
                 # test pad to the right
                 p1 = DPoint(test_pad.top_rec.p2.x, test_pad.center.y)
                 p2 = p1 + DVector(-el_pad_width, 0)
-                tp_cpw = CPW(
+                express_test_cpw_right = CPW(
                     start=p1, end=p2,
                     width=el_pad_height, gap=0
                 )
-                tp_cpw.place(self.region_el)
-                self.region_ph -= tp_cpw.metal_region.sized(10e3, 10e3)
+                self.region_ph -= express_test_cpw_right.metal_region.sized(10e3)
+                express_test_cpw_right.place(self.region_el)
 
-                # right contact
+                # right connection
                 p3 = squid.TCW.center()
-                p4 = tp_cpw.center()
-                etc3 = CPW(
+                p4 = DPoint(express_test_cpw_right.center().x, p3.y)
+                right_conn_cpw = CPW(
                     start=p3, end=p4,
-                    width=1e3,  # TODO: hardcoded value
-                    gap=0
+                    cpw_params=c_cpw
                 )
-                etc3.place(self.region_el)
+                right_conn_cpw.place(self.region_el)
 
                 # test pad on the left
                 p1 = DPoint(test_pad.top_rec.p1.x, test_pad.center.y)
                 p2 = p1 + DVector(el_pad_width, 0)
-                tp_cpw = CPW(
+                express_test_cpw_left = CPW(
                     start=p1, end=p2,
                     width=el_pad_height, gap=0
                 )
-                tp_cpw.place(self.region_el)
-                self.region_ph -= tp_cpw.metal_region.sized(10e3, 10e3)
+                self.region_ph -= express_test_cpw_left.metal_region.sized(10e3)
+                express_test_cpw_left.place(self.region_el)
 
-                # left contact
-                p3 = squid.BC_list[0].center()
-                p4 = tp_cpw.center()
-                etc3 = CPW(
+                p3 = squid.SQLBT.center()
+                p4 = DPoint(express_test_cpw_left.center().x, p3.y)
+                left_conn_cpw = CPW(
                     start=p3, end=p4,
-                    width=1e3,  # TODO: hardcoded value
+                    cpw_params=c_cpw
+                )
+                left_conn_cpw.place(self.region_el)
+
+            elif squid.squid_params.SQLBJJ_dy == 0:  # only right leg is present
+                # test pad expanded to the left
+                p1 = DPoint(test_pad.top_rec.p1.x, test_pad.center.y)
+                p2 = p1 + DVector(el_pad_width, 0)
+                express_test_cpw_lleft = CPW(
+                    start=p1, end=p2,
+                    width=el_pad_height,
                     gap=0
                 )
-                etc3.place(self.region_el)
+                express_test_cpw_lleft.place(self.region_el)
+                self.region_ph -= express_test_cpw_lleft.metal_region.sized(20e3)
 
-            # elif squid.squid_params.SQLBJJ_dy == 0:
-            #     pass
+                p1 = squid.SQRBT.center()
+                p2 = DPoint(express_test_cpw_lleft.center().x, p1.y)
+                left_conn_cpw = CPW(
+                    start=p1, end=p2,
+                    cpw_params=c_cpw
+                )
+                left_conn_cpw.place(self.region_el)
+
+                # test pad expanded to the right
+                p1 = DPoint(test_pad.top_rec.p2.x, test_pad.center.y)
+                p2 = p1 + DVector(-el_pad_width, 0)
+                express_test_cpw_right = CPW(
+                    start=p1, end=p2,
+                    width=el_pad_height,
+                    gap=0
+                )
+                express_test_cpw_right.place(self.region_el)
+                self.region_ph -= express_test_cpw_right.metal_region.size(20e3)
+
+                p1 = squid.TCW.center()
+                p2 = DPoint(express_test_cpw_right.center().x, p1.y)
+                right_conn_cpw = CPW(
+                    start=p1, end=p2,
+                    cpw_params=c_cpw
+                )
+                right_conn_cpw.place(self.region_el)
+                # cut_reg = etc4.metal_region.dup()
+                # cut_reg.transform(Trans(Vector(1e3,0))).size(self.photo_recess_d)
+                # self.region_ph -= cut_reg
+                # self.region_el -= cut_reg
 
     def draw_bandages(self):
         """

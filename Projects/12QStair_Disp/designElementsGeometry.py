@@ -130,8 +130,9 @@ class DiskConn8(ComplexBase):
                 region_id=self.region_id
             )
             self.conn8_list.append(cpw)  # can be redundant
-            # TODO: remove hardcode 3e3 from here
-            self.connections.append(cpw.open_end_center + cpw.dr / cpw.dr.abs() * 3e3)
+            # center of the disk-ground gap in direction that corresponds to `anlge_deg`
+            self.connections.append(cpw.dr / cpw.dr.abs() * (self.pars.disk_r +
+                                                             self.pars.disk_gap/2) )
             self.primitives["conn" + str(i)] = cpw
 
         self.disk = Disk(
@@ -232,7 +233,7 @@ class Qubit(ComplexBase):
         connector_angles = self.qubit_params.qubit_cap_params.connector_angles
         connector_idx = self.qubit_params.squid_connector_idx
         angle = connector_angles[connector_idx]
-        self.squid.make_trans(DCplxTrans(1, 0, False, 9.501234e3, 0))
+        self.squid.make_trans(DCplxTrans(1, 0, False, 8.0001234e3, 0))
         self.squid.make_trans(DCplxTrans(1, angle, False, 0, 0))
 
         self.primitives["squid"] = self.squid
