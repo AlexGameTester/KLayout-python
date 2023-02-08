@@ -1536,7 +1536,7 @@ class DesignDmon(ChipDesign):
                     gap=0
                 )
                 etc3.place(self.region_kinInd)
-                self.region_ph -= etc3.metal_region.size(20e3)
+                self.region_ph -= etc3.metal_region.sized(20e3)
 
                 p1 = squid.TC_KI.end + DPoint(0, 5/4*c_cpw.b)
                 p2 = DPoint(etc3.center().x, p1.y)
