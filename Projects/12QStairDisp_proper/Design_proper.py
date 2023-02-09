@@ -336,16 +336,6 @@ class Design12QStair(ChipDesign):
             ):
                 q1_connector_idx = qq_coupling_connectors_idxs[0]
                 q2_connector_idx = qq_coupling_connectors_idxs[1]
-                # qq_coupling = CqqCouplingType2(
-                #     origin=DPoint(0, 0),
-                #     params=CqqCouplingParamsType2(
-                #         disk1=self.qubits[pt1_1d_idx].cap_shunt,
-                #         disk2=self.qubits[pt2_1d_idx].cap_shunt,
-                #         disk1_connector_idx=q1_connector_idx,
-                #         disk2_connector_idx=q2_connector_idx
-                #     ),
-                #     region_id="ph"
-                # )
                 qq_coupling = CqqCouplingType1(
                     origin=DPoint(0, 0),
                     params=CqqCouplingParamsType1(
@@ -1561,34 +1551,6 @@ def simulate_Cqq(q1_idx, q2_idx=None, resolution=(5e3, 5e3)):
                 design=design,
                 additional_pars={"C1, fF": C1, "C2, fF": C2, "C12, fF": C12}
             )
-
-
-class Cqq_type2(ChipDesign):
-    def __init__(self, cell_name):
-        super().__init__(cell_name)
-        self.disks_d = 1000e3
-
-    def draw(self):
-        self.region_ph.insert(
-            pya.DBox(DPoint(-2e6, -1e6), DPoint(2e6, 1e6))
-        )
-
-        origin = DPoint(0, 0)
-        # `q1.cap_shunt = None` if `postpone_drawing=True`
-        q1 = Qubit(origin=origin + DVector(0, -self.disks_d / 2), postpone_drawing=False)
-        q2 = Qubit(origin=origin + DVector(0, self.disks_d / 2), postpone_drawing=False)
-        q1.place(self.region_ph, region_id="ph")
-        q2.place(self.region_ph, region_id="ph")
-
-        coupling = CqqCouplingType2(
-            origin=origin,
-            params=CqqCouplingParamsType2(
-                disk1=q1.cap_shunt, disk2=q2.cap_shunt,
-                disk1_connector_idx=3, disk2_connector_idx=5
-            ),
-            postpone_drawing=False, region_id="ph", region_ids=["ph"]
-        )
-        coupling.place(self.region_ph, region_id="ph")
 
 
 if __name__ == "__main__":

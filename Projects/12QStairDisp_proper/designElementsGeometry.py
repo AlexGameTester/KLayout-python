@@ -346,6 +346,7 @@ class CqrCouplingParamsType1:
     disk1: DiskConn8 = None
     disk1_connector_idx: int = 1
 
+
 class ROResonatorParams():
     """
         Static class that contains information on readout resonators geometry parameters.
@@ -394,16 +395,16 @@ class ROResonatorParams():
     @staticmethod
     def get_resonator_params_by_qubit_idx(q_idx):
         return {
-            "Z0"                  : ResonatorParams.Z_res_list[q_idx],
-            "L_coupling"          : ResonatorParams.L_coupling_list[q_idx],
-            "L0"                  : ResonatorParams.L0_list[q_idx],
-            "L1"                  : ResonatorParams.L1_list[q_idx],
-            "r"                   : ResonatorParams.res_r_list[q_idx],
-            "N"                   : ResonatorParams.N_coils_list[q_idx],
-            "tail_shape"          : ResonatorParams.res_tail_shape,
-            "tail_turn_radiuses"  : ResonatorParams.tail_turn_radiuses_list[q_idx],
-            "tail_segment_lengths": ResonatorParams.tail_segments_list[q_idx],
-            "tail_turn_angles"    : ResonatorParams.tail_turn_angles_list[q_idx],
+            "Z0"                  : ROResonatorParams.Z_res_list[q_idx],
+            "L_coupling"          : ROResonatorParams.L_coupling_list[q_idx],
+            "L0"                  : ROResonatorParams.L0_list[q_idx],
+            "L1"                  : ROResonatorParams.L1_list[q_idx],
+            "r"                   : ROResonatorParams.res_r_list[q_idx],
+            "N"                   : ROResonatorParams.N_coils_list[q_idx],
+            "tail_shape"          : ROResonatorParams.res_tail_shape,
+            "tail_turn_radiuses"  : ROResonatorParams.tail_turn_radiuses_list[q_idx],
+            "tail_segment_lengths": ROResonatorParams.tail_segments_list[q_idx],
+            "tail_turn_angles"    : ROResonatorParams.tail_turn_angles_list[q_idx],
             "tail_trans_in"       : Trans.R270
         }
 

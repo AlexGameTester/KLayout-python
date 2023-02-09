@@ -43,7 +43,7 @@ class TwoTeethForkParams:
 
     # fork's teeth
     teeth_metal_width = None
-    teeth_length = 70e3
+    teeth_length: float = 70e3
     teeth_gnd_gap = None
 
     def __post_init__(self):
