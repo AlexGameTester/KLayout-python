@@ -2889,9 +2889,9 @@ def simulate_md_Cg(md_idx, q_idx, resolution=(5e3, 5e3)):
 if __name__ == "__main__":
     ''' draw and show design for manual design evaluation '''
     FABRICATION.OVERETCHING = 0.0e3
-    # design = Design8Q("testScript")
-    # design.draw()
-    # design.show()
+    design = Design8Q("testScript")
+    design.draw()
+    design.show()
     # design.save_as_gds2(
     #     os.path.join(
     #         PROJECT_DIR,
@@ -2923,7 +2923,7 @@ if __name__ == "__main__":
     #         simulate_md_Cg(md_idx=md_idx, q_idx=q_idx, resolution=(1e3, 1e3))
 
     ''' Resonators Q and f sim'''
-    simulate_resonators_f_and_Q(resolution=(2e3,2e3))
+    # simulate_resonators_f_and_Q(resolution=(2e3,2e3))
 
     ''' Resonators Q and f when placed together'''
     # simulate_resonators_f_and_Q_together()
