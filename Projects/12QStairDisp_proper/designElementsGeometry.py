@@ -1,7 +1,7 @@
 # import built-ins
 from typing import List
 from importlib import reload
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 # import good 3rd party
 import numpy as np
@@ -134,7 +134,7 @@ class DiskConn8(ComplexBase):
             self.connections.append(
                 cpw.dr / cpw.dr.abs() * (self.pars.disk_r +
                                          self.pars.disk_gap / 2)
-                )
+            )
             self.primitives["conn" + str(i)] = cpw
 
         self.disk = Disk(
@@ -144,6 +144,13 @@ class DiskConn8(ComplexBase):
         self.primitives["circle"] = self.disk
 
         self.connections.append(origin)
+
+    def get_connector_dv(self, connector_idx, normalized=False):
+        dr = self.connections[connector_idx] - self.origin
+        if normalized:
+            dr /= dr.abs()
+
+        return dr
 
     def _refresh_named_connections(self):
         self.origin = self.connections[-1]
@@ -242,6 +249,11 @@ class Qubit(ComplexBase):
         self.primitives["cap_shunt"] = self.cap_shunt
 
         self.connections.append(origin)
+
+    def get_connector_dr(self, connector_idx, normalized=False):
+        self.cap_shunt.get_connector_dv(
+            connector_idx=connector_idx, normalized=normalized
+        )
 
     def _refresh_named_connections(self):
         self.origin = self.connections[-1]
@@ -383,20 +395,22 @@ class ConnectivityMap:
     qq_coupling_connectors_map[7, 10] = np.array((2, 7))
     qq_coupling_connectors_map[8, 11] = np.array((3, 6))
 
-    # q_idx, res_idx, q_connector_idx
+    # q_idx, res_idx, q_connector_idx, ro_line_idx
     # for `q_connector_idx` see schematics .drawio
-    q_res_connector_idxs_pairs: np.ndarray = np.array(
+    # `-1` in element entry means that no such element exists
+    q_res_connector_roline_map: np.ndarray = np.array(
         [
-            (10, 0, 4), (7, 1, 4), (3, 2, 4), (4, 3, 4),
-            (11, 3, 0), (8, 2, 0), (9, 1, 0), (5, 0, 0),
-            (6, 3, 0), (2, 2, 0), (1, 1, 4), (0, 0, 4)
+            (10, 0, 4, 0), (7, 1, 4, 0), (3, 2, 4, 0), (4, 3, 4, 0),
+            (11, 3, 0, 1), (8, 2, 0, 1), (9, 1, 0, 1), (5, 0, 0, 1),
+            (6, 3, 0, -1), (2, 2, 0, -1), (1, 1, 4, -1), (0, 0, 4, -1)
         ],
     )
+    q_idx_map: np.ndarray = None
+
     def __post_init__(self):
+        self.q_idx_map = self.q_res_connector_roline_map[:, 0].argsort()
         # sort by `q_idx` equivalent to sort by first entry in every row
-        self.q_res_connector_idxs_pairs = self.q_res_connector_idxs_pairs[
-            self.q_res_connector_idxs_pairs[:, 0].argsort()
-        ]
+        self.q_res_connector_roline_map = self.q_res_connector_roline_map[self.q_idx_map]
 
 
 @dataclass()
@@ -451,21 +465,26 @@ class ROResonatorParams():
             270, 270, 180, 180
         ],
         dtype=float
-    )
+    )[ConnectivityMap().q_idx_map]
+
+    q_res_coupling_params: List[CqrCouplingParamsType1] = None
+
+    def __post_init__(self):
+        self.q_res_coupling_params = [CqrCouplingParamsType1()]*12
 
     def get_resonator_params_by_qubit_idx(self, q_idx):
         return {
-            "Z0"                      : self.Z_res_list[q_idx],
-            "L_coupling"              : self.L_coupling_list[q_idx],
-            "L0"                      : self.L0_list[q_idx],
-            "L1"                      : self.L1_list[q_idx],
-            "r"                       : self.res_r_list[q_idx],
-            "N"                       : self.N_coils_list[q_idx],
-            "tail_shape"              : self.res_tail_shapes_list[q_idx],
-            "tail_turn_radiuses"      : self.tail_turn_radiuses_list[q_idx],
-            "tail_segment_lengths"    : self.tail_segments_list[q_idx],
-            "tail_turn_angles"        : self.tail_turn_angles_list[q_idx],
-            "tail_trans_in"           : Trans.R270
+            "Z0"                  : self.Z_res_list[q_idx],
+            "L_coupling"          : self.L_coupling_list[q_idx],
+            "L0"                  : self.L0_list[q_idx],
+            "L1"                  : self.L1_list[q_idx],
+            "r"                   : self.res_r_list[q_idx],
+            "N"                   : self.N_coils_list[q_idx],
+            "tail_shape"          : self.res_tail_shapes_list[q_idx],
+            "tail_turn_radiuses"  : self.tail_turn_radiuses_list[q_idx],
+            "tail_segment_lengths": self.tail_segments_list[q_idx],
+            "tail_turn_angles"    : self.tail_turn_angles_list[q_idx],
+            "tail_trans_in"       : Trans.R270
         }
 
 
@@ -518,9 +537,9 @@ class ROResonator(EMResonatorTL3QbitWormRLTail):
         )
         rotate_around(self.arc_coupler, self.arc_coupler.origin, angle1)
         d_alpha_deg = 360 / 2 / np.pi * self.coupling_pars.donut_gnd_gap / (
-                    (self.arc_coupler.inner_r +
-                     self.arc_coupler.outer_r)
-                    / 2)
+                (self.arc_coupler.inner_r +
+                 self.arc_coupler.outer_r)
+                / 2)
         self.arc_coupler_empty = Donut(
             origin=self.arc_coupler.origin,
             inner_r=self.arc_coupler.inner_r - self.coupling_pars.donut_disk_d,
@@ -539,10 +558,10 @@ class ROResonator(EMResonatorTL3QbitWormRLTail):
         connector_dv_n = DVector(np.cos(angle1), np.sin(angle1))
         disk_far_bending_point = self.coupling_pars.disk1.origin + \
                                  self.coupling_pars.bendings_disk_center_d * connector_dv_n
-        print((disk_far_bending_point - resonator_end).abs())
-        print((self.arc_coupler.outer_arc_center - disk_far_bending_point).abs())
-        print(self.r)
-        print()
+        # print((disk_far_bending_point - resonator_end).abs())
+        # print((self.arc_coupler.outer_arc_center - disk_far_bending_point).abs())
+        # print(self.r)
+        # print()
         self.res_donut_cpw_path = DPathCPW(
             points=[resonator_end, disk_far_bending_point, self.arc_coupler.outer_arc_center],
             cpw_parameters=[self.Z0],

@@ -36,7 +36,8 @@ def simulate_cij(
     env_reg : Region
         simulation environment region.
         If not specified will be derived from `subregs` parameter
-        by enlarging it in 2 to 3 times
+        by extended by 1 times the average size of regions along Ox
+         and Oy axes correspondingly
     resolution : tuple(float,float)
         dx and dy mesh step for Sonnet
     print_values : bool
@@ -68,16 +69,20 @@ def simulate_cij(
     else:
         crop_box = env_reg.bbox()
 
+    # crop all subregs such they all contained inside crop_box
+    subregs = [subreg & Region(crop_box) for subreg in subregs]
+
     ''' SONNET PORTS POSITIONS SECTION START '''
     n_terminals = len(subregs)
+    # TODO: if subregion has an edge that lies on the `crop_box` perimeter - choose this one as a
+    #  port and stop iteration for this subregion
     if n_terminals == 1:
-        # find smallest width terminal
+        # find the smallest width terminal
         edge_center_best = None
         min_width = 1e9
         edges_it = subregs[0].edges().each()
         for edge in edges_it:
             if edge.length() < min_width:
-                # AUTOGROUNDED PORTS CANNOT BE DIAGONAL (TODO: CHANGE LATER)
                 if any(
                         [
                             (edge.d().y == 0),
@@ -88,7 +93,6 @@ def simulate_cij(
                     edge_center_best = (edge.p1 + edge.p2) / 2
         design.sonnet_ports.append(edge_center_best)
     elif n_terminals == 2:
-        # TODO: not tested
         from itertools import product
         edge1_center_best, edge2_center_best = None, None
         max_distance = 0
@@ -97,8 +101,8 @@ def simulate_cij(
             subregs[1].edges().each()
         )
         for edge1, edge2 in edges_it:
-            edge1_center = (edge1.p1 + edge1.p2)/2
-            edge2_center = (edge2.p1 + edge2.p2)/2
+            edge1_center = (edge1.p1 + edge1.p2) / 2
+            edge2_center = (edge2.p1 + edge2.p2) / 2
             centers_dv = edge1_center - edge2_center
             centers_d = centers_dv.abs()
             if all(
@@ -129,7 +133,7 @@ def simulate_cij(
     design.transform_region(
         design.region_ph, DTrans(dr.x, dr.y),
         trans_ports=True
-        )
+    )
     design.layout.clear_layer(layer)
     design.show()
     ''' CROP + SNAP TO ORIGIN SECTION END '''
@@ -196,8 +200,8 @@ def simulate_cij(
                     float(
                         data_row[
                             1 + 2 * (i * 2 + j) + 1]
-                        )
                     )
+                )
         import math
         if n_terminals == 1:
             y11 = 1 / R * (1 - s[0, 0]) / (1 + s[0, 0])

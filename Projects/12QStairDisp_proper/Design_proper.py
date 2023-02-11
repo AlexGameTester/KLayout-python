@@ -133,8 +133,9 @@ class Design12QStair(ChipDesign):
         ''' READOUT RESONATORS '''
         self.resonators_params = ROResonatorParams()
         self.resonators: List[EMResonatorTL3QbitWormRLTail] = [None] * self.NQUBITS
-        self.q_res_connector_idxs_pairs = self.connectivity_map.q_res_connector_idxs_pairs
-        print(self.q_res_connector_idxs_pairs)
+        self.q_res_connector_roline_map = self.connectivity_map.q_res_connector_roline_map
+        self.q_res_coupling_params: List[CqrCouplingParamsType1] = \
+            self.resonators_params.q_res_coupling_params
 
         ''' READOUT LINES '''
         self.ro_lines: List[DPathCPW] = [None] * 3
@@ -333,8 +334,8 @@ class Design12QStair(ChipDesign):
             )
         )
 
-        for (q_idx, res_idx, q_res_connector_idx), res_trans_angle in zip(
-                self.q_res_connector_idxs_pairs,
+        for (q_idx, res_idx, q_res_connector_idx, _), res_trans_angle in zip(
+                self.q_res_connector_roline_map,
                 self.resonators_params.resonator_rotation_angles
         ):
             qubit = self.qubits[q_idx]
@@ -431,10 +432,10 @@ class Design12QStair(ChipDesign):
             self.resonators[res_idx] = res
 
             # draw res-q coupling
-            coupling_pars = CqrCouplingParamsType1(
-                disk1=qubit.cap_shunt, disk1_connector_idx=q_res_connector_idx,
+            coupling_pars = self.q_res_coupling_params[res_idx]
+            coupling_pars.disk1 = qubit.cap_shunt
+            coupling_pars.disk1_connector_idx = q_res_connector_idx
 
-            )
             angle1 = coupling_pars.disk1.angle_connections[
                          coupling_pars.disk1_connector_idx
                      ] / (2 * np.pi) * 360
@@ -666,7 +667,7 @@ class Design12QStair(ChipDesign):
     def modify_md_line_end_and_place(
         self, md_line: DPathCPW,
         mod_length=100e3, smoothing=20e3
-        ):
+    ):
         """
         Changes coplanar for `mod_length` length from the end of `md_line`.
         Transition region length along the `md_line` is controlled by passing `smoothing` value.
@@ -1238,7 +1239,7 @@ class Design12QStair(ChipDesign):
     def _draw_squid_bandage(
         self, squid: AsymSquid = None,
         shift2sq_center=0
-        ):
+    ):
         # squid direction from bottom to top
         squid_BT_dv = squid.TC.start - squid.TC.end
         squid_BT_dv_s = squid_BT_dv / squid_BT_dv.abs()  # normalized
@@ -1379,15 +1380,15 @@ class Design12QStair(ChipDesign):
                 br = Bridge1(
                     center=bridge_center1, gnd2gnd_dy=70e3,
                     trans_in=Trans.R90
-                    )
+                )
                 br.place(
                     dest=self.region_bridges1,
                     region_id="bridges_1"
-                    )
+                )
                 br.place(
                     dest=self.region_bridges2,
                     region_id="bridges_2"
-                    )
+                )
 
         for i, cpw_md in enumerate(self.cpw_md_lines):
             dy_list = [110e3, 240e3, 370e3, 500e3, 630e3]
@@ -1400,15 +1401,15 @@ class Design12QStair(ChipDesign):
                 br = Bridge1(
                     center=bridge_center1, gnd2gnd_dy=70e3,
                     trans_in=Trans.R90
-                    )
+                )
                 br.place(
                     dest=self.region_bridges1,
                     region_id="bridges_1"
-                    )
+                )
                 br.place(
                     dest=self.region_bridges2,
                     region_id="bridges_2"
-                    )
+                )
 
         # for readout waveguides
         avoid_points = []
@@ -1460,7 +1461,7 @@ class Design12QStair(ChipDesign):
         filled_reg = fill_holes(
             reg_to_fill, d=40e3, width=15e3,
             height=15e3
-            )
+        )
 
         self.region_ph = filled_reg + other_polys_reg
 
@@ -1545,12 +1546,75 @@ def simulate_Cqq(q1_idx, q2_idx=None, resolution=(5e3, 5e3)):
             )
 
 
+def simulate_Cqr(q_idxs: List[int], resolution=(4e3, 4e3)):
+    # TODO: 1. make 2d geometry parameters mesh, for simultaneous finding of C_qr and C_q
+    #  2. make 3d geometry optimization inside kLayout for simultaneous finding of C_qr,
+    #  C_q and C_qq
+    dl_list = np.linspace(-1e3, 1e3, 3)
+    # dl_list = [0e3]
+    from itertools import product
+
+    for dl, q_idx in list(
+            product(
+                dl_list, q_idxs
+            )
+    ):
+        ### DRAWING SECTION START ###
+        design = Design12QStair("testScript")
+
+        # exclude coils from simulation (sometimes port is placed onto coil (TODO: fix)
+        design.resonators_params.N_coils_list = [1] * design.NQUBITS
+        design.draw_chip()
+        design.draw_qubits_array()
+        design.draw_qq_couplings()
+        design.draw_readout_resonators()
+        design.draw_readout_lines()
+
+        res_idx = design.q_res_connector_roline_map[q_idx, 1]
+        resonator = design.resonators[res_idx]
+        qubit = design.qubits[q_idx]
+        q_reg = qubit.cap_shunt.empty_region
+
+        design.q_res_coupling_params[res_idx].donut_metal_width += dl
+        # TODO: make simulation such that all polygons (except those with ports are connected to
+        #  ground). Now it is tolerable to have some of them (with large capacity to ground) to
+        #  stay with floating potential (it will be close to ground plane potential due to their
+        #  respectively large capacitance to ground i.e. low impedance to ground).
+
+        q_connector_idx = design.q_res_connector_roline_map[q_idx, 2]
+        connector_dr_n = qubit.get_connector_dr(
+            connector_idx=q_connector_idx, normalized=True
+        )
+        box_region = Region().insert(
+            pya.Box(
+                qubit.origin - 2 * qubit.cap_shunt.pars.disk_r * connector_dr_n,
+                qubit.origin + 2 * qubit.cap_shunt.pars.disk_r * connector_dr_n
+            )
+        )
+        C1, C2, C12 = simulate_cij(
+            design=design, layer=design.layer_ph,
+            subregs=[q_reg, resonator.metal_region], env_reg=box_region,
+            resolution=resolution, print_values=True
+        )
+        '''SAVING REUSLTS SECTION START'''
+        output_filepath = os.path.join(
+            PROJECT_DIR,
+            f"Xmon_Cqr_results.csv"
+        )
+
+        save_sim_results(
+            output_filepath=output_filepath,
+            design=design,
+            additional_pars={"C1, fF": C1, "C2, fF": C2, "C12, fF": C12}
+        )
+
+
 if __name__ == "__main__":
     ''' draw and show design for manual design evaluation '''
     FABRICATION.OVERETCHING = 0.0e3
     design = Design12QStair("testScript")
-    # design.draw()
-    # design.show()
+    design.draw()
+    design.show()
     # test = Cqq_type2("cellName")
     # test.draw()
     # test.show()
@@ -1574,9 +1638,7 @@ if __name__ == "__main__":
     # )
 
     ''' C_qr sim '''
-    # simulate_Cqr(resolution=(1e3, 1e3), mode="Cqr", pts=11, par_d=10e3)
-    # simulate_Cqr(resolution=(1e3, 1e3), mode="Cq", pts=3, par_d=20e3)
-    # simulate_Cqr(resolution=(1e3, 1e3), mode="Cqr")
+    # simulate_Cqr(q_idxs=[0], resolution=(4e3, 4e3))
 
     ''' Simulation of C_{q1,q2} in fF '''
     # simulate_Cqq(q1_idx=5, q2_idx=6, resolution=(2e3, 2e3))
