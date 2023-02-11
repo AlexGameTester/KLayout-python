@@ -119,12 +119,12 @@ class Design12QStair(ChipDesign):
 
         ''' QUBITS GRID '''
         self.qubits_grid: QubitsGrid = QubitsGrid()
-        self.qubits_n = len(self.qubits_grid.pts_grid)
-        self.qubits: List[Qubit] = [] * self.qubits_n
-        self.squids: List[AsymSquid] = [] * self.qubits_n
+        self.NQUBITS = len(self.qubits_grid.pts_grid)  # 12
+        self.qubits: List[Qubit] = [] * self.NQUBITS
+        self.squids: List[AsymSquid] = [] * self.NQUBITS
         ''' QUBIT COUPLINGS '''
         self.q_couplings: np.array = np.empty(
-            (self.qubits_n, self.qubits_n),
+            (self.NQUBITS, self.NQUBITS),
             dtype=object
         )
         self.circle_hull_d = 5e3
@@ -132,18 +132,19 @@ class Design12QStair(ChipDesign):
 
         ''' READOUT RESONATORS '''
         self.resonators_params = ROResonatorParams()
-        self.resonators: List[EMResonatorTL3QbitWormRLTail] = [None] * self.qubits_n
+        self.resonators: List[EMResonatorTL3QbitWormRLTail] = [None] * self.NQUBITS
         self.q_res_connector_idxs_pairs = self.connectivity_map.q_res_connector_idxs_pairs
+        print(self.q_res_connector_idxs_pairs)
 
         ''' READOUT LINES '''
-        self.ro_lines: List[DPathCPW] = [None]*3
+        self.ro_lines: List[DPathCPW] = [None] * 3
         self.qCenter_roLine_distance = None
 
         ''' Microwave control lines '''
         # Z = 49.0538 E_eff = 6.25103 (E = 11.45)
         self.z_md1: CPWParameters = CPWParameters(30e3, 15e3)
         self.z_md2: CPWParameters = CPWParameters(4e3, 4e3)
-        self.cpw_md_lines: List[DPathCPW] = [None]*self.qubits_n
+        self.cpw_md_lines: List[DPathCPW] = [None] * self.NQUBITS
         # length of the smoothing part between normal thick and end-thin cpw for md line
         self.md_line_cpw12_smoothhing = 10e3
 
@@ -151,7 +152,7 @@ class Design12QStair(ChipDesign):
         self.md_line_cpw2_len = 550e3
 
         ''' Flux control lines '''
-        self.cpw_fl_lines: List[DPathCPW] = [None]*self.qubits_n
+        self.cpw_fl_lines: List[DPathCPW] = [None] * self.NQUBITS
         # flux line widths at the end of flux line
         self.flux2ground_left_width = 2e3
         self.flux2ground_right_width = 4e3
@@ -256,6 +257,7 @@ class Design12QStair(ChipDesign):
                 return 5
             else:
                 return 1
+
         for qubit_idx in range(len(self.qubits_grid.pts_grid)):
             pt = self.qubits_grid.get_pt(qubit_idx)
             qubit_pars = QubitParams(
@@ -323,7 +325,8 @@ class Design12QStair(ChipDesign):
                 qq_coupling.place(self.region_ph, region_id="ph")
                 self.q_couplings[pt1_1d_idx, pt2_1d_idx] = qq_coupling
 
-    def draw_readout_resonators(self, res_idxs=range(12)):
+    def draw_readout_resonators(self):
+        res_idxs = list(range(12))
         resonator_kw_args_list = list(
             map(
                 self.resonators_params.get_resonator_params_by_qubit_idx, res_idxs
@@ -341,7 +344,7 @@ class Design12QStair(ChipDesign):
             # to their corresponding qubit.
             resonator_kw_args.update(
                 {
-                    "start": DPoint(0, 0),
+                    "start"   : DPoint(0, 0),
                     "trans_in": trans_res_rotation,
                 }
             )
@@ -369,8 +372,8 @@ class Design12QStair(ChipDesign):
                         DCplxTrans(
                             1, 0, False,
                             DVector(
-                                -self.qubits_grid.dx/2,
-                                -self.qubits_grid.dy/2
+                                -self.qubits_grid.dx / 2,
+                                -self.qubits_grid.dy / 2
                             )
                         )
                     )
@@ -389,8 +392,8 @@ class Design12QStair(ChipDesign):
                         DCplxTrans(
                             1, 0, False,
                             DVector(
-                                self.qubits_grid.dx/2,
-                                self.qubits_grid.dy/2
+                                self.qubits_grid.dx / 2,
+                                self.qubits_grid.dy / 2
                             )
                         )
                     )
@@ -467,7 +470,7 @@ class Design12QStair(ChipDesign):
             resonator_end = res.end
             connector_dv_n = DVector(
                 np.cos(2 * np.pi * (angle1 / 360)), np.sin(2 * np.pi * (angle1 / 360))
-                )
+            )
             disk_far_bending_point = coupling_pars.disk1.origin + \
                                      coupling_pars.bendings_disk_center_d * connector_dv_n
             res_end_dv_n = DVector(np.cos(res.alpha_end), np.sin(res.alpha_end))
@@ -492,7 +495,7 @@ class Design12QStair(ChipDesign):
         # readout line is extended around qubit square in order to
         # fit readout resonators `L_couplings` and left a bit more space
         # for consistent and easy simulation of notch port resonator
-        self.qCenter_roLine_distance = abs((self.qubits[10].origin - self.resonators[0].start).x)\
+        self.qCenter_roLine_distance = abs((self.qubits[10].origin - self.resonators[0].start).x) \
                                        + \
                                        ResonatorParams.to_line_list[10]
         ro_line_extension = self.qCenter_roLine_distance / 2
@@ -505,7 +508,7 @@ class Design12QStair(ChipDesign):
         p2 = DPoint(3.7e6, 9.1e6)
         p3 = DPoint(p2.x, 6.0e6)
         p4 = DPoint(4.13e6, 5.134e6)
-        p5 = p4 + 2*DVector(ro_line_extension, -ro_line_extension)
+        p5 = p4 + 2 * DVector(ro_line_extension, -ro_line_extension)
         p7 = p0_end + DPoint(0, 0.5e6)
         p6 = DPoint(p5.x, p7.y)
         pts = [p0_start, p1, p2, p3, p4, p5, p6, p7, p0_end]
@@ -525,7 +528,7 @@ class Design12QStair(ChipDesign):
         p2 = DPoint(6.05e6, 10.2e6)
         p3 = DPoint(7.50e6, 10.2e6)
         p4 = DPoint(8.146e6, 9.6e6)
-        p5 = p4 + 6*DVector(ro_line_extension, -ro_line_extension)
+        p5 = p4 + 6 * DVector(ro_line_extension, -ro_line_extension)
         p7 = p1_end + DVector(0, 0.5e6)
         p6 = DPoint(p5.x, p6.y)
         pts = [p1_start, p1, p2, p3, p4, p5, p6, p7, p1_end]
@@ -656,11 +659,14 @@ class Design12QStair(ChipDesign):
         for i, cpw_md_line in enumerate(self.cpw_md_lines):
             if cpw_md_line is not None:
                 self.modify_md_line_end_and_place(
-                    cpw_md_line, mod_length=self.md_line_cpw2_len, smoothing=self.md_line_cpw12_smoothhing
+                    cpw_md_line, mod_length=self.md_line_cpw2_len,
+                    smoothing=self.md_line_cpw12_smoothhing
                 )
 
-    def modify_md_line_end_and_place(self, md_line: DPathCPW,
-                                     mod_length=100e3, smoothing=20e3):
+    def modify_md_line_end_and_place(
+        self, md_line: DPathCPW,
+        mod_length=100e3, smoothing=20e3
+        ):
         """
         Changes coplanar for `mod_length` length from the end of `md_line`.
         Transition region length along the `md_line` is controlled by passing `smoothing` value.
@@ -701,7 +707,8 @@ class Design12QStair(ChipDesign):
         transition_line = list(last_lines.values())[-1]
         length_to_mod_left = mod_length - sum(
             [primitive.length() for primitive in
-             list(last_lines.values())[:-1]])
+             list(last_lines.values())[:-1]]
+        )
         # divide line into 3 sections with proportions `alpha_i`
         beta_2 = smoothing
         beta_3 = length_to_mod_left
@@ -810,16 +817,16 @@ class Design12QStair(ChipDesign):
 
         p_start = self.contact_pads[11].end
         p1 = p_start + DVector(-0.35e6, 0)
-        p_end = self.qubits[9].origin + 1/np.sqrt(2)*DVector(
+        p_end = self.qubits[9].origin + 1 / np.sqrt(2) * DVector(
             self.qubits[9].cap_shunt.pars.disk_r + self.qubits[9].cap_shunt.pars.disk_gap,
             self.qubits[9].cap_shunt.pars.disk_r + self.qubits[9].cap_shunt.pars.disk_gap
-        ) + 1/np.sqrt(2)*DVector(8.0169e3, -8.0169e3)
+        ) + 1 / np.sqrt(2) * DVector(8.0169e3, -8.0169e3)
         p2 = DPoint(11.6e6, 8.92e6)
         p3 = DPoint(8.842e6, 9.081e6)
         p4 = DPoint(7.902e6, 8.177e6)
         p5 = DPoint(7.968e6, 7.925e6)
         p_tr_start = p_end + \
-                     1/np.sqrt(2)*DVector(
+                     1 / np.sqrt(2) * DVector(
             CqqCouplingParamsType1().bendings_disk_center_d,
             CqqCouplingParamsType1().bendings_disk_center_d
         )
@@ -995,7 +1002,7 @@ class Design12QStair(ChipDesign):
             DPoint(1.8e6, 6.0e6),
             DPoint(11e6, 10.7e6),
             DPoint(8.5e6, 4e6)
-            ]
+        ]
         for struct_center in struct_centers:
             ## JJ test structures ##
             dx = SQUID_PARS.SQB_dx / 2 - SQUID_PARS.SQLBT_dx / 2
@@ -1012,10 +1019,12 @@ class Design12QStair(ChipDesign):
             test_struct1.place(self.region_ph)
 
             text_reg = pya.TextGenerator.default_generator().text(
-                "56 nA", 0.001, 25, False, 0, 0)
+                "56 nA", 0.001, 25, False, 0, 0
+            )
             text_bl = test_struct1.empty_rectangle.p1 - DVector(0, 20e3)
             text_reg.transform(
-                ICplxTrans(1.0, 0, False, text_bl.x, text_bl.y))
+                ICplxTrans(1.0, 0, False, text_bl.x, text_bl.y)
+            )
             self.region_ph -= text_reg
 
             pars_local = copy.deepcopy(SQUID_PARS)
@@ -1041,10 +1050,12 @@ class Design12QStair(ChipDesign):
             test_struct2.place(self.region_ph)
 
             text_reg = pya.TextGenerator.default_generator().text(
-                "11 nA", 0.001, 25, False, 0, 0)
+                "11 nA", 0.001, 25, False, 0, 0
+            )
             text_bl = test_struct2.empty_rectangle.p1 - DVector(0, 20e3)
             text_reg.transform(
-                ICplxTrans(1.0, 0, False, text_bl.x, text_bl.y))
+                ICplxTrans(1.0, 0, False, text_bl.x, text_bl.y)
+            )
             self.region_ph -= text_reg
 
             pars_local = copy.deepcopy(SQUID_PARS)
@@ -1062,7 +1073,8 @@ class Design12QStair(ChipDesign):
 
             # test structure for bridge DC contact (#3)
             test_struct3 = TestStructurePadsSquare(
-                struct_center + DPoint(0.6e6, 0))
+                struct_center + DPoint(0.6e6, 0)
+            )
             test_struct3.place(self.region_ph)
             text_reg = pya.TextGenerator.default_generator().text(
                 "3xBrg 100um", 0.001, 25, False, 0, 0
@@ -1094,12 +1106,14 @@ class Design12QStair(ChipDesign):
             test_struct1 = TestStructurePadsSquare(struct_center)
             test_struct1.place(self.region_ph)
             text_reg = pya.TextGenerator.default_generator().text(
-                "Bandage", 0.001, 40, False, 0, 0)
+                "Bandage", 0.001, 40, False, 0, 0
+            )
             text_bl = test_struct1.empty_rectangle.origin + DPoint(
                 test_struct1.gnd_gap, -4 * test_struct1.gnd_gap
             )
             text_reg.transform(
-                ICplxTrans(1.0, 0, False, text_bl.x, text_bl.y))
+                ICplxTrans(1.0, 0, False, text_bl.x, text_bl.y)
+            )
             self.region_ph -= text_reg
 
             rec_width = 10e3
@@ -1221,8 +1235,10 @@ class Design12QStair(ChipDesign):
             )
             # collect all bottom contacts
 
-    def _draw_squid_bandage(self, squid: AsymSquid = None,
-                           shift2sq_center=0):
+    def _draw_squid_bandage(
+        self, squid: AsymSquid = None,
+        shift2sq_center=0
+        ):
         # squid direction from bottom to top
         squid_BT_dv = squid.TC.start - squid.TC.end
         squid_BT_dv_s = squid_BT_dv / squid_BT_dv.abs()  # normalized
@@ -1277,9 +1293,9 @@ class Design12QStair(ChipDesign):
 
         # bottom recess(es)
         for i, _ in enumerate(squid.squid_params.bot_wire_x):
-                BC = squid.BC_list[i]
-                recess_reg = BC.metal_region.dup().size(-1e3)
-                self.region_ph -= recess_reg
+            BC = squid.BC_list[i]
+            recess_reg = BC.metal_region.dup().size(-1e3)
+            self.region_ph -= recess_reg
 
     def draw_litography_alignment_marks(self):
         marks_centers = [
@@ -1360,12 +1376,18 @@ class Design12QStair(ChipDesign):
                 elif i >= 4:
                     dy = -dy
                 bridge_center1 = cpw_fl.end + DVector(0, -dy)
-                br = Bridge1(center=bridge_center1, gnd2gnd_dy=70e3,
-                             trans_in=Trans.R90)
-                br.place(dest=self.region_bridges1,
-                         region_id="bridges_1")
-                br.place(dest=self.region_bridges2,
-                         region_id="bridges_2")
+                br = Bridge1(
+                    center=bridge_center1, gnd2gnd_dy=70e3,
+                    trans_in=Trans.R90
+                    )
+                br.place(
+                    dest=self.region_bridges1,
+                    region_id="bridges_1"
+                    )
+                br.place(
+                    dest=self.region_bridges2,
+                    region_id="bridges_2"
+                    )
 
         for i, cpw_md in enumerate(self.cpw_md_lines):
             dy_list = [110e3, 240e3, 370e3, 500e3, 630e3]
@@ -1375,12 +1397,18 @@ class Design12QStair(ChipDesign):
                 elif i >= 4:
                     dy = -dy
                 bridge_center1 = cpw_md.end + DVector(0, -dy)
-                br = Bridge1(center=bridge_center1, gnd2gnd_dy=70e3,
-                             trans_in=Trans.R90)
-                br.place(dest=self.region_bridges1,
-                         region_id="bridges_1")
-                br.place(dest=self.region_bridges2,
-                         region_id="bridges_2")
+                br = Bridge1(
+                    center=bridge_center1, gnd2gnd_dy=70e3,
+                    trans_in=Trans.R90
+                    )
+                br.place(
+                    dest=self.region_bridges1,
+                    region_id="bridges_1"
+                    )
+                br.place(
+                    dest=self.region_bridges2,
+                    region_id="bridges_2"
+                    )
 
         # for readout waveguides
         avoid_points = []
@@ -1429,8 +1457,10 @@ class Design12QStair(ChipDesign):
         reg_to_fill = self.region_ph.dup().select_interacting(
             selection_region
         )
-        filled_reg = fill_holes(reg_to_fill, d=40e3, width=15e3,
-                                height=15e3)
+        filled_reg = fill_holes(
+            reg_to_fill, d=40e3, width=15e3,
+            height=15e3
+            )
 
         self.region_ph = filled_reg + other_polys_reg
 
@@ -1519,8 +1549,8 @@ if __name__ == "__main__":
     ''' draw and show design for manual design evaluation '''
     FABRICATION.OVERETCHING = 0.0e3
     design = Design12QStair("testScript")
-    design.draw()
-    design.show()
+    # design.draw()
+    # design.show()
     # test = Cqq_type2("cellName")
     # test.draw()
     # test.show()

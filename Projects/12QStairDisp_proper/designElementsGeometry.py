@@ -387,11 +387,16 @@ class ConnectivityMap:
     # for `q_connector_idx` see schematics .drawio
     q_res_connector_idxs_pairs: np.ndarray = np.array(
         [
-            [10, 0, 4], [7, 1, 4], [3, 2, 4], [4, 3, 4],
-            [11, 3, 0], [8, 2, 0], [9, 1, 0], [5, 0, 0],
-            [6, 3, 0], [2, 2, 0], [1, 1, 4], [0, 0, 4]
-        ]
+            (10, 0, 4), (7, 1, 4), (3, 2, 4), (4, 3, 4),
+            (11, 3, 0), (8, 2, 0), (9, 1, 0), (5, 0, 0),
+            (6, 3, 0), (2, 2, 0), (1, 1, 4), (0, 0, 4)
+        ],
     )
+    def __post_init__(self):
+        # sort by `q_idx` equivalent to sort by first entry in every row
+        self.q_res_connector_idxs_pairs = self.q_res_connector_idxs_pairs[
+            self.q_res_connector_idxs_pairs[:, 0].argsort()
+        ]
 
 
 @dataclass()
