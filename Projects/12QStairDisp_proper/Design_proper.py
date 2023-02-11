@@ -463,8 +463,10 @@ class Design12QStair(ChipDesign):
             )
             rotate_around(arc_coupler_empty, arc_coupler_empty.origin, angle1)
             # first clear metal, then fill with donut
-            arc_coupler_empty.place(self.region_ph)
-            arc_coupler.place(self.region_ph)
+            res.primitives["arc_coupler_empty"] = arc_coupler_empty
+            res.primitives["arc_coupler"] = arc_coupler
+            # arc_coupler_empty.place(self.region_ph)
+            # arc_coupler.place(self.region_ph)
 
             # empty first, filling metal later
 
@@ -482,7 +484,8 @@ class Design12QStair(ChipDesign):
                 cpw_parameters=[resonator_kw_args["Z0"]],
                 turn_radii=[resonator_kw_args["r"]]
             )
-            res_donut_cpw_path.place(self.region_ph)
+            res.primitives["res_donut_cpw_path"] = res_donut_cpw_path
+            # res_donut_cpw_path.place(self.region_ph)
 
             coupling_bandage = CPW(
                 start=res_donut_cpw_path.end,
@@ -490,7 +493,11 @@ class Design12QStair(ChipDesign):
                 width=resonator_kw_args["Z0"].width,
                 gap=0
             )
-            coupling_bandage.place(self.region_ph)
+            res.primitives["coupling_bandage"] = coupling_bandage
+            # TODO: make coupler to be a primitive of a resonator. Then proper resonator region
+            #  will be supplied into `simulate_cij(...)`, that will also include coupling
+            #  Other solutions are also considerable.
+            # coupling_bandage.place(self.region_ph)
 
     def draw_readout_lines(self):
         # readout line is extended around qubit square in order to
@@ -1573,7 +1580,7 @@ def simulate_Cqr(q_idxs: List[int], resolution=(4e3, 4e3)):
         res_idx = design.q_res_connector_roline_map[q_idx, 1]
         resonator = design.resonators[res_idx]
         qubit = design.qubits[q_idx]
-        q_reg = qubit.cap_shunt.empty_region
+        q_reg = qubit.cap_shunt.metal_region
 
         design.q_res_coupling_params[res_idx].donut_metal_width += dl
         # TODO: make simulation such that all polygons (except those with ports are connected to
@@ -1585,12 +1592,9 @@ def simulate_Cqr(q_idxs: List[int], resolution=(4e3, 4e3)):
         connector_dr_n = qubit.get_connector_dr(
             connector_idx=q_connector_idx, normalized=True
         )
-        box_region = Region().insert(
-            pya.DBox(
-                qubit.origin - 2 * qubit.cap_shunt.pars.disk_r * connector_dr_n,
-                qubit.origin + 2 * qubit.cap_shunt.pars.disk_r * connector_dr_n
-            )
-        )
+
+        box_region = q_reg.sized(q_reg.bbox().width(), q_reg.bbox().height())
+        print(resonator.metal_region.bbox())
         C1, C2, C12 = simulate_cij(
             design=design, layer=design.layer_ph,
             subregs=[q_reg, resonator.metal_region], env_reg=box_region,
