@@ -59,6 +59,7 @@ import designElementsGeometry
 reload(designElementsGeometry)
 from designElementsGeometry import QubitParams, Qubit, QubitsGrid, ResonatorParams
 from designElementsGeometry import DiskConn8Pars
+from designElementsGeometry import ConnectivityMap
 from designElementsGeometry import ROResonator, ROResonatorParams
 from designElementsGeometry import CqrCouplingParamsType1
 
@@ -113,6 +114,8 @@ class Design12QStair(ChipDesign):
             pad_length=700e3,
             transition_len=250e3
         )
+        ''' Connectivity map '''
+        self.connectivity_map = ConnectivityMap()
 
         ''' QUBITS GRID '''
         self.qubits_grid: QubitsGrid = QubitsGrid()
@@ -125,9 +128,12 @@ class Design12QStair(ChipDesign):
             dtype=object
         )
         self.circle_hull_d = 5e3
+        self.qq_coupling_connectors_map: np.ndarray = ConnectivityMap().qq_coupling_connectors_map
 
         ''' READOUT RESONATORS '''
+        self.resonators_params = ROResonatorParams()
         self.resonators: List[EMResonatorTL3QbitWormRLTail] = [None] * self.qubits_n
+        self.q_res_connector_idxs_pairs = self.connectivity_map.q_res_connector_idxs_pairs
 
         ''' READOUT LINES '''
         self.ro_lines: List[DPathCPW] = [None]*3
@@ -250,7 +256,6 @@ class Design12QStair(ChipDesign):
                 return 5
             else:
                 return 1
-
         for qubit_idx in range(len(self.qubits_grid.pts_grid)):
             pt = self.qubits_grid.get_pt(qubit_idx)
             qubit_pars = QubitParams(
@@ -281,38 +286,6 @@ class Design12QStair(ChipDesign):
             qubit.place(self.region_el, region_id="el")
 
     def draw_qq_couplings(self, donut_metal_width=CqqCouplingParamsType1().donut_metal_width):
-        # TODO: maybe transfer this datastructure to another file
-        # incidence matrix for qubits graph
-        # incidence matrix entries consists of 2 numbers - corresponding
-        # qubits connectors idxs (see schematics for details)
-        # if any of connectors idxs is equal to `-1` then qubit pair considered disconnected
-        qq_coupling_connectors_map = np.zeros((12, 12, 2), dtype=int) - 1
-        # TODO: fill structure automatically for more qubits
-        # horizontal
-        qq_coupling_connectors_map[0, 1] = np.array((0, 3))
-        qq_coupling_connectors_map[1, 2] = np.array((0, 4))
-        #
-        qq_coupling_connectors_map[3, 4] = np.array((0, 3))
-        qq_coupling_connectors_map[4, 5] = np.array((0, 4))
-        qq_coupling_connectors_map[5, 6] = np.array((7, 4))
-        #
-        qq_coupling_connectors_map[7, 8] = np.array((0, 4))
-        qq_coupling_connectors_map[8, 9] = np.array((7, 4))
-
-        qq_coupling_connectors_map[10, 11] = np.array((0, 4))
-
-        # vertical
-        qq_coupling_connectors_map[0, 4] = np.array((2, 7))
-        qq_coupling_connectors_map[1, 5] = np.array((2, 6))
-        qq_coupling_connectors_map[2, 6] = np.array((2, 6))
-        #
-        qq_coupling_connectors_map[3, 7] = np.array((2, 7))
-        qq_coupling_connectors_map[4, 8] = np.array((2, 6))
-        qq_coupling_connectors_map[5, 9] = np.array((3, 6))
-        #
-        qq_coupling_connectors_map[7, 10] = np.array((2, 7))
-        qq_coupling_connectors_map[8, 11] = np.array((3, 6))
-
         it_1d = list(enumerate(self.qubits_grid.pts_grid))
         it_2d = itertools.product(it_1d, it_1d)
         # TODO: refactor code:
@@ -326,7 +299,7 @@ class Design12QStair(ChipDesign):
             if pt1_1d_idx >= pt2_1d_idx:
                 continue
 
-            qq_coupling_connectors_idxs = qq_coupling_connectors_map[pt1_1d_idx, pt2_1d_idx]
+            qq_coupling_connectors_idxs = self.qq_coupling_connectors_map[pt1_1d_idx, pt2_1d_idx]
 
             if all(
                     [
@@ -350,33 +323,22 @@ class Design12QStair(ChipDesign):
                 qq_coupling.place(self.region_ph, region_id="ph")
                 self.q_couplings[pt1_1d_idx, pt2_1d_idx] = qq_coupling
 
-    def draw_readout_resonators(self):
+    def draw_readout_resonators(self, res_idxs=range(12)):
         resonator_kw_args_list = list(
             map(
-                ROResonatorParams.get_resonator_params_by_qubit_idx, range(12)
+                self.resonators_params.get_resonator_params_by_qubit_idx, res_idxs
             )
         )
 
-        '''
-        Resonators are placed at origin and then translated to their corresponding qubit.
-        '''
-
-        q_res_connector_idxs_pairs = [
-            [10, 0, 4], [7, 1, 4], [3, 2, 4], [4, 3, 4],
-            [11, 3, 0], [8, 2, 0], [9, 1, 0], [5, 0, 0],
-            [6, 3, 0], [2, 2, 0], [1, 1, 4], [0, 0, 4]
-        ]
-        resonator_rotation_angles = [90, 90, 90, 90 + 45,
-                                     0, -45, -45, -45,
-                                     270, 270, 180, 180]
-
         for (q_idx, res_idx, q_res_connector_idx), res_trans_angle in zip(
-                q_res_connector_idxs_pairs,
-                resonator_rotation_angles
+                self.q_res_connector_idxs_pairs,
+                self.resonators_params.resonator_rotation_angles
         ):
             qubit = self.qubits[q_idx]
             resonator_kw_args = resonator_kw_args_list[res_idx]
             trans_res_rotation = DCplxTrans(1, res_trans_angle, False, 0, 0)
+            # Resonators are placed at origin and then translated
+            # to their corresponding qubit.
             resonator_kw_args.update(
                 {
                     "start": DPoint(0, 0),

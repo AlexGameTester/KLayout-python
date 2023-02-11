@@ -131,8 +131,10 @@ class DiskConn8(ComplexBase):
             )
             self.conn8_list.append(cpw)  # can be redundant
             # center of the disk-ground gap in direction that corresponds to `anlge_deg`
-            self.connections.append(cpw.dr / cpw.dr.abs() * (self.pars.disk_r +
-                                                             self.pars.disk_gap/2) )
+            self.connections.append(
+                cpw.dr / cpw.dr.abs() * (self.pars.disk_r +
+                                         self.pars.disk_gap / 2)
+                )
             self.primitives["conn" + str(i)] = cpw
 
         self.disk = Disk(
@@ -333,12 +335,13 @@ from classLib.shapes import Donut
 from classLib.helpers import rotate_around
 from classLib.coplanars import DPathCPW
 
+
 @dataclass()
 class CqrCouplingParamsType1:
     # distance betweeen bendings of the coupling cpw and center of the qubit disks.
     bendings_disk_center_d = 320e3
 
-    donut_delta_alpha_deg = 360/9 * 2/3
+    donut_delta_alpha_deg = 360 / 9 * 2 / 3
     donut_metal_width: float = 50e3
     donut_gnd_gap = 15e3
     donut_disk_d = 10e3
@@ -347,6 +350,51 @@ class CqrCouplingParamsType1:
     disk1_connector_idx: int = 1
 
 
+@dataclass()
+class ConnectivityMap:
+    # incidence matrix for qubits graph
+    # incidence matrix entries consists of 2 numbers - corresponding
+    # qubits connectors idxs (see schematics for details)
+    # if any of connectors idxs is equal to `-1` then qubit pair considered disconnected
+    qq_coupling_connectors_map: np.ndarray = np.zeros((12, 12, 2), dtype=int) - 1
+    # TODO: fill structure automatically for more qubits
+    # horizontal
+    qq_coupling_connectors_map[0, 1] = np.array((0, 3))
+    qq_coupling_connectors_map[1, 2] = np.array((0, 4))
+    #
+    qq_coupling_connectors_map[3, 4] = np.array((0, 3))
+    qq_coupling_connectors_map[4, 5] = np.array((0, 4))
+    qq_coupling_connectors_map[5, 6] = np.array((7, 4))
+    #
+    qq_coupling_connectors_map[7, 8] = np.array((0, 4))
+    qq_coupling_connectors_map[8, 9] = np.array((7, 4))
+
+    qq_coupling_connectors_map[10, 11] = np.array((0, 4))
+
+    # vertical
+    qq_coupling_connectors_map[0, 4] = np.array((2, 7))
+    qq_coupling_connectors_map[1, 5] = np.array((2, 6))
+    qq_coupling_connectors_map[2, 6] = np.array((2, 6))
+    #
+    qq_coupling_connectors_map[3, 7] = np.array((2, 7))
+    qq_coupling_connectors_map[4, 8] = np.array((2, 6))
+    qq_coupling_connectors_map[5, 9] = np.array((3, 6))
+    #
+    qq_coupling_connectors_map[7, 10] = np.array((2, 7))
+    qq_coupling_connectors_map[8, 11] = np.array((3, 6))
+
+    # q_idx, res_idx, q_connector_idx
+    # for `q_connector_idx` see schematics .drawio
+    q_res_connector_idxs_pairs: np.ndarray = np.array(
+        [
+            [10, 0, 4], [7, 1, 4], [3, 2, 4], [4, 3, 4],
+            [11, 3, 0], [8, 2, 0], [9, 1, 0], [5, 0, 0],
+            [6, 3, 0], [2, 2, 0], [1, 1, 4], [0, 0, 4]
+        ]
+    )
+
+
+@dataclass()
 class ROResonatorParams():
     """
         Static class that contains information on readout resonators geometry parameters.
@@ -375,7 +423,7 @@ class ROResonatorParams():
     to_line_list = [45e3] * 12
 
     tail_segments_list = [[60000.0, 215000.0, 60000.0]] * 12
-    res_tail_shape = "LRLRL"
+    res_tail_shapes_list = ["LRLRL"] * 12
 
     tail_turn_angles_list = [
         [np.pi / 2, -np.pi / 2],
@@ -391,21 +439,28 @@ class ROResonatorParams():
         [-np.pi / 2, np.pi / 2],
         [-np.pi / 2, np.pi / 2]
     ]
+    resonator_rotation_angles: np.ndarray = np.array(
+        [
+            90, 90, 90, 90 + 45,
+            0, -45, -45, -45,
+            270, 270, 180, 180
+        ],
+        dtype=float
+    )
 
-    @staticmethod
-    def get_resonator_params_by_qubit_idx(q_idx):
+    def get_resonator_params_by_qubit_idx(self, q_idx):
         return {
-            "Z0"                  : ROResonatorParams.Z_res_list[q_idx],
-            "L_coupling"          : ROResonatorParams.L_coupling_list[q_idx],
-            "L0"                  : ROResonatorParams.L0_list[q_idx],
-            "L1"                  : ROResonatorParams.L1_list[q_idx],
-            "r"                   : ROResonatorParams.res_r_list[q_idx],
-            "N"                   : ROResonatorParams.N_coils_list[q_idx],
-            "tail_shape"          : ROResonatorParams.res_tail_shape,
-            "tail_turn_radiuses"  : ROResonatorParams.tail_turn_radiuses_list[q_idx],
-            "tail_segment_lengths": ROResonatorParams.tail_segments_list[q_idx],
-            "tail_turn_angles"    : ROResonatorParams.tail_turn_angles_list[q_idx],
-            "tail_trans_in"       : Trans.R270
+            "Z0"                      : self.Z_res_list[q_idx],
+            "L_coupling"              : self.L_coupling_list[q_idx],
+            "L0"                      : self.L0_list[q_idx],
+            "L1"                      : self.L1_list[q_idx],
+            "r"                       : self.res_r_list[q_idx],
+            "N"                       : self.N_coils_list[q_idx],
+            "tail_shape"              : self.res_tail_shapes_list[q_idx],
+            "tail_turn_radiuses"      : self.tail_turn_radiuses_list[q_idx],
+            "tail_segment_lengths"    : self.tail_segments_list[q_idx],
+            "tail_turn_angles"        : self.tail_turn_angles_list[q_idx],
+            "tail_trans_in"           : Trans.R270
         }
 
 
@@ -446,20 +501,21 @@ class ROResonator(EMResonatorTL3QbitWormRLTail):
     def draw_donut_end(self):
         angle1 = self.coupling_pars.disk1.angle_connections[
                      self.coupling_pars.disk1_connector_idx
-                 ]/(2*np.pi)*360
+                 ] / (2 * np.pi) * 360
 
         self.arc_coupler = Donut(
             origin=self.coupling_pars.disk1.origin,
             inner_r=self.coupling_pars.donut_disk_d + self.coupling_pars.disk1.pars.disk_r,
             ring_width=self.coupling_pars.donut_metal_width,
-            alpha_start=-self.coupling_pars.donut_delta_alpha_deg/2,
-            alpha_end=self.coupling_pars.donut_delta_alpha_deg/2,
+            alpha_start=-self.coupling_pars.donut_delta_alpha_deg / 2,
+            alpha_end=self.coupling_pars.donut_delta_alpha_deg / 2,
             region_id=self.region_id
         )
         rotate_around(self.arc_coupler, self.arc_coupler.origin, angle1)
-        d_alpha_deg = 360 / 2 / np.pi * self.coupling_pars.donut_gnd_gap / ((self.arc_coupler.inner_r +
-                                                                      self.arc_coupler.outer_r)
-                                                                     / 2)
+        d_alpha_deg = 360 / 2 / np.pi * self.coupling_pars.donut_gnd_gap / (
+                    (self.arc_coupler.inner_r +
+                     self.arc_coupler.outer_r)
+                    / 2)
         self.arc_coupler_empty = Donut(
             origin=self.arc_coupler.origin,
             inner_r=self.arc_coupler.inner_r - self.coupling_pars.donut_disk_d,
@@ -477,7 +533,7 @@ class ROResonator(EMResonatorTL3QbitWormRLTail):
         resonator_end = self.end
         connector_dv_n = DVector(np.cos(angle1), np.sin(angle1))
         disk_far_bending_point = self.coupling_pars.disk1.origin + \
-                                 self.coupling_pars.bendings_disk_center_d*connector_dv_n
+                                 self.coupling_pars.bendings_disk_center_d * connector_dv_n
         print((disk_far_bending_point - resonator_end).abs())
         print((self.arc_coupler.outer_arc_center - disk_far_bending_point).abs())
         print(self.r)
