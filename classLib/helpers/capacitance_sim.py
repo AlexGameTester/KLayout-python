@@ -71,7 +71,9 @@ def simulate_cij(
 
     # crop all subregs such they all contained inside crop_box
     subregs = [subreg & Region(crop_box) for subreg in subregs]
-
+    design.layout.clear_layer(layer)
+    design.region_ph = sum(subregs, Region())
+    design.show()  # TO BE REMOVED
     ''' SONNET PORTS POSITIONS SECTION START '''
     n_terminals = len(subregs)
     # TODO: if subregion has an edge that lies on the `crop_box` perimeter - choose this one as a

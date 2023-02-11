@@ -251,7 +251,7 @@ class Qubit(ComplexBase):
         self.connections.append(origin)
 
     def get_connector_dr(self, connector_idx, normalized=False):
-        self.cap_shunt.get_connector_dv(
+        return  self.cap_shunt.get_connector_dv(
             connector_idx=connector_idx, normalized=normalized
         )
 

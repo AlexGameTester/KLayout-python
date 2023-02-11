@@ -1586,7 +1586,7 @@ def simulate_Cqr(q_idxs: List[int], resolution=(4e3, 4e3)):
             connector_idx=q_connector_idx, normalized=True
         )
         box_region = Region().insert(
-            pya.Box(
+            pya.DBox(
                 qubit.origin - 2 * qubit.cap_shunt.pars.disk_r * connector_dr_n,
                 qubit.origin + 2 * qubit.cap_shunt.pars.disk_r * connector_dr_n
             )
@@ -1612,9 +1612,9 @@ def simulate_Cqr(q_idxs: List[int], resolution=(4e3, 4e3)):
 if __name__ == "__main__":
     ''' draw and show design for manual design evaluation '''
     FABRICATION.OVERETCHING = 0.0e3
-    design = Design12QStair("testScript")
-    design.draw()
-    design.show()
+    # design = Design12QStair("testScript")
+    # design.draw()
+    # design.show()
     # test = Cqq_type2("cellName")
     # test.draw()
     # test.show()
@@ -1638,7 +1638,7 @@ if __name__ == "__main__":
     # )
 
     ''' C_qr sim '''
-    # simulate_Cqr(q_idxs=[0], resolution=(4e3, 4e3))
+    simulate_Cqr(q_idxs=[0], resolution=(4e3, 4e3))
 
     ''' Simulation of C_{q1,q2} in fF '''
     # simulate_Cqq(q1_idx=5, q2_idx=6, resolution=(2e3, 2e3))
