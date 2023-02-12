@@ -467,7 +467,7 @@ class Cqq_type2(ChipDesign):
         )
 
         origin = DPoint(0, 0)
-        # `q1.cap_shunt = None` if `postpone_drawing=True`
+        # `q1.disk_cap_shunt = None` if `postpone_drawing=True`
         q1 = Qubit(origin=origin + DVector(0, -self.disks_d / 2), postpone_drawing=False)
         q2 = Qubit(origin=origin + DVector(0, self.disks_d / 2), postpone_drawing=False)
         q1.place(self.region_ph, region_id="ph")

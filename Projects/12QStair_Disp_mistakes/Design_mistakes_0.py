@@ -350,8 +350,8 @@ class Design12QStair(ChipDesign):
                 #     origin=DPoint(0, 0),
                 #     params=CqqCouplingParamsType1(
                 #         donut_metal_width=donut_metal_width,
-                #         disk1=self.qubits[pt1_1d_idx].cap_shunt,
-                #         disk2=self.qubits[pt2_1d_idx].cap_shunt,
+                #         disk1=self.qubits[pt1_1d_idx].disk_cap_shunt,
+                #         disk2=self.qubits[pt2_1d_idx].disk_cap_shunt,
                 #         disk1_connector_idx=q1_connector_idx,
                 #         disk2_connector_idx=q2_connector_idx
                 #     ),
@@ -1574,7 +1574,7 @@ class Cqq_type2(ChipDesign):
         )
 
         origin = DPoint(0, 0)
-        # `q1.cap_shunt = None` if `postpone_drawing=True`
+        # `q1.disk_cap_shunt = None` if `postpone_drawing=True`
         q1 = Qubit(origin=origin + DVector(0, -self.disks_d / 2), postpone_drawing=False)
         q2 = Qubit(origin=origin + DVector(0, self.disks_d / 2), postpone_drawing=False)
         q1.place(self.region_ph, region_id="ph")

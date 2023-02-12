@@ -237,7 +237,7 @@ class Qubit(ComplexBase):
         self.squid.make_trans(DCplxTrans(1, angle, False, 0, 0))
 
         self.primitives["squid"] = self.squid
-        self.primitives["cap_shunt"] = self.cap_shunt
+        self.primitives["disk_cap_shunt"] = self.cap_shunt
 
         self.connections.append(origin)
 
@@ -488,7 +488,7 @@ class ROResonator(EMResonatorTL3QbitWormRLTail):
             turn_radii=[self.r],
             region_id=self.region_id
         )
-        self.primitives["res_donut_cpw_path"] = self.res_donut_cpw_path
+        self.primitives["res_couling_arc_cpw_path"] = self.res_donut_cpw_path
 
         self.coupling_bandage = CPW(
             start=self.res_donut_cpw_path.end,
