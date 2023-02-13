@@ -1431,24 +1431,23 @@ def simulate_Cqr(q_idxs: List[int], resolution=(4e3, 4e3)):
         design.draw_readout_resonators()
         design.draw_readout_lines()
 
-        res_idx = design.q_res_connector_roline_map[q_idx, 1]
-        resonator = design.resonators[res_idx]
+        resonator = design.resonators[q_idx]
         qubit = design.qubits[q_idx]
         q_reg = qubit.disk_cap_shunt.metal_region
 
-        design.q_res_coupling_params[res_idx].donut_metal_width += dl
+        design.q_res_coupling_params[q_idx].donut_metal_width += dl
         # TODO: make simulation such that all polygons (except those with ports are connected to
         #  ground). Now it is tolerable to have some of them (with large capacity to ground) to
         #  stay with floating potential (it will be close to ground plane potential due to their
         #  respectively large capacitance to ground i.e. low impedance to ground).
 
         q_connector_idx = design.q_res_connector_roline_map[q_idx, 2]
-        connector_dr_n = qubit.get_connector_dr(
-            connector_idx=q_connector_idx, normalized=True
-        )
+        # connector_dr_n = qubit.get_connector_dr(
+        #     connector_idx=q_connector_idx, normalized=True
+        # )
 
-        box_region = q_reg.sized(q_reg.bbox().width(), q_reg.bbox().height())
-        print(resonator.metal_region.bbox())
+        box_region = q_reg.sized(2*q_reg.bbox().width(), 2*q_reg.bbox().height())
+        # print(resonator.metal_region.bbox())
         C1, C2, C12 = simulate_cij(
             design=design, layer=design.layer_ph,
             subregs=[q_reg, resonator.metal_region], env_reg=box_region,
@@ -1470,9 +1469,9 @@ def simulate_Cqr(q_idxs: List[int], resolution=(4e3, 4e3)):
 if __name__ == "__main__":
     ''' draw and show design for manual design evaluation '''
     FABRICATION.OVERETCHING = 0.0e3
-    design = Design12QStair("testScript")
-    design.draw()
-    design.show()
+    # design = Design12QStair("testScript")
+    # design.draw()
+    # design.show()
     # test = Cqq_type2("cellName")
     # test.draw()
     # test.show()
@@ -1496,7 +1495,7 @@ if __name__ == "__main__":
     # )
 
     ''' C_qr sim '''
-    # simulate_Cqr(q_idxs=[0], resolution=(4e3, 4e3))
+    simulate_Cqr(q_idxs=[0], resolution=(4e3, 4e3))
 
     ''' Simulation of C_{q1,q2} in fF '''
     # simulate_Cqq(q1_idx=5, q2_idx=6, resolution=(2e3, 2e3))
