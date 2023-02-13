@@ -352,6 +352,8 @@ from classLib.coplanars import DPathCPW
 class CqrCouplingParamsType1:
     # distance betweeen bendings of the coupling cpw and center of the qubit disks.
     bendings_disk_center_d = 320e3
+
+    # distance between resonator's end and qubit center
     q_res_d = 500e3
 
     donut_delta_alpha_deg = 360 / 9 * 2 / 3

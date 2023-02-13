@@ -1424,6 +1424,7 @@ def simulate_Cqr(q_idxs: List[int], resolution=(4e3, 4e3)):
         design = Design12QStair("testScript")
 
         # exclude coils from simulation (sometimes port is placed onto coil (TODO: fix)
+        design.q_res_coupling_params[q_idx].donut_disk_d += dl
         design.resonators_params.N_coils_list = [1] * design.NQUBITS
         design.draw_chip()
         design.draw_qubits_array()
@@ -1435,7 +1436,6 @@ def simulate_Cqr(q_idxs: List[int], resolution=(4e3, 4e3)):
         qubit = design.qubits[q_idx]
         q_reg = qubit.disk_cap_shunt.metal_region
 
-        design.q_res_coupling_params[q_idx].donut_metal_width += dl
         # TODO: make simulation such that all polygons (except those with ports are connected to
         #  ground). Now it is tolerable to have some of them (with large capacity to ground) to
         #  stay with floating potential (it will be close to ground plane potential due to their
