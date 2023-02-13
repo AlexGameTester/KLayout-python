@@ -32,8 +32,8 @@ class ChipDesign:
         self.cell = None
 
         # basic regions for sample
-        self.region_ph = Region()
-        self.region_el = Region()
+        self.region_ph: Region = Region()
+        self.region_el: Region = Region()
 
         # this insures that lv and cv are valid objects
         if (self.lv == None):

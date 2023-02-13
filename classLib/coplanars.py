@@ -90,7 +90,7 @@ class CPW(ElementBase):
                                    DPoint(0, self.width / 2)])
             self.metal_region.insert(pya.Polygon().from_dpoly(metal_poly))
             # hotfix rounding errors that lead to disconnections
-            self.metal_region.size(1, 0, 0)
+            # self.metal_region.size(1, 0, 0)
 
         if (self.gap != 0):
             # top empty rectangle
