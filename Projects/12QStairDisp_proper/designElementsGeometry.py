@@ -676,15 +676,23 @@ class ROResonator(EMResonatorTL3QbitWormRLTail):
         self.primitives["arc_coupler"] = self.arc_coupler
 
         resonator_end = self.end
-        connector_dv_n = DVector(np.cos(angle1), np.sin(angle1))
+        resonator_end_dv_n = DVector(np.cos(self.alpha_end), np.sin(self.alpha_end))
+        # 1*self.r restricts first bending angle to be < 45 deg (see DPathCPW class, bendings
+        # drawing section)
+        resonator_end_bending_pt = resonator_end + 1*self.r*resonator_end_dv_n
+
+        connector_dv_n = DVector(np.cos(np.pi*angle1/180), np.sin(np.pi*angle1/180))
         disk_far_bending_point = self.coupling_pars.disk1.origin + \
                                  self.coupling_pars.bendings_disk_center_d * connector_dv_n
+        print("qubit center:", self.coupling_pars.disk1.origin)
+        print("coupling line arc angle:", angle1, "deg")
         # print((disk_far_bending_point - resonator_end).abs())
         # print((self.arc_coupler.outer_arc_center - disk_far_bending_point).abs())
         # print(self.r)
         # print()
         self.res_couling_arc_cpw_path = DPathCPW(
-            points=[resonator_end, disk_far_bending_point, self.arc_coupler.outer_arc_center],
+            points=[resonator_end, resonator_end_bending_pt,
+                    disk_far_bending_point, self.arc_coupler.outer_arc_center],
             cpw_parameters=[self.Z0],
             turn_radii=[self.r],
             region_id=self.region_id
