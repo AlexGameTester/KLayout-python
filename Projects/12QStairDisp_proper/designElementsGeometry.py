@@ -684,8 +684,8 @@ class ROResonator(EMResonatorTL3QbitWormRLTail):
         connector_dv_n = DVector(np.cos(np.pi*angle1/180), np.sin(np.pi*angle1/180))
         disk_far_bending_point = self.coupling_pars.disk1.origin + \
                                  self.coupling_pars.bendings_disk_center_d * connector_dv_n
-        print("qubit center:", self.coupling_pars.disk1.origin)
-        print("coupling line arc angle:", angle1, "deg")
+        # print("qubit center:", self.coupling_pars.disk1.origin)
+        # print("coupling line arc angle:", angle1, "deg")
         # print((disk_far_bending_point - resonator_end).abs())
         # print((self.arc_coupler.outer_arc_center - disk_far_bending_point).abs())
         # print(self.r)
