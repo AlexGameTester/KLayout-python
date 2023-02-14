@@ -1391,7 +1391,7 @@ class Design12QStair(ChipDesign):
         )
         self.lv.zoom_fit()
 
-    def draw_for_res_Q_sim(self, q_idx, to_line=45e3, border=360e3):
+    def draw_for_res_Q_sim(self, q_idx, to_line=45e3, border_down=360e3, border_up=200e3):
         self.draw_chip()
         self.draw_qubits_array()
         self.draw_qq_couplings()
@@ -1413,24 +1413,24 @@ class Design12QStair(ChipDesign):
         print(p1)
         print(p2)
         cent = (p1 + p2) / 2
-        bwidth = abs(p1.x - p2.x) + 2*border
-        bheight = abs(p1.y - p2.y) + 2*border
+        bwidth = abs(p1.x - p2.x)
+        bheight = abs(p1.y - p2.y)
 
         readline = CPW(
-            start=cent + DVector(bwidth/2, bheight/2 - border),
-            end=cent + DVector(-bwidth/2, bheight/2 - border),
+            start=cent + DVector(bwidth / 2 + border_up, bheight / 2),
+            end=cent + DVector(-bwidth / 2 - border_down, bheight / 2),
             cpw_params=CPWParameters(width=20e3, gap=10e3)
         )
         readline.place(self.region_ph)
 
         dv = DVector(bwidth, bheight)
-        crop_box = DBox(cent + dv / 2, cent - dv / 2)
+        crop_box = DBox(cent + dv / 2 + DVector(border_up, border_up), cent - dv / 2 - DVector(border_down, border_down))
         self.crop(crop_box)
 
         self.sonnet_ports.append(readline.start)
         self.sonnet_ports.append(readline.end)
 
-        self.transform_region(self.region_ph, DTrans(-(cent - dv / 2)),
+        self.transform_region(self.region_ph, DTrans(-(cent - dv / 2 - DVector(border_down, border_down))),
                                 trans_ports=True)
 
         return crop_box
@@ -1560,7 +1560,7 @@ def simulate_res_f_and_Q(q_idx, resolution=(2e3, 2e3)):
     design.show()
     ### DRAWING SECTION END ###
 
-    simulate_S_pars(design, crop_box, 'res_S_pars.csv', 7.0, 8.0)
+    simulate_S_pars(design, crop_box, f'res_{q_idx}_S_pars.csv', 7.0, 8.0)
 
 def simulate_S_pars(design, crop_box, filename, min_freq=6.0, max_freq=7.0, resolution_dx=2e3, resolution_dy=2e3):
     ### SIMULATION SECTION START ###
@@ -1645,5 +1645,7 @@ if __name__ == "__main__":
 
     ''' Resonators Q and f sim'''
     simulate_res_f_and_Q(0)
+    simulate_res_f_and_Q(1)
+    simulate_res_f_and_Q(3)
 
 

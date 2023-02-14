@@ -435,7 +435,7 @@ class ROResonatorParams():
     ]
     res_r_list = [60e3] * 12
     tail_turn_radiuses_list = [60e3] * 12  # res_r_list
-    N_coils_list = [3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3]
+    N_coils_list = [2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3]
     L2_list = [60e3] * 12  # res_r_list
     L3_list = []  # get numericals from Design_fast
     L4_list = [60e3] * 12  # res_r_list
