@@ -141,7 +141,7 @@ class Design12QStair(ChipDesign):
         self.resonators_params = ROResonatorParams(qubits_grid=self.qubits_grid)
         self.resonators: List[EMResonatorTL3QbitWormRLTail] = [None] * self.NQUBITS
         self.q_res_connector_roline_map = self.connectivity_map.q_res_connector_roline_map
-        self.q_res_connector_idxs: np.ndarray = np.array([4, 4, 0, 4, 0, 0, 4, 0, 0, 4, 0])
+        self.q_res_connector_idxs: np.ndarray = np.array([4, 4, 0, 4, 4, 0, 0, 4, 0, 0, 4, 0])
         self.q_res_coupling_params: List[CqrCouplingParamsType1] = \
             self.resonators_params.q_res_coupling_params
 
@@ -1644,8 +1644,10 @@ if __name__ == "__main__":
     #         simulate_md_Cg(md_idx=md_idx, q_idx=q_idx, resolution=(1e3, 1e3))
 
     ''' Resonators Q and f sim'''
-    simulate_res_f_and_Q(0)
-    simulate_res_f_and_Q(1)
-    simulate_res_f_and_Q(3)
+    # simulate_res_f_and_Q(4)
+    # simulate_res_f_and_Q(5)
+    # simulate_res_f_and_Q(6)
+    for i in range(3, 12):
+        simulate_res_f_and_Q(i)
 
 
