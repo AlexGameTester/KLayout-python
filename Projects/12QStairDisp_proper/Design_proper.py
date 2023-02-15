@@ -260,9 +260,9 @@ class Design12QStair(ChipDesign):
                 qubit disk's connector idx
             """
             if qubit_idx in [0, 1, 2, 3, 4, 7]:
-                return 5
+                return 6
             else:
-                return 1
+                return 2
 
         for qubit_idx in range(len(self.qubits_grid.pts_grid)):
             pt = self.qubits_grid.get_pt(qubit_idx)
