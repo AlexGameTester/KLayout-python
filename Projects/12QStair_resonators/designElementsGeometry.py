@@ -47,8 +47,12 @@ class QubitsGrid:
         dtype=float
     )
 
+    initialized = np.array([False])
+
     def __post_init__(self):
-        self.__centralize_grid()
+        if not self.initialized[0]:
+            self.__centralize_grid()
+            self.initialized[0] = True
 
     def __centralize_grid(self):
         # grid is centralized such that bbox center of the grid has
@@ -272,9 +276,9 @@ class ResonatorParams:
     L1_list = [
         1e3 * x for x in
         [
-            114.5219, 95.1897, 99.0318, 83.7159,
-            114.5219, 95.1897, 99.0318, 83.7159,
-            114.5219, 95.1897, 99.0318, 83.7159
+            124.5219, 105.1897, 109.0318, 93.7159,
+            124.5219, 105.1897, 109.0318, 93.7159,
+            124.5219, 105.1897, 109.0318, 93.7159
         ]
     ]
     res_r_list = [60e3] * 12
