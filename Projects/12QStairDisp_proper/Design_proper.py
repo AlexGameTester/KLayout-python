@@ -1411,20 +1411,21 @@ def simulate_Cqr(q_idxs: List[int], resolution=(4e3, 4e3)):
     # TODO: 1. make 2d geometry parameters mesh, for simultaneous finding of C_qr and C_q
     #  2. make 3d geometry optimization inside kLayout for simultaneous finding of C_qr,
     #  C_q and C_qq
-    dl_list = np.linspace(-1e3, 1e3, 3)
+    dl_list = np.linspace(-10e3, 10e3, 21)
     # dl_list = [0e3]
     from itertools import product
 
-    for dl, q_idx in list(
+    for dl1, dl2, q_idx in list(
             product(
-                dl_list, q_idxs
+                dl_list, dl_list, q_idxs
             )
     ):
         ### DRAWING SECTION START ###
         design = Design12QStair("testScript")
 
         # exclude coils from simulation (sometimes port is placed onto coil (TODO: fix)
-        design.q_res_coupling_params[q_idx].donut_disk_d += dl
+        design.q_res_coupling_params[q_idx].donut_disk_d += dl1
+        design.q_res_coupling_params[q_idx].donut_metal_width += dl2
         design.resonators_params.N_coils_list = [1] * design.NQUBITS
         design.draw_chip()
         design.draw_qubits_array()
@@ -1440,11 +1441,6 @@ def simulate_Cqr(q_idxs: List[int], resolution=(4e3, 4e3)):
         #  ground). Now it is tolerable to have some of them (with large capacity to ground) to
         #  stay with floating potential (it will be close to ground plane potential due to their
         #  respectively large capacitance to ground i.e. low impedance to ground).
-
-        q_connector_idx = design.q_res_connector_roline_map[q_idx, 2]
-        # connector_dr_n = qubit.get_connector_dr(
-        #     connector_idx=q_connector_idx, normalized=True
-        # )
 
         box_region = q_reg.sized(2*q_reg.bbox().width(), 2*q_reg.bbox().height())
         # print(resonator.metal_region.bbox())
@@ -1462,7 +1458,11 @@ def simulate_Cqr(q_idxs: List[int], resolution=(4e3, 4e3)):
         save_sim_results(
             output_filepath=output_filepath,
             design=design,
-            additional_pars={"C1, fF": C1, "C2, fF": C2, "C12, fF": C12}
+            additional_pars={
+                "donut_disk_d, um": design.q_res_coupling_params[q_idx].donut_disk_d,
+                "donut_metal_width, um": design.q_res_coupling_params[q_idx].donut_metal_width,
+                "C1, fF": C1, "C2, fF": C2, "C12, fF": C12
+            }
         )
 
 
