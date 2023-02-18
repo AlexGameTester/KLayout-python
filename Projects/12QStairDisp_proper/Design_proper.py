@@ -1411,19 +1411,26 @@ def simulate_Cqr(q_idxs: List[int], resolution=(4e3, 4e3)):
     # TODO: 1. make 2d geometry parameters mesh, for simultaneous finding of C_qr and C_q
     #  2. make 3d geometry optimization inside kLayout for simultaneous finding of C_qr,
     #  C_q and C_qq
-    dl_list = np.linspace(-1e3, 1e3, 3)
+    # dl_list = np.linspace(-10e3, 10e3, 21)
+    donut_disk_d_list = np.array([20e3, 15e3, 10e3], dtype=float)
+    donut_metal_width_list = np.array([75e3, 50e3, 20e3], dtype=float)
     # dl_list = [0e3]
     from itertools import product
 
-    for dl, q_idx in list(
-            product(
-                dl_list, q_idxs
+    for simulation_i, (donut_disk_d, donut_metal_width, q_idx) in list(
+        enumerate(
+            list(
+                product(
+                    donut_disk_d_list, donut_metal_width_list, q_idxs
+                )
             )
     ):
         ### DRAWING SECTION START ###
         design = Design12QStair("testScript")
 
         # exclude coils from simulation (sometimes port is placed onto coil (TODO: fix)
+        design.q_res_coupling_params[q_idx].donut_disk_d = donut_disk_d
+        design.q_res_coupling_params[q_idx].donut_metal_width = donut_metal_width
         design.resonators_params.N_coils_list = [1] * design.NQUBITS
         design.draw_chip()
         design.draw_qubits_array()
@@ -1432,37 +1439,50 @@ def simulate_Cqr(q_idxs: List[int], resolution=(4e3, 4e3)):
         design.draw_readout_lines()
 
         resonator = design.resonators[q_idx]
+        res_reg = resonator.metal_region
         qubit = design.qubits[q_idx]
         q_reg = qubit.disk_cap_shunt.metal_region
 
-        design.q_res_coupling_params[q_idx].donut_metal_width += dl
         # TODO: make simulation such that all polygons (except those with ports are connected to
         #  ground). Now it is tolerable to have some of them (with large capacity to ground) to
         #  stay with floating potential (it will be close to ground plane potential due to their
         #  respectively large capacitance to ground i.e. low impedance to ground).
 
-        q_connector_idx = design.q_res_connector_roline_map[q_idx, 2]
-        # connector_dr_n = qubit.get_connector_dr(
-        #     connector_idx=q_connector_idx, normalized=True
-        # )
-
-        box_region = q_reg.sized(2*q_reg.bbox().width(), 2*q_reg.bbox().height())
+        box_region = q_reg.sized(1*q_reg.bbox().width(), 1*q_reg.bbox().height())
+        pars_dict = {
+            "simulation #": simulation_i,
+            "q_idx": q_idx,
+            "donut_disk_d, um": design.q_res_coupling_params[q_idx].donut_disk_d,
+            "donut_metal_width, um": design.q_res_coupling_params[q_idx].donut_metal_width
+        }
+        for key, val in pars_dict.items():
+            print(f"{key}: {val}")
         # print(resonator.metal_region.bbox())
-        C1, C2, C12 = simulate_cij(
+        C1, C12, C2 = simulate_cij(
             design=design, layer=design.layer_ph,
-            subregs=[q_reg, resonator.metal_region], env_reg=box_region,
+            subregs=[q_reg, res_reg], env_reg=box_region,
             resolution=resolution, print_values=True
         )
+        print()
         '''SAVING REUSLTS SECTION START'''
         output_filepath = os.path.join(
             PROJECT_DIR,
             f"Xmon_Cqr_results.csv"
         )
+        design.save_as_gds2(
+            filename=os.path.join(PROJECT_DIR, f"ddd_{int(donut_disk_d/1e3)}_dmw_{int(donut_metal_width/1e3)}.gds")
+        )
 
         save_sim_results(
             output_filepath=output_filepath,
             design=design,
-            additional_pars={"C1, fF": C1, "C2, fF": C2, "C12, fF": C12}
+            additional_pars={
+                "q_idx": q_idx,
+                "resolution": resolution,
+                "donut_disk_d, um": design.q_res_coupling_params[q_idx].donut_disk_d,
+                "donut_metal_width, um": design.q_res_coupling_params[q_idx].donut_metal_width,
+                "C1, fF": C1, "C2, fF": C2, "C12, fF": C12
+            }
         )
 
 
