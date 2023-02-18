@@ -1,3 +1,5 @@
+# TODO: add dielectric and metal layers adding and their parameters specifications for isotropic dielectrics
+#  and superconducting metal
 # import built-ins
 from typing import Union
 import csv
