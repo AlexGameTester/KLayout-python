@@ -1424,6 +1424,7 @@ def simulate_Cqr(q_idxs: List[int], resolution=(4e3, 4e3)):
                     donut_disk_d_list, donut_metal_width_list, q_idxs
                 )
             )
+        )
     ):
         ### DRAWING SECTION START ###
         design = Design12QStair("testScript")
