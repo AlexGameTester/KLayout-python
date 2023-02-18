@@ -34,20 +34,25 @@ class QubitsGrid:
     # step of 2D grid in `x` and `y` directions correspondingly
     dx: float = 1e6
     dy: float = 1e6
-    pts_grid: np.ndarray = np.array(
-        [
-            # grid iterates from left to right (direct),
-            # from bottom to top (style of recording is inverted),
-            # starting from bl corner.
-            (0, 0), (1, 0), (2, 0),
-            (-1, 1), (0, 1), (1, 1), (2, 1),
-            (-1, 2), (0, 2), (1, 2),
-            (-1, 3), (0, 3)
-        ],
-        dtype=float
-    )
+    pts_grid: np.ndarray = None  # initialized after construction since it is mutable
 
     def __post_init__(self):
+        # mutable input argument has to be initialized here
+        # otherwise this argument will depend on the history of it's modifications
+        # look into in PEP 557 or in the docs:
+        # https://docs.python.org/3.7/library/dataclasses.html#mutable-default-values
+        self.pts_grid = np.array(
+            [
+                # grid iterates from left to right (direct),
+                # from bottom to top (style of recording is inverted),
+                # starting from bl corner.
+                (0, 0), (1, 0), (2, 0),
+                (-1, 1), (0, 1), (1, 1), (2, 1),
+                (-1, 2), (0, 2), (1, 2),
+                (-1, 3), (0, 3)
+            ],
+            dtype=float
+        )
         self.__centralize_grid()
 
     def __centralize_grid(self):
@@ -441,7 +446,8 @@ class ROResonatorParams():
     L2_list = [60e3] * 12  # res_r_list
     L3_list = []  # get numericals from Design_fast
     L4_list = [60e3] * 12  # res_r_list
-    Z_res_list = [CPWParameters(10e3, 6e3)] * 12
+    # width=18, gap = 10 | Z = 50.39 Ohm, E_eff = 6.265
+    Z_res_list = [CPWParameters(18e3, 10e3)] * 12
     to_line_list = [45e3] * 12
 
     tail_segments_list = [[60000.0, 215000.0, 60000.0]] * 12
