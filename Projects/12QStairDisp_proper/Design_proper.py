@@ -27,9 +27,8 @@ import numpy as np
 
 # import project specific 3rd party
 import pya
-from pya import Point, Vector, DPoint, DVector, DEdge, \
-    DSimplePolygon, \
-    SimplePolygon, DPolygon, DBox, Polygon, Region
+from pya import Point, Vector, DPoint, DVector, DEdge, Edges, Region
+from pya import DSimplePolygon, SimplePolygon, DPolygon, DBox, Polygon
 
 from pya import DCplxTrans, Trans, ICplxTrans
 
@@ -37,7 +36,7 @@ from pya import DCplxTrans, Trans, ICplxTrans
 import classLib
 
 reload(classLib)
-from classLib.coplanars import CPW, CPW2CPW, CPWParameters, DPathCPW, Bridge1
+from classLib.coplanars import CPW, CPW2CPW, CPWParameters, DPathCPW, Bridge1, Intersection
 from classLib.chipDesign import ChipDesign
 from classLib.chipTemplates import CHIP_14x14_20pads
 from classLib.marks import MarkBolgar
@@ -106,19 +105,6 @@ class Design12QStair(ChipDesign):
         # defined in this child of `ChipDesign`
         self.lv.add_missing_layers()
 
-        ''' CHIP PARAMETERS '''
-        self.chip = CHIP
-        self.chip_box: pya.DBox = self.chip.box
-        # Z = 49.5656 E_eff = 6.30782 (E = 11.45)
-        self.z_md_fl: CPWParameters = CPWParameters(10e3, 5.7e3)
-
-        self.contact_pads: List[ContactPad] = self.chip.get_contact_pads(
-            [self.z_md_fl] * 16 + [self.chip.chip_Z] * 4,
-            back_metal_gap=200e3,
-            back_metal_width=0e3,
-            pad_length=700e3,
-            transition_len=250e3
-        )
         ''' Connectivity map '''
         self.connectivity_map = ConnectivityMap()
 
@@ -182,6 +168,25 @@ class Design12QStair(ChipDesign):
         ''' Litography alignment marks '''
         self.marks: List[MarkBolgar] = []
 
+        ''' CHIP PARAMETERS '''
+        self.chip = CHIP
+        self.chip_box: pya.DBox = self.chip.box
+        # Z = 49.5656 E_eff = 6.30782 (E = 11.45)
+        self.z_md_fl: CPWParameters = CPWParameters(10e3, 5.7e3)
+        self.ro_line_Z = CPWParameters(width=18e3, gap=10e3)
+        self.contact_pads: List[ContactPad] = self.chip.get_contact_pads(
+            chip_Z_list=[
+                self.ro_line_Z, self.z_fl1, self.z_md1, self.z_fl1, self.z_md1,  # left side
+                self.z_fl1, self.z_md1, self.ro_line_Z, self.ro_line_Z, self.z_fl1,  # bottom
+                self.z_md1, self.z_fl1, self.z_md1, self.z_md1, self.z_fl1,  # right
+                self.ro_line_Z, self.z_fl1, self.z_md1, self.z_fl1, self.z_md1  # top
+            ],
+            back_metal_gap=200e3,
+            back_metal_width=0e3,
+            pad_length=700e3,
+            transition_len=250e3
+        )
+
     def draw(self, design_params=None):
         """
 
@@ -197,9 +202,11 @@ class Design12QStair(ChipDesign):
         self.draw_qq_couplings()
 
         self.draw_readout_resonators()
-        # self.draw_readout_lines()
-        # self.draw_microwave_drvie_lines()
-        # self.draw_flux_control_lines()
+        self.draw_microwave_drvie_lines()
+        self.draw_flux_control_lines()
+        self.draw_readout_lines()
+
+        self.resolve_intersections()
 
         # self.draw_test_structures()
         # self.draw_express_test_structures_pads()
@@ -376,7 +383,7 @@ class Design12QStair(ChipDesign):
         pts = [p0_start, p1, p2, p3, p4, p5, p6, p7, p0_end]
         self.ro_lines[0] = DPathCPW(
             points=pts,
-            cpw_parameters=[CPWParameters(width=20e3, gap=10e3)],
+            cpw_parameters=[self.ro_line_Z],
             turn_radii=[turn_radii],
             trans_in=None,
             region_id="ph"
@@ -396,7 +403,7 @@ class Design12QStair(ChipDesign):
         pts = [p1_start, p1, p2, p3, p4, p5, p6, p7, p1_end]
         self.ro_lines[1] = DPathCPW(
             points=pts,
-            cpw_parameters=[CPWParameters(width=20e3, gap=10e3)],
+            cpw_parameters=[self.ro_line_Z],
             turn_radii=[turn_radii],
             trans_in=None,
             region_id="ph"
@@ -635,7 +642,8 @@ class Design12QStair(ChipDesign):
         p1 = p_start + DVector(0, -0.25e6)
         p_end = self.qubits[10].origin + DVector(
             0,
-            self.qubits[10].disk_cap_shunt.pars.disk_r + self.qubits[10].disk_cap_shunt.pars.disk_gap
+            self.qubits[10].disk_cap_shunt.pars.disk_r + self.qubits[
+                10].disk_cap_shunt.pars.disk_gap
         ) + DVector(8.0169e3, 0)
         p_tr_start = DPoint(p_end.x, 9.7e6)
         fl_dpath = DPathCPW(
@@ -649,7 +657,8 @@ class Design12QStair(ChipDesign):
         p1 = p_start + DVector(0, -0.25e6)
         p_end = self.qubits[11].origin + DVector(
             0,
-            self.qubits[11].disk_cap_shunt.pars.disk_r + self.qubits[11].disk_cap_shunt.pars.disk_gap
+            self.qubits[11].disk_cap_shunt.pars.disk_r + self.qubits[
+                11].disk_cap_shunt.pars.disk_gap
         ) + DVector(8.0169e3, 0)
         p2 = DPoint(6.374e6, 11.471e6)
         p_tr_start = DPoint(p_end.x, 9.7e6)
@@ -725,8 +734,10 @@ class Design12QStair(ChipDesign):
         p_start = self.contact_pads[1].end
         p1 = p_start + DVector(0.25e6, 0)
         p_end = self.qubits[q_idx].origin - 1 / np.sqrt(2) * DVector(
-            self.qubits[q_idx].disk_cap_shunt.pars.disk_r + self.qubits[q_idx].disk_cap_shunt.pars.disk_gap,
-            self.qubits[q_idx].disk_cap_shunt.pars.disk_r + self.qubits[q_idx].disk_cap_shunt.pars.disk_gap
+            self.qubits[q_idx].disk_cap_shunt.pars.disk_r + self.qubits[
+                q_idx].disk_cap_shunt.pars.disk_gap,
+            self.qubits[q_idx].disk_cap_shunt.pars.disk_r + self.qubits[
+                q_idx].disk_cap_shunt.pars.disk_gap
         ) + 1 / np.sqrt(2) * DVector(-8.0169e3, 8.0169e3)
         p2 = DPoint(3.426e6, 7.137e6)
         p3 = DPoint(4.010e6, 7.137e6)
@@ -746,8 +757,10 @@ class Design12QStair(ChipDesign):
         p_start = self.contact_pads[3].end
         p1 = p_start + DVector(0.25e6, 0)
         p_end = self.qubits[q_idx].origin - 1 / np.sqrt(2) * DVector(
-            self.qubits[q_idx].disk_cap_shunt.pars.disk_r + self.qubits[q_idx].disk_cap_shunt.pars.disk_gap,
-            self.qubits[q_idx].disk_cap_shunt.pars.disk_r + self.qubits[q_idx].disk_cap_shunt.pars.disk_gap
+            self.qubits[q_idx].disk_cap_shunt.pars.disk_r + self.qubits[
+                q_idx].disk_cap_shunt.pars.disk_gap,
+            self.qubits[q_idx].disk_cap_shunt.pars.disk_r + self.qubits[
+                q_idx].disk_cap_shunt.pars.disk_gap
         ) + 1 / np.sqrt(2) * DVector(-8.0169e3, 8.0169e3)
         p2 = DPoint(3.72e6, 5.68e6)
         p3 = DPoint(4.56e6, 5.92e6)
@@ -767,8 +780,10 @@ class Design12QStair(ChipDesign):
         p_start = self.contact_pads[5].end
         p1 = p_start + DVector(0, 0.25e6)
         p_end = self.qubits[q_idx].origin - 1 / np.sqrt(2) * DVector(
-            self.qubits[q_idx].disk_cap_shunt.pars.disk_r + self.qubits[q_idx].disk_cap_shunt.pars.disk_gap,
-            self.qubits[q_idx].disk_cap_shunt.pars.disk_r + self.qubits[q_idx].disk_cap_shunt.pars.disk_gap
+            self.qubits[q_idx].disk_cap_shunt.pars.disk_r + self.qubits[
+                q_idx].disk_cap_shunt.pars.disk_gap,
+            self.qubits[q_idx].disk_cap_shunt.pars.disk_r + self.qubits[
+                q_idx].disk_cap_shunt.pars.disk_gap
         ) + 1 / np.sqrt(2) * DVector(-8.0169e3, 8.0169e3)
         p2 = DPoint(4.70e6, 4.43e6)
         p3 = DPoint(5.57e6, 5.36e6)
@@ -858,6 +873,25 @@ class Design12QStair(ChipDesign):
             -3].end
         flux_line._refresh_named_connections()
         flux_line.place(self.region_ph)
+
+    def resolve_intersections(self):
+        for ctr_lines, ro_line in itertools.product(
+            zip(self.cpw_md_lines, self.cpw_fl_lines),
+            self.ro_lines
+        ):
+            for dpathcpw_line in ctr_lines:
+                # some qubit do not have control line of the certain type
+                if (dpathcpw_line is None) or (ro_line is None):
+                    continue
+
+                # ro line is placed later and is to be preserved continuous
+                res = Intersection.get_intersected_cpws(dpathcpw_line, ro_line)
+                if res is not None:
+                    cpw1, cpw2 = res
+                    Intersection.resolve_cpw_cpw_intersection(
+                        cpw1=cpw1, cpw2=cpw2, cpw_reg=self.region_ph,
+                        bridge_reg1=self.region_bridges1, bridge_reg2=self.region_bridges2
+                    )
 
     def draw_test_structures(self):
         struct_centers = [
@@ -1415,16 +1449,15 @@ def simulate_Cqr(q_idxs: List[int], resolution=(4e3, 4e3)):
     donut_disk_d_list = np.array([20e3, 15e3, 10e3], dtype=float)
     donut_metal_width_list = np.array([75e3, 50e3, 20e3], dtype=float)
     # dl_list = [0e3]
-    from itertools import product
 
     for simulation_i, (donut_disk_d, donut_metal_width, q_idx) in list(
-        enumerate(
-            list(
-                product(
-                    donut_disk_d_list, donut_metal_width_list, q_idxs
+            enumerate(
+                list(
+                    itertools.product(
+                        donut_disk_d_list, donut_metal_width_list, q_idxs
+                    )
                 )
             )
-        )
     ):
         ### DRAWING SECTION START ###
         design = Design12QStair("testScript")
@@ -1449,11 +1482,11 @@ def simulate_Cqr(q_idxs: List[int], resolution=(4e3, 4e3)):
         #  stay with floating potential (it will be close to ground plane potential due to their
         #  respectively large capacitance to ground i.e. low impedance to ground).
 
-        box_region = q_reg.sized(1*q_reg.bbox().width(), 1*q_reg.bbox().height())
+        box_region = q_reg.sized(1 * q_reg.bbox().width(), 1 * q_reg.bbox().height())
         pars_dict = {
-            "simulation #": simulation_i,
-            "q_idx": q_idx,
-            "donut_disk_d, um": design.q_res_coupling_params[q_idx].donut_disk_d,
+            "simulation #"         : simulation_i,
+            "q_idx"                : q_idx,
+            "donut_disk_d, um"     : design.q_res_coupling_params[q_idx].donut_disk_d,
             "donut_metal_width, um": design.q_res_coupling_params[q_idx].donut_metal_width
         }
         for key, val in pars_dict.items():
@@ -1471,18 +1504,20 @@ def simulate_Cqr(q_idxs: List[int], resolution=(4e3, 4e3)):
             f"Xmon_Cqr_results.csv"
         )
         design.save_as_gds2(
-            filename=os.path.join(PROJECT_DIR, f"ddd_{int(donut_disk_d/1e3)}_dmw_{int(donut_metal_width/1e3)}.gds")
+            filename=os.path.join(
+                PROJECT_DIR, f"ddd_{int(donut_disk_d / 1e3)}_dmw_{int(donut_metal_width / 1e3)}.gds"
+                )
         )
 
         save_sim_results(
             output_filepath=output_filepath,
             design=design,
             additional_pars={
-                "q_idx": q_idx,
-                "resolution": resolution,
-                "donut_disk_d, um": design.q_res_coupling_params[q_idx].donut_disk_d,
+                "q_idx"                : q_idx,
+                "resolution"           : resolution,
+                "donut_disk_d, um"     : design.q_res_coupling_params[q_idx].donut_disk_d,
                 "donut_metal_width, um": design.q_res_coupling_params[q_idx].donut_metal_width,
-                "C1, fF": C1, "C2, fF": C2, "C12, fF": C12
+                "C1, fF"               : C1, "C2, fF": C2, "C12, fF": C12
             }
         )
 

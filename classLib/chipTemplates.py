@@ -281,6 +281,8 @@ class CHIP_14x14_20pads:
                 )
                 for i in range(4*CHIP_14x14_20pads.pads_per_side)
             ]
+        elif len(chip_Z_list) == 1:
+            chip_Z_list = [chip_Z_list[0]]*(4*CHIP_14x14_20pads.pads_per_side)
         elif len(chip_Z_list) != 4*CHIP_14x14_20pads.pads_per_side:
             raise ValueError("`cpw_params_list` length is not equal to "
                              "number of pads (20).")

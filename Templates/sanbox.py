@@ -13,6 +13,7 @@ from classLib.shapes import Disk
 class MyDesign(ChipDesign):
     def draw(self):
         origin = DPoint(0, 0)
+        # self.region_ph.insert(DBox(DPoint(-1e6, -1e6), DPoint(1e6, 1e6)))
         circ = Disk(origin, 200e3, n_pts=2000, inverse=False)
         circ.place(self.region_ph)
 

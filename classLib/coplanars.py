@@ -1039,7 +1039,7 @@ class Bridge1(ElementBase):
         Class implements bridges that are used to suppress
         non-TEM modes in coplanar or other types of waveguides.
         based on this design:
-        https://drive.google.com/file/d/1nHM9lJNT9sBIWH9isRc_zKL6hUPwhhnP/view?usp=sharing
+        TODO: insert link
     """
     bridge_width = 20e3
     surround_gap = 8e3
@@ -1126,7 +1126,8 @@ class Bridge1(ElementBase):
 
         empty_polygon = DSimplePolygon(pts_list)
         self.empty_regions["bridges_2"].insert(
-            SimplePolygon.from_dpoly(empty_polygon))
+            SimplePolygon.from_dpoly(empty_polygon)
+        )
 
     def _refresh_named_connections(self):
         self.center = self.connections[0]
@@ -1302,3 +1303,124 @@ class Bridge1(ElementBase):
         else:
             # do nothing for other shapes
             return
+
+
+from pya import DEdge
+class Intersection:
+    @staticmethod
+    def get_intersected_cpws(line1: DPathCPW, line2: DPathCPW):
+        for line1, line2 in itertools.product(
+                line1.primitives.values(),
+                line2.primitives.values()
+        ):
+            if all(
+                    [
+                        line1.__class__.__name__ == "CPW",
+                        line2.__class__.__name__ == "CPW",
+                    ]
+            ):
+                edge1 = DEdge(line1.start, line1.end)
+                edge2 = DEdge(line2.start, line2.end)
+                res = edge1.intersection_point(edge2)
+                if res is None:
+                    continue
+                else:
+                    return line1, line2
+
+
+    @staticmethod
+    def resolve_cpw_cpw_intersection(
+        cpw1: CPW, cpw2: CPW, cpw_reg: Region, bridge_reg1: Region, bridge_reg2: Region,
+        clearance_mul=1, cpw_reg_id="ph"
+    ):
+        """
+        Places bridges between all grounds and slightly modifies geometry of the cutted coplanar
+        edges in order to make a proper bridged CPW-CPW intersection
+
+        Parameters
+        ----------
+        cpw1 : CPW
+            was drawn first, so it's ends near the `cpw2` will be "repaired" a bit
+        cpw2 : CPW
+            was drawn second
+        cpw_reg : Region
+            Region where both cpws are going to be placed
+        cpw_reg_id : str
+            id of the region of CPW that is to be placed. Usually it's "ph"
+        clearance_mul : float
+            distance between cpw2 center line and cpw1 `repaired` edges centers in units of cpw2.b.
+            (point to line distance)
+            default = 1
+
+        Returns
+        -------
+
+        Notes
+        -------------
+        Yes, repaired intersection could have its "repaired" cpw1's edges aligned along cpw2,
+        but this is not that I have straight and simple solution to implement this.
+        """
+        edge1 = DEdge(cpw1.start, cpw1.end)
+        edge2 = DEdge(cpw2.start, cpw2.end)
+        intersection = edge1.intersection_point(edge2)
+        if intersection is None:
+            print(
+                "Intersection resolve error, coplanars supplied does not intersect\n"
+                "returning with None"
+            )
+            return None
+        s1 = cpw1.dr / cpw1.dr.abs()
+        s2 = cpw2.dr / cpw2.dr.abs()
+        # 90 deg clockwise rotated tangent vectors
+        rot90 = DCplxTrans(1, 90, False, 0, 0)
+        n2 = rot90 * s2
+
+        # calculating points where broken cpw1 must be cutted along `s2` direction
+        # shorted angle to rotate from `s1` to `s2` that lies in (-np.pi/2, np.pi/2)
+        # `intersection_angle` > 0 if rotation from s1 to s2 is clockwise
+        # and < 0 if anti-clockwise
+        intersection_angle = np.arcsin(np.cross((s1.x, s1.y, 0), (s2.x, s2.y, 0))[-1])
+
+        cut_repair_p1 = intersection - clearance_mul * cpw2.b / np.sin(intersection_angle) * s1
+        cut_repair_p2 = intersection + clearance_mul * cpw2.b / np.sin(intersection_angle) * s1
+
+        ''' Repairing broken cpw1 ends '''
+        # filling ground for cpw2
+        ground_filling_cpw1 = CPW(
+            start=cut_repair_p2,
+            end=cut_repair_p1,
+            width=cpw1.b + 1,  # 1.1 to ensure filling is done well
+            gap=0,
+            open_end_gap=cpw1.gap,
+            open_start_gap=cpw1.gap
+        )
+        ground_filling_cpw1.place(cpw_reg)
+        # restoring `cpw2` state
+        cpw2.place(cpw_reg, region_id=cpw_reg_id)
+
+        ''' Placing bridges '''
+        # central cpw1 brigde
+        bridge1 = Bridge1(
+            center=intersection,
+            gnd2gnd_dy=ground_filling_cpw1.dr.abs() + cpw1.gap,
+            trans_in=DCplxTrans(1, -90 + 180 * np.arctan2(s1.y, s1.x) / np.pi, False, 0, 0)
+        )
+        bridge1.place(bridge_reg1, region_id="bridges_1")
+        bridge1.place(bridge_reg2, region_id="bridges_2")
+
+        # sideways bridges, shifted along cpw2 (unit vector `s2`)
+        bridge2 = Bridge1(
+            center=intersection + cpw1.b * s2,
+            gnd2gnd_dy=ground_filling_cpw1.dr.abs() + cpw1.gap,
+            trans_in=DCplxTrans(1, -90 + 180 * np.arctan2(s1.y, s1.x) / np.pi, False, 0, 0)
+        )
+        bridge2.place(bridge_reg1, region_id="bridges_1")
+        bridge2.place(bridge_reg2, region_id="bridges_2")
+
+        bridge3 = Bridge1(
+            center=intersection - cpw1.b * s2,
+            gnd2gnd_dy=ground_filling_cpw1.dr.abs() + cpw1.gap,
+            trans_in=DCplxTrans(1, -90 + 180 * np.arctan2(s1.y, s1.x) / np.pi, False, 0, 0)
+        )
+        bridge3.place(bridge_reg1, region_id="bridges_1")
+        bridge3.place(bridge_reg2, region_id="bridges_2")
