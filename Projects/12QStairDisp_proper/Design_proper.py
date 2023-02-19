@@ -62,7 +62,7 @@ from globalDefinitions import CHIP, VERT_ARR_SHIFT, SQUID_PARS, PROJECT_DIR
 import designElementsGeometry
 
 reload(designElementsGeometry)
-from designElementsGeometry import QubitParams, Qubit, QubitsGrid, ResonatorParams
+from designElementsGeometry import QubitParams, Qubit, QubitsGrid
 from designElementsGeometry import DiskConn8Pars
 from designElementsGeometry import ConnectivityMap
 from designElementsGeometry import ROResonator, ROResonatorParams
@@ -139,8 +139,7 @@ class Design12QStair(ChipDesign):
         self.resonators_params = ROResonatorParams(qubits_grid=self.qubits_grid)
         self.resonators: List[EMResonatorTL3QbitWormRLTail] = [None] * self.NQUBITS
         self.q_res_connector_roline_map = self.connectivity_map.q_res_connector_roline_map
-        self.q_res_coupling_params: List[CqrCouplingParamsType1] = \
-            self.resonators_params.q_res_coupling_params
+        self.q_res_coupling_params: List[CqrCouplingParamsType1] = self.resonators_params.q_res_coupling_params
 
         ''' READOUT LINES '''
         self.ro_lines: List[DPathCPW] = [None] * 3
@@ -359,7 +358,7 @@ class Design12QStair(ChipDesign):
         # for consistent and easy simulation of notch port resonator
         self.qCenter_roLine_distance = abs((self.qubits[10].origin - self.resonators[0].start).x) \
                                        + \
-                                       ResonatorParams.to_line_list[10]
+                                       ROResonatorParams.to_line_list[10]
         ro_line_extension = self.qCenter_roLine_distance / 2
         turn_radii = ro_line_extension / 4
 
