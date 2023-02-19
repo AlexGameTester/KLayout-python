@@ -1412,8 +1412,8 @@ def simulate_Cqr(q_idxs: List[int], resolution=(4e3, 4e3)):
     #  2. make 3d geometry optimization inside kLayout for simultaneous finding of C_qr,
     #  C_q and C_qq
     # dl_list = np.linspace(-10e3, 10e3, 21)
-    donut_disk_d_list = np.array([10e3], dtype=float)
-    donut_metal_width_list = np.linspace(80e3, 10e3, 8)
+    donut_disk_d_list = np.array([20e3], dtype=float)
+    donut_metal_width_list = np.linspace(10e3, 80e3, 8)
     # dl_list = [0e3]
     from itertools import product
 
@@ -1428,7 +1428,7 @@ def simulate_Cqr(q_idxs: List[int], resolution=(4e3, 4e3)):
     ):
         ### DRAWING SECTION START ###
         design = Design12QStair("testScript")
-
+        print("simulation #", simulation_i)
         # exclude coils from simulation (sometimes port is placed onto coil (TODO: fix)
         design.q_res_coupling_params[q_idx].donut_disk_d = donut_disk_d
         design.q_res_coupling_params[q_idx].donut_metal_width = donut_metal_width
@@ -1507,7 +1507,7 @@ if __name__ == "__main__":
     # )
 
     ''' C_qr sim '''
-    simulate_Cqr(q_idxs=[0], resolution=(1e3, 1e3))
+    simulate_Cqr(q_idxs=[0], resolution=(2e3, 2e3))
 
     ''' Simulation of C_{q1,q2} in fF '''
     # simulate_Cqq(q1_idx=5, q2_idx=6, resolution=(2e3, 2e3))
