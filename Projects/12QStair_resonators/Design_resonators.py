@@ -47,7 +47,7 @@ from classLib.contactPads import ContactPad
 from classLib.helpers import fill_holes, split_polygons, extended_region
 from classLib.helpers import simulate_cij, save_sim_results, rotate_around
 from classLib.shapes import Donut
-from classLib.resonators import EMResonatorTL3QbitWormRLTail
+from classLib.resonators import EMResonatorTL3QbitWormRLTail, CPWResonator2
 from classLib.josJ import AsymSquid
 from classLib.testPads import TestStructurePadsSquare
 from classLib.shapes import Rectangle
@@ -1391,7 +1391,7 @@ class Design12QStair(ChipDesign):
         )
         self.lv.zoom_fit()
 
-    def draw_for_res_Q_sim(self, q_idx, to_line=45e3, border_down=360e3, border_up=200e3):
+    def draw_for_res_Q_sim(self, q_idx, border_down=360e3, border_up=200e3):
         self.draw_chip()
         self.draw_qubits_array()
         self.draw_qq_couplings()
@@ -1404,6 +1404,8 @@ class Design12QStair(ChipDesign):
         self.region_ph.transform(ICplxTrans(1, 0, False, DVector(-rotation_center)))
         self.region_ph.transform(ICplxTrans(1, -rotated_angle_deg, False, 0, 0))
         self.region_ph.transform(ICplxTrans(1, 0, False, DVector(rotation_center)))
+
+        to_line = ROResonatorParams.to_line_list[q_idx]
 
         p1 = self.qubits[q_idx].origin
         p2 = self.resonators[q_idx].start
@@ -1553,14 +1555,21 @@ def simulate_Cqr(q_idxs: List[int], resolution=(4e3, 4e3)):
             additional_pars={"C1, fF": C1, "C2, fF": C2, "C12, fF": C12}
         )
 
-def simulate_res_f_and_Q(q_idx, resolution=(2e3, 2e3)):
+def simulate_res_f_and_Q(q_idx, resolution=(2e3, 2e3), type='freq'):
     ### DRAWING SECTION START ###
     design = Design12QStair("testScript")
     crop_box = design.draw_for_res_Q_sim(q_idx)
     design.show()
     ### DRAWING SECTION END ###
 
-    simulate_S_pars(design, crop_box, f'res_{q_idx}_S_pars.csv', 7.0, 8.0)
+    if type == 'freq':
+        simulate_S_pars(design, crop_box, f'res_{q_idx}_{design.resonators_params.L1_list[q_idx]/1e3:.01f}_S_pars.csv', 7.0, 8.0)
+    elif type == 'Q':
+        simulate_S_pars(design, crop_box,
+                        f'res_{q_idx}_Q_S_pars.csv',
+                        ROResonatorParams.target_freqs[q_idx] - 0.01,
+                        ROResonatorParams.target_freqs[q_idx] + 0.01
+                        )
 
 def simulate_S_pars(design, crop_box, filename, min_freq=6.0, max_freq=7.0, resolution_dx=2e3, resolution_dy=2e3):
     ### SIMULATION SECTION START ###
@@ -1647,7 +1656,7 @@ if __name__ == "__main__":
     # simulate_res_f_and_Q(4)
     # simulate_res_f_and_Q(5)
     # simulate_res_f_and_Q(6)
-    for i in range(3, 12):
+    for i in [11]:
         simulate_res_f_and_Q(i)
 
 

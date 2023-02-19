@@ -425,6 +425,8 @@ class ROResonatorParams():
         Geometry parameters has to be verified by simulation.
         """
     # see parameters details in `Design_fast.py`
+    target_freqs = [7.2, 7.36, 7.44, 7.28, 7.44, 7.52, 7.28, 7.52, 7.36, 7.2, 7.2, 7.28]
+
     L_coupling_list = [
         1e3 * x for x in [310, 320, 320, 310] * 3
     ]
@@ -432,19 +434,28 @@ class ROResonatorParams():
     L1_list = [
         1e3 * x for x in
         [
-            114.5219, 95.1897, 99.0318, 83.7159,
-            114.5219, 95.1897, 99.0318, 83.7159,
-            114.5219, 95.1897, 99.0318, 83.7159
+            120.5300043540022,
+            100.44999799730056,
+            150.4695886872512,
+            170.8310344827587,
+            39.68585304699104,
+            0,
+            169.01034482758623,
+            143.90000000000005,
+            31.24736842105267,
+            112.75904018735241,
+            178.2794594594595,
+            111.0
         ]
     ]
     res_r_list = [60e3] * 12
     tail_turn_radiuses_list = [60e3] * 12  # res_r_list
-    N_coils_list = [2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3]
+    N_coils_list = [2, 2, 2, 2, 1, 1, 2, 2, 1, 2, 2, 2]
     L2_list = [60e3] * 12  # res_r_list
     L3_list = []  # get numericals from Design_fast
     L4_list = [60e3] * 12  # res_r_list
     Z_res_list = [CPWParameters(10e3, 6e3)] * 12
-    to_line_list = [45e3] * 12
+    to_line_list = [40e3, 42e3, 40e3, 40e3] * 3
 
     tail_segments_list = [[60000.0, 215000.0, 60000.0]] * 12
     res_tail_shapes_list = ["LRLRL"] * 12
@@ -454,14 +465,14 @@ class ROResonatorParams():
         [np.pi / 2, -np.pi / 2],
         [np.pi / 2, -np.pi / 2],
         [np.pi / 2, -np.pi / 2],
-        [-np.pi / 2, np.pi / 2],
-        [-np.pi / 2, np.pi / 2],
-        [-np.pi / 2, np.pi / 2],
-        [-np.pi / 2, np.pi / 2],
-        [-np.pi / 2, np.pi / 2],
-        [-np.pi / 2, np.pi / 2],
-        [-np.pi / 2, np.pi / 2],
-        [-np.pi / 2, np.pi / 2]
+        [np.pi / 2, -np.pi / 2],
+        [np.pi / 2, -np.pi / 2],
+        [np.pi / 2, -np.pi / 2],
+        [np.pi / 2, -np.pi / 2],
+        [np.pi / 2, -np.pi / 2],
+        [np.pi / 2, -np.pi / 2],
+        [np.pi / 2, -np.pi / 2],
+        [np.pi / 2, -np.pi / 2]
     ]
     resonator_rotation_angles: np.ndarray = np.array(
         [
