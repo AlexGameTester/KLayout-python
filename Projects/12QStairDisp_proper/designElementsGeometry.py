@@ -34,20 +34,25 @@ class QubitsGrid:
     # step of 2D grid in `x` and `y` directions correspondingly
     dx: float = 1e6
     dy: float = 1e6
-    pts_grid: np.ndarray = np.array(
-        [
-            # grid iterates from left to right (direct),
-            # from bottom to top (style of recording is inverted),
-            # starting from bl corner.
-            (0, 0), (1, 0), (2, 0),
-            (-1, 1), (0, 1), (1, 1), (2, 1),
-            (-1, 2), (0, 2), (1, 2),
-            (-1, 3), (0, 3)
-        ],
-        dtype=float
-    )
+    pts_grid: np.ndarray = None  # initialized after construction since it is mutable
 
     def __post_init__(self):
+        # mutable input argument has to be initialized here
+        # otherwise this argument will depend on the history of it's modifications
+        # look into in PEP 557 or in the docs:
+        # https://docs.python.org/3.7/library/dataclasses.html#mutable-default-values
+        self.pts_grid = np.array(
+            [
+                # grid iterates from left to right (direct),
+                # from bottom to top (style of recording is inverted),
+                # starting from bl corner.
+                (0, 0), (1, 0), (2, 0),
+                (-1, 1), (0, 1), (1, 1), (2, 1),
+                (-1, 2), (0, 2), (1, 2),
+                (-1, 3), (0, 3)
+            ],
+            dtype=float
+        )
         self.__centralize_grid()
 
     def __centralize_grid(self):
@@ -352,6 +357,8 @@ from classLib.coplanars import DPathCPW
 class CqrCouplingParamsType1:
     # distance betweeen bendings of the coupling cpw and center of the qubit disks.
     bendings_disk_center_d = 320e3
+
+    # distance between resonator's end and qubit center
     q_res_d = 500e3
 
     donut_delta_alpha_deg = 360 / 9 * 2 / 3
@@ -421,6 +428,8 @@ class ROResonatorParams():
         Geometry parameters has to be verified by simulation.
         """
     # see parameters details in `Design_fast.py`
+    target_freqs = [7.2, 7.36, 7.44, 7.28, 7.44, 7.52, 7.28, 7.52, 7.36, 7.2, 7.2, 7.28]
+
     L_coupling_list = [
         1e3 * x for x in [310, 320, 320, 310] * 3
     ]
@@ -428,19 +437,28 @@ class ROResonatorParams():
     L1_list = [
         1e3 * x for x in
         [
-            114.5219, 95.1897, 99.0318, 83.7159,
-            114.5219, 95.1897, 99.0318, 83.7159,
-            114.5219, 95.1897, 99.0318, 83.7159
+            120.5300043540022,
+            100.44999799730056,
+            150.4695886872512,
+            170.8310344827587,
+            39.68585304699104,
+            0,
+            169.01034482758623,
+            143.90000000000005,
+            31.24736842105267,
+            112.75904018735241,
+            178.2794594594595,
+            111.0
         ]
     ]
     res_r_list = [60e3] * 12
     tail_turn_radiuses_list = [60e3] * 12  # res_r_list
-    N_coils_list = [3, 3, 3, 3] * 12
+    N_coils_list = [2, 2, 2, 2, 1, 1, 2, 2, 1, 2, 2, 2]
     L2_list = [60e3] * 12  # res_r_list
     L3_list = []  # get numericals from Design_fast
     L4_list = [60e3] * 12  # res_r_list
     Z_res_list = [CPWParameters(10e3, 6e3)] * 12
-    to_line_list = [45e3] * 12
+    to_line_list = [40e3, 42e3, 40e3, 40e3] * 3
 
     tail_segments_list = [[60000.0, 215000.0, 60000.0]] * 12
     res_tail_shapes_list = ["LRLRL"] * 12
@@ -450,14 +468,14 @@ class ROResonatorParams():
         [np.pi / 2, -np.pi / 2],
         [np.pi / 2, -np.pi / 2],
         [np.pi / 2, -np.pi / 2],
-        [-np.pi / 2, np.pi / 2],
-        [-np.pi / 2, np.pi / 2],
-        [-np.pi / 2, np.pi / 2],
-        [-np.pi / 2, np.pi / 2],
-        [-np.pi / 2, np.pi / 2],
-        [-np.pi / 2, np.pi / 2],
-        [-np.pi / 2, np.pi / 2],
-        [-np.pi / 2, np.pi / 2]
+        [np.pi / 2, -np.pi / 2],
+        [np.pi / 2, -np.pi / 2],
+        [np.pi / 2, -np.pi / 2],
+        [np.pi / 2, -np.pi / 2],
+        [np.pi / 2, -np.pi / 2],
+        [np.pi / 2, -np.pi / 2],
+        [np.pi / 2, -np.pi / 2],
+        [np.pi / 2, -np.pi / 2]
     ]
     resonator_rotation_angles: np.ndarray = np.array(
         [

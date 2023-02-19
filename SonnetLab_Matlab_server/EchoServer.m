@@ -16,15 +16,20 @@ while 1
     status = rmdir(pwd + "\\sondata",'s');
     status = mkdir( pwd + "\\" + SONNET_PROJ_DIRNAME);
     
+    % generate default sonnet project with 2 dielectric layers
     proj = SonnetProject();
     proj.saveAs( 'Sonnet_projects/matlab_proj.son');
 
     proj.changeLengthUnit("UM");
-    proj.replaceDielectricLayer(1, "Air", 2000, 1, 1, 0, 0, 0);
+    % dielectric layers counting is from top to bottom starting with 1
+    proj.replaceDielectricLayer(1, "AirAbove", 3570, 1, 1, 0, 0, 0);
     proj.replaceDielectricLayer(2, "Silicon", 500, 11.45, 1, 0, 0, 0);
+    % add new layer to the top
+    proj.addDielectricLayer("AirBelow", 1250, 1, 1, 0, 0 , 0);
 
+    % metal layers counting from top to bottom, starting with 0
     metal_type_name = "Al-supercond";
-    proj.defineNewResistorMetalType(metal_type_name,0);
+    proj.defineNewResistorMetalType(metal_type_name,0);  % this `0` is number of metal type, not layer
     csv_name = pwd + "\" + SONNET_PROJ_DIRNAME + "\" + DATA_FILENAME;
     while 1
         %disp("waiting for data")
@@ -41,7 +46,7 @@ while 1
             polygon = receive_polygon(sock);
             
             % ATOMIC EXPRESSION START
-            polygon_sonnet = proj.addMetalPolygonEasy(0,polygon.points_x,polygon.points_y,1);
+            polygon_sonnet = proj.addMetalPolygonEasy(0,polygon.points_x,polygon.points_y,0);
             poly_idx = length(proj.GeometryBlock.ArrayOfPolygons);
             if polygon.ports == FLAG.TRUE
                 for i = 1:length(polygon.port_edges_num_list)

@@ -17,7 +17,7 @@ from classLib.chipDesign import ChipDesign
 # TODO: `reg` and `layer` will be no longer needed both after introducing
 #  region_ids global dictionary
 def simulate_cij(
-    design, layer, subregs, env_reg=None, resolution=(5e3, 5e3),
+    design: ChipDesign, layer, subregs, env_reg=None, resolution=(5e3, 5e3),
     print_values=True
 ):
     '''
@@ -69,12 +69,10 @@ def simulate_cij(
     else:
         crop_box = env_reg.bbox()
 
+    ''' SONNET PORTS POSITIONS SECTION START '''
     # crop all subregs such they all contained inside crop_box
     subregs = [subreg & Region(crop_box) for subreg in subregs]
-    # design.layout.clear_layer(layer)
-    # design.region_ph = sum(subregs, Region())
-    design.show()  # TO BE REMOVED
-    ''' SONNET PORTS POSITIONS SECTION START '''
+
     n_terminals = len(subregs)
     # TODO: if subregion has an edge that lies on the `crop_box` perimeter - choose this one as a
     #  port and stop iteration for this subregion
@@ -95,6 +93,7 @@ def simulate_cij(
                     edge_center_best = (edge.p1 + edge.p2) / 2
         design.sonnet_ports.append(edge_center_best)
     elif n_terminals == 2:
+        # TODO: code is capable to put port on a long edge. This has to be kept in mind.
         from itertools import product
         edge1_center_best, edge2_center_best = None, None
         max_distance = 0
@@ -125,19 +124,17 @@ def simulate_cij(
     ''' SONNET PORTS POSITIONS SECTION END '''
 
     ''' CROP + SNAP TO ORIGIN SECTION START '''
-    dr = DPoint(0, 0) - crop_box.p1
-    # print(crop_box.p1.x, crop_box.p1.y)
-    # print(crop_box.p2.x, crop_box.p2.y)
     design.crop(crop_box, design.region_ph)
     # print("sonnet ports positions BEFORE transform:")
     # for sp in design.sonnet_ports:
     #     print(sp.x, sp.y)
+    dr = DPoint(0, 0) - crop_box.p1  # translation vector to snap to origin
     design.transform_region(
         design.region_ph, DTrans(dr.x, dr.y),
         trans_ports=True
     )
-    design.layout.clear_layer(layer)
-    design.show()
+    design.layout.clear_layer(layer)  # clear photo layer
+    design.show()  # place cropped and snapped photo Region() onto the clear photo layer
     ''' CROP + SNAP TO ORIGIN SECTION END '''
 
     '''SIMULATION SECTION START'''
@@ -177,7 +174,6 @@ def simulate_cij(
     print("simulating...")
     result_path = ml_terminal.start_simulation(wait=True)
     ml_terminal.release()
-
     """ SIMULATION SECTION END """
 
     """ CALCULATE CAPACITANCE SECTION START """
