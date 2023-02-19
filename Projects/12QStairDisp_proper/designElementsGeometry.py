@@ -95,10 +95,10 @@ class DiskConn8(ComplexBase):
     """
 
     def __init__(
-        self, origin,
-        pars: DiskConn8Pars = DiskConn8Pars(),
-        trans_in=None,
-        region_id="ph"
+            self, origin,
+            pars: DiskConn8Pars = DiskConn8Pars(),
+            trans_in=None,
+            region_id="ph"
     ):
         self.pars: DiskConn8Pars = pars
         self.disk: DiskConn8 = None
@@ -163,10 +163,10 @@ class DiskConn8(ComplexBase):
 
 class QubitParams:
     def __init__(
-        self,
-        squid_params: AsymSquidParams = AsymSquidParams(),
-        qubit_cap_params: DiskConn8Pars = DiskConn8Pars(),
-        squid_connector_idx=4
+            self,
+            squid_params: AsymSquidParams = AsymSquidParams(),
+            qubit_cap_params: DiskConn8Pars = DiskConn8Pars(),
+            squid_connector_idx=4
     ):
         self.squid_connector_idx = squid_connector_idx
         self.squid_params: AsymSquidParams = squid_params
@@ -177,10 +177,10 @@ class Qubit(ComplexBase):
     _shift_into_substrate = 1.5e3
 
     def __init__(
-        self,
-        origin: DPoint = DPoint(0, 0),
-        qubit_params: QubitParams = QubitParams(),
-        trans_in=None, postpone_drawing=False
+            self,
+            origin: DPoint = DPoint(0, 0),
+            qubit_params: QubitParams = QubitParams(),
+            trans_in=None, postpone_drawing=False
     ):
         self.qubit_params = qubit_params
         self.squid: AsymSquid = None
@@ -328,26 +328,25 @@ class ResonatorParams:
     @staticmethod
     def get_resonator_params_by_qubit_idx(q_idx):
         return {
-            "Z0"                  : ResonatorParams.Z_res_list[q_idx],
-            "L_coupling"          : ResonatorParams.L_coupling_list[q_idx],
-            "L0"                  : ResonatorParams.L0_list[q_idx],
-            "L1"                  : ResonatorParams.L1_list[q_idx],
-            "r"                   : ResonatorParams.res_r_list[q_idx],
-            "N"                   : ResonatorParams.N_coils_list[q_idx],
-            "tail_shape"          : ResonatorParams.res_tail_shape,
-            "tail_turn_radiuses"  : ResonatorParams.tail_turn_radiuses_list[q_idx],
+            "Z0": ResonatorParams.Z_res_list[q_idx],
+            "L_coupling": ResonatorParams.L_coupling_list[q_idx],
+            "L0": ResonatorParams.L0_list[q_idx],
+            "L1": ResonatorParams.L1_list[q_idx],
+            "r": ResonatorParams.res_r_list[q_idx],
+            "N": ResonatorParams.N_coils_list[q_idx],
+            "tail_shape": ResonatorParams.res_tail_shape,
+            "tail_turn_radiuses": ResonatorParams.tail_turn_radiuses_list[q_idx],
             "tail_segment_lengths": ResonatorParams.tail_segments_list[q_idx],
-            "tail_turn_angles"    : ResonatorParams.tail_turn_angles_list[q_idx],
-            "tail_trans_in"       : Trans.R270,
-            "fork_x_span"         : ResonatorParams.fork_x_span_list[q_idx],
-            "fork_y_span"         : ResonatorParams.fork_y_span_list[q_idx],
-            "fork_metal_width"    : ResonatorParams.fork_metal_width_list[q_idx],
-            "fork_gnd_gap"        : ResonatorParams.fork_gnd_gap_list[q_idx]
+            "tail_turn_angles": ResonatorParams.tail_turn_angles_list[q_idx],
+            "tail_trans_in": Trans.R270,
+            "fork_x_span": ResonatorParams.fork_x_span_list[q_idx],
+            "fork_y_span": ResonatorParams.fork_y_span_list[q_idx],
+            "fork_metal_width": ResonatorParams.fork_metal_width_list[q_idx],
+            "fork_gnd_gap": ResonatorParams.fork_gnd_gap_list[q_idx]
         }
 
 
 from classLib.resonators import EMResonatorTL3QbitWormRLTail
-from Cqq_couplings import CqqCouplingType1, CqqCouplingParamsType1
 from classLib.shapes import Donut
 from classLib.helpers import rotate_around
 from classLib.coplanars import DPathCPW
@@ -364,7 +363,7 @@ class CqrCouplingParamsType1:
     donut_delta_alpha_deg = 360 / 9 * 2 / 3
     donut_metal_width: float = 50e3
     donut_gnd_gap = 15e3
-    donut_disk_d = 10e3
+    donut_disk_d: float = 10e3
 
     disk1: DiskConn8 = None
     disk1_connector_idx: int = 1
@@ -481,22 +480,33 @@ class ROResonatorParams():
     qubits_grid: QubitsGrid = None
 
     def __post_init__(self):
-        self.q_res_coupling_params = [CqrCouplingParamsType1()] * 12
+        self.q_res_coupling_params = []*12
+        for q_idx in range(12):
+            if q_idx in [0, 2, 3, 5, 8, 10]:  # lower sweet-spot
+                self.q_res_coupling_params[q_idx] = CqrCouplingParamsType1(
+                    donut_disk_d=10e3,
+                    donut_metal_width=55.1e3
+                )
+            else:  # upper sweet_spot
+                self.q_res_coupling_params[q_idx] = CqrCouplingParamsType1(
+                    donut_disk_d=20e3,
+                    donut_metal_width=12.5e3
+                )
 
     def get_resonator_params_by_qubit_idx(self, q_idx):
         return {
-            "Z0"                           : self.Z_res_list[q_idx],
-            "L_coupling"                   : self.L_coupling_list[q_idx],
-            "L0"                           : self.L0_list[q_idx],
-            "L1"                           : self.L1_list[q_idx],
-            "r"                            : self.res_r_list[q_idx],
-            "N"                            : self.N_coils_list[q_idx],
-            "tail_shape"                   : self.res_tail_shapes_list[q_idx],
-            "tail_turn_radiuses"           : self.tail_turn_radiuses_list[q_idx],
-            "tail_segment_lengths"         : self.tail_segments_list[q_idx],
-            "tail_turn_angles"             : self.tail_turn_angles_list[q_idx],
-            "tail_trans_in"                : Trans.R270,
-            "resonator_rotation_trans"     : DCplxTrans(
+            "Z0": self.Z_res_list[q_idx],
+            "L_coupling": self.L_coupling_list[q_idx],
+            "L0": self.L0_list[q_idx],
+            "L1": self.L1_list[q_idx],
+            "r": self.res_r_list[q_idx],
+            "N": self.N_coils_list[q_idx],
+            "tail_shape": self.res_tail_shapes_list[q_idx],
+            "tail_turn_radiuses": self.tail_turn_radiuses_list[q_idx],
+            "tail_segment_lengths": self.tail_segments_list[q_idx],
+            "tail_turn_angles": self.tail_turn_angles_list[q_idx],
+            "tail_trans_in": Trans.R270,
+            "resonator_rotation_trans": DCplxTrans(
                 1, self.resonator_rotation_angles[q_idx], False, 0, 0
             ),
             "additional_displacement_trans": self.get_adjusting_trans_by_qubit_idx(
@@ -569,13 +579,13 @@ class ROResonatorParams():
 
 class ROResonator(EMResonatorTL3QbitWormRLTail):
     def __init__(
-        self, Z0, L_coupling, L0, L1, r, N,
-        tail_shape, tail_turn_radiuses,
-        tail_segment_lengths, tail_turn_angles, tail_trans_in=None,
-        coupling_pars: CqrCouplingParamsType1 = CqrCouplingParamsType1(),
-        resonator_rotation_trans=DCplxTrans(1, 0, False, 0, 0),
-        additional_displacement_trans=DCplxTrans(1, 0, False, 0, 0),
-        trans_in=None
+            self, Z0, L_coupling, L0, L1, r, N,
+            tail_shape, tail_turn_radiuses,
+            tail_segment_lengths, tail_turn_angles, tail_trans_in=None,
+            coupling_pars: CqrCouplingParamsType1 = CqrCouplingParamsType1(),
+            resonator_rotation_trans=DCplxTrans(1, 0, False, 0, 0),
+            additional_displacement_trans=DCplxTrans(1, 0, False, 0, 0),
+            trans_in=None
     ):
         """
         Resonator is placed at origin and then moved to their corresponding qubit, with coupling
@@ -687,9 +697,9 @@ class ROResonator(EMResonatorTL3QbitWormRLTail):
         resonator_end_dv_n = DVector(np.cos(self.alpha_end), np.sin(self.alpha_end))
         # 1*self.r restricts first bending angle to be < 45 deg (see DPathCPW class, bendings
         # drawing section)
-        resonator_end_bending_pt = resonator_end + 1*self.r*resonator_end_dv_n
+        resonator_end_bending_pt = resonator_end + 1 * self.r * resonator_end_dv_n
 
-        connector_dv_n = DVector(np.cos(np.pi*angle1/180), np.sin(np.pi*angle1/180))
+        connector_dv_n = DVector(np.cos(np.pi * angle1 / 180), np.sin(np.pi * angle1 / 180))
         disk_far_bending_point = self.coupling_pars.disk1.origin + \
                                  self.coupling_pars.bendings_disk_center_d * connector_dv_n
         # print("qubit center:", self.coupling_pars.disk1.origin)
