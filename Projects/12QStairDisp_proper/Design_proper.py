@@ -18,6 +18,7 @@ import copy
 
 PROJECT_DIR = os.path.dirname(__file__)
 import sys
+import shutil
 
 sys.path.append(PROJECT_DIR)
 from importlib import reload
@@ -30,13 +31,14 @@ import pya
 from pya import Point, Vector, DPoint, DVector, DEdge, Edges, Region
 from pya import DSimplePolygon, SimplePolygon, DPolygon, DBox, Polygon
 
-from pya import DCplxTrans, Trans, ICplxTrans
+from pya import DCplxTrans, Trans, DTrans, ICplxTrans
 
 # import project lib
 import classLib
 
 reload(classLib)
 from classLib.coplanars import CPW, CPW2CPW, CPWParameters, DPathCPW, Bridge1, Intersection
+from sonnetSim import SonnetLab, SonnetPort, SimulationBox
 from classLib.chipDesign import ChipDesign
 from classLib.chipTemplates import CHIP_14x14_20pads
 from classLib.marks import MarkBolgar
@@ -124,6 +126,7 @@ class Design12QStair(ChipDesign):
         ''' READOUT RESONATORS '''
         self.resonators_params = ROResonatorParams(qubits_grid=self.qubits_grid)
         self.resonators: List[EMResonatorTL3QbitWormRLTail] = [None] * self.NQUBITS
+        self.q_res_connector_idxs: np.ndarray = np.array([4, 4, 0, 4, 4, 0, 0, 4, 0, 0, 4, 0])
         self.q_res_connector_roline_map = self.connectivity_map.q_res_connector_roline_map
         self.q_res_coupling_params: List[CqrCouplingParamsType1] = \
             self.resonators_params.q_res_coupling_params
@@ -252,7 +255,7 @@ class Design12QStair(ChipDesign):
         for contact_pad in self.contact_pads:
             contact_pad.place(self.region_ph)
 
-    def draw_qubits_array(self, new_disk_r=DiskConn8Pars().disk_r):
+    def draw_qubits_array(self, new_disk_r=DiskConn8Pars().disk_r, idx_list=[]):
         def get_squid_connector_idx(qubit_idx: int):
             """
             Returns squid connector idx based on qubit idx
@@ -271,36 +274,67 @@ class Design12QStair(ChipDesign):
             else:
                 return 2
 
-        for qubit_idx in range(len(self.qubits_grid.pts_grid)):
-            pt = self.qubits_grid.get_pt(qubit_idx)
-            qubit_pars = QubitParams(
-                squid_params=SQUID_PARS,
-                qubit_cap_params=DiskConn8Pars(disk_r=new_disk_r),
-                squid_connector_idx=get_squid_connector_idx(qubit_idx)
-            )
-            qubit = Qubit(
-                origin=pt,
-                qubit_params=qubit_pars,
-                postpone_drawing=False
-            )
-            self.qubits.append(qubit)
-            # TODO: not working, qubit.squid.origin is wrong | partially
-            #  dealt with. Check this.
-            # shift squid to suit into scheme
-            # qubit.squid.make_trans(DCplxTrans(1, 0, False, 0, -20e3))
-            # q_origin = qubit.origin.dup()  # memorize origin
-            # # transfer to origin
-            # qubit.make_trans(DCplxTrans(1, 0, False, -q_origin))
-            # # rotate depending on qubit group
-            # if pt_i in [0, 1, 3]:
-            #     qubit.make_trans(DCplxTrans(1, -45, False, 0, 0))
-            # else:
-            #     qubit.make_trans(DCplxTrans(1, -45, True, 0, 0))
-            # qubit.make_trans(DCplxTrans(1, 0, False, q_origin))
-            qubit.place(self.region_ph, region_id="ph")
-            qubit.place(self.region_el, region_id="el")
+        if len(idx_list) > 0:
+            self.qubits = [None] * self.NQUBITS
+            for qubit_idx in idx_list:
+                pt = self.qubits_grid.get_pt(qubit_idx)
+                qubit_pars = QubitParams(
+                    squid_params=SQUID_PARS,
+                    qubit_cap_params=DiskConn8Pars(disk_r=new_disk_r),
+                    squid_connector_idx=get_squid_connector_idx(qubit_idx)
+                )
+                qubit = Qubit(
+                    origin=pt,
+                    qubit_params=qubit_pars,
+                    postpone_drawing=False
+                )
+                self.qubits[qubit_idx] = qubit
+                # TODO: not working, qubit.squid.origin is wrong | partially
+                #  dealt with. Check this.
+                # shift squid to suit into scheme
+                # qubit.squid.make_trans(DCplxTrans(1, 0, False, 0, -20e3))
+                # q_origin = qubit.origin.dup()  # memorize origin
+                # # transfer to origin
+                # qubit.make_trans(DCplxTrans(1, 0, False, -q_origin))
+                # # rotate depending on qubit group
+                # if pt_i in [0, 1, 3]:
+                #     qubit.make_trans(DCplxTrans(1, -45, False, 0, 0))
+                # else:
+                #     qubit.make_trans(DCplxTrans(1, -45, True, 0, 0))
+                # qubit.make_trans(DCplxTrans(1, 0, False, q_origin))
+                qubit.place(self.region_ph, region_id="ph")
+                qubit.place(self.region_el, region_id="el")
+        else:
+            for qubit_idx in range(len(self.qubits_grid.pts_grid)):
+                pt = self.qubits_grid.get_pt(qubit_idx)
+                qubit_pars = QubitParams(
+                    squid_params=SQUID_PARS,
+                    qubit_cap_params=DiskConn8Pars(disk_r=new_disk_r),
+                    squid_connector_idx=get_squid_connector_idx(qubit_idx)
+                )
+                qubit = Qubit(
+                    origin=pt,
+                    qubit_params=qubit_pars,
+                    postpone_drawing=False
+                )
+                self.qubits.append(qubit)
+                # TODO: not working, qubit.squid.origin is wrong | partially
+                #  dealt with. Check this.
+                # shift squid to suit into scheme
+                # qubit.squid.make_trans(DCplxTrans(1, 0, False, 0, -20e3))
+                # q_origin = qubit.origin.dup()  # memorize origin
+                # # transfer to origin
+                # qubit.make_trans(DCplxTrans(1, 0, False, -q_origin))
+                # # rotate depending on qubit group
+                # if pt_i in [0, 1, 3]:
+                #     qubit.make_trans(DCplxTrans(1, -45, False, 0, 0))
+                # else:
+                #     qubit.make_trans(DCplxTrans(1, -45, True, 0, 0))
+                # qubit.make_trans(DCplxTrans(1, 0, False, q_origin))
+                qubit.place(self.region_ph, region_id="ph")
+                qubit.place(self.region_el, region_id="el")
 
-    def draw_qq_couplings(self, donut_metal_width=CqqCouplingParamsType1().donut_metal_width):
+    def draw_qq_couplings(self, donut_metal_width=CqqCouplingParamsType1().donut_metal_width, direct_list=[]):
         it_1d = list(enumerate(self.qubits_grid.pts_grid))
         it_2d = itertools.product(it_1d, it_1d)
         # TODO: refactor code:
@@ -319,7 +353,8 @@ class Design12QStair(ChipDesign):
             if all(
                     [
                         (pt1 - pt2).abs() == 1,  # Manhattan qubits-neighbours
-                        (qq_coupling_connectors_idxs >= 0).all()  # if coupled
+                        (qq_coupling_connectors_idxs >= 0).all(),  # if coupled
+                        (len(direct_list) == 0 or ((pt1_1d_idx in direct_list) and (pt2_1d_idx in direct_list)))
                     ]
             ):
                 q1_connector_idx = qq_coupling_connectors_idxs[0]
@@ -338,7 +373,21 @@ class Design12QStair(ChipDesign):
                 qq_coupling.place(self.region_ph, region_id="ph")
                 self.q_couplings[pt1_1d_idx, pt2_1d_idx] = qq_coupling
 
-    def draw_readout_resonators(self):
+    def draw_readout_resonator(self, q_idx, q_res_connector_idx, resonator_kw_args_list):
+        qubit = self.qubits[q_idx]
+        resonator_kw_args = resonator_kw_args_list[q_idx]
+        self.q_res_coupling_params[q_idx].disk1_connector_idx = q_res_connector_idx
+        self.q_res_coupling_params[q_idx].disk1 = qubit.disk_cap_shunt
+
+        # resonator construction and drawing
+        res = ROResonator(
+            **resonator_kw_args,
+            coupling_pars=self.q_res_coupling_params[q_idx]  # contains qubit coordinates
+        )
+        res.place(self.region_ph)
+        self.resonators[q_idx] = res
+
+    def draw_readout_resonators(self, q_idx_direct=None):
         q_idxs = list(range(12))
         resonator_kw_args_list = list(
             map(
@@ -346,19 +395,14 @@ class Design12QStair(ChipDesign):
             )
         )
 
-        for q_idx, _, q_res_connector_idx, _ in self.q_res_connector_roline_map:
-            qubit = self.qubits[q_idx]
-            resonator_kw_args = resonator_kw_args_list[q_idx]
-            self.q_res_coupling_params[q_idx].disk1_connector_idx = q_res_connector_idx
-            self.q_res_coupling_params[q_idx].disk1 = qubit.disk_cap_shunt
+        if q_idx_direct is not None:
+            q_idx = q_idx_direct
+            q_res_connector_idx = self.q_res_connector_idxs[q_idx]
 
-            # resonator construction and drawing
-            res = ROResonator(
-                **resonator_kw_args,
-                coupling_pars=self.q_res_coupling_params[q_idx]  # contains qubit coordinates
-            )
-            res.place(self.region_ph)
-            self.resonators[q_idx] = res
+            self.draw_readout_resonator(q_idx, q_res_connector_idx, resonator_kw_args_list)
+        else:
+            for q_idx, _, q_res_connector_idx, _ in self.q_res_connector_roline_map:
+                self.draw_readout_resonator(q_idx, q_res_connector_idx, resonator_kw_args_list)
 
     def draw_readout_lines(self):
         # readout line is extended around qubit square in order to
@@ -1381,6 +1425,110 @@ class Design12QStair(ChipDesign):
         )
         self.lv.zoom_fit()
 
+    def draw_for_res_Q_sim(self, q_idx, border_down=360e3, border_up=200e3):
+        self.draw_chip()
+        self.draw_qubits_array()
+        self.draw_qq_couplings()
+
+        self.draw_readout_resonators(q_idx_direct=q_idx)
+
+        rotated_angle_deg = ROResonatorParams.resonator_rotation_angles[q_idx]
+        rotation_center = self.qubits[q_idx].origin.dup()
+
+        self.region_ph.transform(ICplxTrans(1, 0, False, DVector(-rotation_center)))
+        self.region_ph.transform(ICplxTrans(1, -rotated_angle_deg, False, 0, 0))
+        self.region_ph.transform(ICplxTrans(1, 0, False, DVector(rotation_center)))
+
+        to_line = ROResonatorParams.to_line_list[q_idx]
+
+        p1 = self.qubits[q_idx].origin
+        p2 = self.resonators[q_idx].start
+        p2 = ICplxTrans(1, -rotated_angle_deg, False, 0, 0) * (p2 - rotation_center) + rotation_center
+        p2 += DVector(self.resonators[q_idx].L_coupling, to_line)
+        p2 = DPoint(p2)
+        print(p1)
+        print(p2)
+        cent = (p1 + p2) / 2
+        bwidth = abs(p1.x - p2.x)
+        bheight = abs(p1.y - p2.y)
+
+        readline = CPW(
+            start=cent + DVector(bwidth / 2 + border_up, bheight / 2),
+            end=cent + DVector(-bwidth / 2 - border_down, bheight / 2),
+            cpw_params=CPWParameters(width=20e3, gap=10e3)
+        )
+        readline.place(self.region_ph)
+
+        dv = DVector(bwidth, bheight)
+        crop_box = DBox(cent + dv / 2 + DVector(border_up, border_up),
+                        cent - dv / 2 - DVector(border_down, border_down))
+        self.crop(crop_box)
+
+        self.sonnet_ports.append(readline.start)
+        self.sonnet_ports.append(readline.end)
+
+        self.transform_region(self.region_ph, DTrans(-(cent - dv / 2 - DVector(border_down, border_down))),
+                              trans_ports=True)
+
+        return crop_box
+
+
+def simulate_res_f_and_Q(q_idx, resolution=(2e3, 2e3), type='freq'):
+    ### DRAWING SECTION START ###
+    design = Design12QStair("testScript")
+    crop_box = design.draw_for_res_Q_sim(q_idx)
+    design.show()
+    ### DRAWING SECTION END ###
+
+    if type == 'freq':
+        simulate_S_pars(design, crop_box, f'res_{q_idx}_{design.resonators_params.L1_list[q_idx]/1e3:.01f}_S_pars.csv', 7.0, 8.0)
+    elif type == 'Q':
+        simulate_S_pars(design, crop_box,
+                        f'res_{q_idx}_Q_S_pars.csv',
+                        ROResonatorParams.target_freqs[q_idx] - 0.01,
+                        ROResonatorParams.target_freqs[q_idx] + 0.01
+                        )
+
+def simulate_S_pars(design, crop_box, filename, min_freq=6.0, max_freq=7.0, resolution_dx=2e3, resolution_dy=2e3):
+    ### SIMULATION SECTION START ###
+    ml_terminal = SonnetLab()
+    from sonnetSim.cMD import CMD
+
+    ml_terminal._send(CMD.SAY_HELLO)
+    ml_terminal.clear()
+    simBox = SimulationBox(
+        crop_box.width(), crop_box.height(),
+        crop_box.width() / resolution_dx,
+        crop_box.height() / resolution_dy
+    )
+
+    ml_terminal.set_boxProps(simBox)
+    from sonnetSim.pORT_TYPES import PORT_TYPES
+
+    ports = [
+        SonnetPort(prt, PORT_TYPES.AUTOGROUNDED) for prt in design.sonnet_ports
+    ]
+    ml_terminal.set_ports(ports)
+    ml_terminal.send_polygons(design.cell, design.layer_ph)
+    ml_terminal.set_ABS_sweep(min_freq, max_freq)
+    # print(f"simulating...{resonator_idx}")
+    result_path = ml_terminal.start_simulation(wait=True)
+    ml_terminal.release()
+
+    # creating directory with simulation results
+    output_projpath = os.path.join(
+        PROJECT_DIR,
+        filename
+    )
+
+    shutil.copy(
+        result_path.decode("ascii"),
+        output_projpath
+    )
+
+    design.layout.write(output_projpath[:-4] + '.gds')
+
+    ### RESULT SAVING SECTION END ###
 
 def simulate_Cqq(q1_idx, q2_idx=None, resolution=(5e3, 5e3)):
     resolution_dx, resolution_dy = resolution
@@ -1566,3 +1714,4 @@ if __name__ == "__main__":
 
     ''' Resonators Q and f when placed together'''
     # simulate_resonators_f_and_Q_together()
+    # simulate_res_f_and_Q(4)
