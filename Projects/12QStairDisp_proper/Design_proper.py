@@ -1412,8 +1412,8 @@ def simulate_Cqr(q_idxs: List[int], resolution=(4e3, 4e3)):
     #  2. make 3d geometry optimization inside kLayout for simultaneous finding of C_qr,
     #  C_q and C_qq
     # dl_list = np.linspace(-10e3, 10e3, 21)
-    donut_disk_d_list = np.array([20e3, 15e3, 10e3], dtype=float)
-    donut_metal_width_list = np.array([75e3, 50e3, 20e3], dtype=float)
+    donut_disk_d_list = np.array([10e3], dtype=float)
+    donut_metal_width_list = np.linspace(80e3, 10e3, 8)
     # dl_list = [0e3]
     from itertools import product
 
@@ -1425,7 +1425,7 @@ def simulate_Cqr(q_idxs: List[int], resolution=(4e3, 4e3)):
                 )
             )
         )
-    )[0:4]:
+    ):
         ### DRAWING SECTION START ###
         design = Design12QStair("testScript")
 
@@ -1450,21 +1450,12 @@ def simulate_Cqr(q_idxs: List[int], resolution=(4e3, 4e3)):
         #  respectively large capacitance to ground i.e. low impedance to ground).
 
         box_region = q_reg.sized(1*q_reg.bbox().width(), 1*q_reg.bbox().height())
-        pars_dict = {
-            "simulation #": simulation_i,
-            "q_idx": q_idx,
-            "donut_disk_d, um": design.q_res_coupling_params[q_idx].donut_disk_d,
-            "donut_metal_width, um": design.q_res_coupling_params[q_idx].donut_metal_width
-        }
-        for key, val in pars_dict.items():
-            print(f"{key}: {val}")
-        # print(resonator.metal_region.bbox())
+
         C1, C12, C2 = simulate_cij(
             design=design, layer=design.layer_ph,
             subregs=[q_reg, res_reg], env_reg=box_region,
             resolution=resolution, print_values=True
         )
-        print()
         '''SAVING REUSLTS SECTION START'''
         output_filepath = os.path.join(
             PROJECT_DIR,
@@ -1516,7 +1507,7 @@ if __name__ == "__main__":
     # )
 
     ''' C_qr sim '''
-    simulate_Cqr(q_idxs=[0], resolution=(2e3, 2e3))
+    simulate_Cqr(q_idxs=[0], resolution=(1e3, 1e3))
 
     ''' Simulation of C_{q1,q2} in fF '''
     # simulate_Cqq(q1_idx=5, q2_idx=6, resolution=(2e3, 2e3))
