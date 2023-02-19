@@ -1486,13 +1486,18 @@ def simulate_res_f_and_Q(q_idx, resolution=(2e3, 2e3), type='freq'):
         simulate_S_pars(design, crop_box,
                         f'res_{q_idx}_Q_S_pars.csv',
                         ROResonatorParams.target_freqs[q_idx] - 0.01,
-                        ROResonatorParams.target_freqs[q_idx] + 0.01
+                        ROResonatorParams.target_freqs[q_idx] + 0.01,
+                        resolution=resolution
                         )
 
-def simulate_S_pars(design, crop_box, filename, min_freq=6.0, max_freq=7.0, resolution_dx=2e3, resolution_dy=2e3):
+
+def simulate_S_pars(design, crop_box, filename, min_freq=6.0, max_freq=7.0, resolution=(2e3, 2e3)):
     ### SIMULATION SECTION START ###
     ml_terminal = SonnetLab()
     from sonnetSim.cMD import CMD
+
+    resolution_dx = resolution[0]
+    resolution_dy = resolution[1]
 
     ml_terminal._send(CMD.SAY_HELLO)
     ml_terminal.clear()
@@ -1529,6 +1534,7 @@ def simulate_S_pars(design, crop_box, filename, min_freq=6.0, max_freq=7.0, reso
     design.layout.write(output_projpath[:-4] + '.gds')
 
     ### RESULT SAVING SECTION END ###
+
 
 def simulate_Cqq(q1_idx, q2_idx=None, resolution=(5e3, 5e3)):
     resolution_dx, resolution_dy = resolution
@@ -1673,9 +1679,9 @@ def simulate_Cqr(q_idxs: List[int], resolution=(4e3, 4e3)):
 if __name__ == "__main__":
     ''' draw and show design for manual design evaluation '''
     FABRICATION.OVERETCHING = 0.0e3
-    design = Design12QStair("testScript")
-    design.draw()
-    design.show()
+    # design = Design12QStair("testScript")
+    # design.draw()
+    # design.show()
     # test = Cqq_type2("cellName")
     # test.draw()
     # test.show()
@@ -1714,4 +1720,4 @@ if __name__ == "__main__":
 
     ''' Resonators Q and f when placed together'''
     # simulate_resonators_f_and_Q_together()
-    # simulate_res_f_and_Q(4)
+    simulate_res_f_and_Q(4)
