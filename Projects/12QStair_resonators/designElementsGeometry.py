@@ -34,26 +34,25 @@ class QubitsGrid:
     # step of 2D grid in `x` and `y` directions correspondingly
     dx: float = 1e6
     dy: float = 1e6
-    pts_grid: np.ndarray = None  # initialized after construction since it is mutable
+    pts_grid: np.ndarray = np.array(
+        [
+            # grid iterates from left to right (direct),
+            # from bottom to top (style of recording is inverted),
+            # starting from bl corner.
+            (0, 0), (1, 0), (2, 0),
+            (-1, 1), (0, 1), (1, 1), (2, 1),
+            (-1, 2), (0, 2), (1, 2),
+            (-1, 3), (0, 3)
+        ],
+        dtype=float
+    )
+
+    initialized = np.array([False])
 
     def __post_init__(self):
-        # mutable input argument has to be initialized here
-        # otherwise this argument will depend on the history of it's modifications
-        # look into in PEP 557 or in the docs:
-        # https://docs.python.org/3.7/library/dataclasses.html#mutable-default-values
-        self.pts_grid = np.array(
-            [
-                # grid iterates from left to right (direct),
-                # from bottom to top (style of recording is inverted),
-                # starting from bl corner.
-                (0, 0), (1, 0), (2, 0),
-                (-1, 1), (0, 1), (1, 1), (2, 1),
-                (-1, 2), (0, 2), (1, 2),
-                (-1, 3), (0, 3)
-            ],
-            dtype=float
-        )
-        self.__centralize_grid()
+        if not self.initialized[0]:
+            self.__centralize_grid()
+            self.initialized[0] = True
 
     def __centralize_grid(self):
         # grid is centralized such that bbox center of the grid has
@@ -277,9 +276,9 @@ class ResonatorParams:
     L1_list = [
         1e3 * x for x in
         [
-            114.5219, 95.1897, 99.0318, 83.7159,
-            114.5219, 95.1897, 99.0318, 83.7159,
-            114.5219, 95.1897, 99.0318, 83.7159
+            124.5219, 105.1897, 109.0318, 93.7159,
+            124.5219, 105.1897, 109.0318, 93.7159,
+            124.5219, 105.1897, 109.0318, 93.7159
         ]
     ]
     res_r_list = [60e3] * 12
@@ -357,8 +356,6 @@ from classLib.coplanars import DPathCPW
 class CqrCouplingParamsType1:
     # distance betweeen bendings of the coupling cpw and center of the qubit disks.
     bendings_disk_center_d = 320e3
-
-    # distance between resonator's end and qubit center
     q_res_d = 500e3
 
     donut_delta_alpha_deg = 360 / 9 * 2 / 3
