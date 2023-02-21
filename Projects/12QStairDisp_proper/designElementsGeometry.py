@@ -407,7 +407,7 @@ class ROResonatorParams():
             -45, -45, 90, 0
         ],
         dtype=float
-    )  # adressed by qubit index
+    )  # addressed by qubit index
 
     # corresponding to 6 RO frequencies from 7.2 to 7.60 both inclusive
     _donut_metal_width_USS = 1e3 * np.array([9.86, 11.24, 12.69, 14.20, 15.76, 17.36])

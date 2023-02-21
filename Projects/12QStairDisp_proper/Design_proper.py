@@ -113,8 +113,8 @@ class Design12QStair(ChipDesign):
         ''' QUBITS GRID '''
         self.qubits_grid: QubitsGrid = QubitsGrid()
         self.NQUBITS = len(self.qubits_grid.pts_grid)  # 12
-        self.qubits: List[Qubit] = [] * self.NQUBITS
-        self.squids: List[AsymSquid] = [] * self.NQUBITS
+        self.qubits: List[Qubit] = [None] * self.NQUBITS
+        self.squids: List[AsymSquid] = [None] * self.NQUBITS
         ''' QUBIT COUPLINGS '''
         self.q_couplings: np.array = np.empty(
             (self.NQUBITS, self.NQUBITS),
@@ -204,18 +204,18 @@ class Design12QStair(ChipDesign):
         """
         self.draw_chip()
         self.draw_qubits_array()
-        self.draw_qq_couplings()
+        # self.draw_qq_couplings()
 
-        self.draw_readout_resonators()
-        self.draw_microwave_drvie_lines()
-        self.draw_flux_control_lines()
-        self.draw_readout_lines()
+        # self.draw_readout_resonators()
+        # self.draw_microwave_drvie_lines()
+        # self.draw_flux_control_lines()
+        # self.draw_readout_lines()
 
-        self.resolve_intersections()
+        # self.resolve_intersections()
 
         # self.draw_test_structures()
         # self.draw_express_test_structures_pads()
-        # self.draw_bandages()
+        self.draw_bandages()
 
         # self.add_chip_marking(text_bl=DPoint(7.5e6, 2e6), chip_name="8Q_0.0.0.1")
         #
@@ -277,7 +277,6 @@ class Design12QStair(ChipDesign):
                 return 2
 
         if len(idx_list) > 0:
-            self.qubits = [None] * self.NQUBITS
             for qubit_idx in idx_list:
                 pt = self.qubits_grid.get_pt(qubit_idx)
                 qubit_pars = QubitParams(
@@ -291,23 +290,12 @@ class Design12QStair(ChipDesign):
                     postpone_drawing=False
                 )
                 self.qubits[qubit_idx] = qubit
-                # TODO: not working, qubit.squid.origin is wrong | partially
-                #  dealt with. Check this.
-                # shift squid to suit into scheme
-                # qubit.squid.make_trans(DCplxTrans(1, 0, False, 0, -20e3))
-                # q_origin = qubit.origin.dup()  # memorize origin
-                # # transfer to origin
-                # qubit.make_trans(DCplxTrans(1, 0, False, -q_origin))
-                # # rotate depending on qubit group
-                # if pt_i in [0, 1, 3]:
-                #     qubit.make_trans(DCplxTrans(1, -45, False, 0, 0))
-                # else:
-                #     qubit.make_trans(DCplxTrans(1, -45, True, 0, 0))
-                # qubit.make_trans(DCplxTrans(1, 0, False, q_origin))
+                self.squids[qubit_idx] = qubit.squid
+
                 qubit.place(self.region_ph, region_id="ph")
                 qubit.place(self.region_el, region_id="el")
         else:
-            for qubit_idx in range(len(self.qubits_grid.pts_grid)):
+            for qubit_idx in range(self.NQUBITS):
                 pt = self.qubits_grid.get_pt(qubit_idx)
                 qubit_pars = QubitParams(
                     squid_params=SQUID_PARS,
@@ -319,9 +307,11 @@ class Design12QStair(ChipDesign):
                     qubit_params=qubit_pars,
                     postpone_drawing=False
                 )
-                self.qubits.append(qubit)
+                self.qubits[qubit_idx] = qubit
+                self.squids[qubit_idx] = qubit.squid
                 # TODO: not working, qubit.squid.origin is wrong | partially
-                #  dealt with. Check this.
+                #  dealt with defining origin as a connection in `self.init_regions(
+                #  `_refresh_named_connections` has to include `self.origin` by default
                 # shift squid to suit into scheme
                 # qubit.squid.make_trans(DCplxTrans(1, 0, False, 0, -20e3))
                 # q_origin = qubit.origin.dup()  # memorize origin
