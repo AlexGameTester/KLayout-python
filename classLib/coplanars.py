@@ -1402,7 +1402,7 @@ class Intersection:
         # central cpw1 brigde
         bridge1 = Bridge1(
             center=intersection,
-            gnd2gnd_dy=ground_filling_cpw1.dr.abs() + cpw1.gap,
+            gnd2gnd_dy=ground_filling_cpw1.dr.abs() + 2*cpw1.gap + cpw1.gap,
             trans_in=DCplxTrans(1, -90 + 180 * np.arctan2(s1.y, s1.x) / np.pi, False, 0, 0)
         )
         bridge1.place(bridge_reg1, region_id="bridges_1")

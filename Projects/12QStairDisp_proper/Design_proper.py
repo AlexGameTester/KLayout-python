@@ -1,4 +1,4 @@
-__version__ = "12QStair_0.0.0.1"
+__version__ = "12QStair_0.0.0.0"
 
 '''
 NOTE:
@@ -7,7 +7,7 @@ in ascending order to qubit idxs.
 E.g. self.resonators[1] - resonator that belongs to qubit №1 (starting from 0)
 
 Changes log
-
+    
 '''
 
 # import built-ins
@@ -181,10 +181,10 @@ class Design12QStair(ChipDesign):
         self.ro_line_Z = CPWParameters(width=18e3, gap=10e3)
         self.contact_pads: List[ContactPad] = self.chip.get_contact_pads(
             chip_Z_list=[
-                self.ro_line_Z, self.z_fl1, self.z_md1, self.z_fl1, self.z_md1,  # left side
-                self.z_fl1, self.z_md1, self.ro_line_Z, self.ro_line_Z, self.z_fl1,  # bottom
-                self.z_md1, self.z_fl1, self.z_md1, self.z_md1, self.z_fl1,  # right
-                self.ro_line_Z, self.z_fl1, self.z_md1, self.z_fl1, self.z_md1  # top
+                self.ro_line_Z, self.z_md1, self.z_fl1, self.z_md1, self.z_fl1,  # left side
+                self.z_fl1, self.z_fl1, self.ro_line_Z, self.z_fl1, self.z_fl1,  # bottom
+                self.ro_line_Z, self.z_fl1, self.z_fl1, self.z_fl1, self.z_fl1,  # right
+                self.ro_line_Z, self.z_fl1,  self.z_md1, self.z_fl1, self.z_md1  # top
             ],
             back_metal_gap=200e3,
             back_metal_width=0e3,
@@ -211,7 +211,7 @@ class Design12QStair(ChipDesign):
         self.draw_flux_control_lines()
         self.draw_readout_lines()
 
-        # self.resolve_intersections()
+        self.resolve_intersections()
 
         # self.draw_test_structures()
         # self.draw_express_test_structures_pads()
@@ -219,7 +219,7 @@ class Design12QStair(ChipDesign):
 
         # self.add_chip_marking(text_bl=DPoint(7.5e6, 2e6), chip_name="8Q_0.0.0.1")
         #
-        # self.draw_litography_alignment_marks()
+        self.draw_litography_alignment_marks()
         # self.draw_bridges()
         # self.draw_pinning_holes()
         # # 4Q_Disp_Xmon v.0.3.0.8 p.12 - ensure that contact pads has no holes
