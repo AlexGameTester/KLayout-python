@@ -125,7 +125,7 @@ class Design12QStair(ChipDesign):
 
         ''' READOUT RESONATORS '''
         self.resonators_params = ROResonatorParams(qubits_grid=self.qubits_grid)
-        self.resonators: List[EMResonatorTL3QbitWormRLTail] = [None] * self.NQUBITS
+        self.resonators: List[ROResonator] = [None] * self.NQUBITS
         # TODO: hide into designElementsGeomtry
         self.q_res_connector_idxs: np.ndarray = np.array([4, 4, 0, 4, 4, 0, 0, 4, 0, 0, 4, 0])
 
@@ -206,10 +206,10 @@ class Design12QStair(ChipDesign):
         self.draw_qubits_array()
         # self.draw_qq_couplings()
 
-        # self.draw_readout_resonators()
-        # self.draw_microwave_drvie_lines()
-        # self.draw_flux_control_lines()
-        # self.draw_readout_lines()
+        self.draw_readout_resonators()
+        self.draw_microwave_drvie_lines()
+        self.draw_flux_control_lines()
+        self.draw_readout_lines()
 
         # self.resolve_intersections()
 
@@ -407,19 +407,34 @@ class Design12QStair(ChipDesign):
                                        + \
                                        ROResonatorParams.to_line_list[10]
         ro_line_extension = self.qCenter_roLine_distance / 2
-        turn_radii = ro_line_extension / 4
-
+        turn_radii = self.ro_line_Z.b * 3
         # readout line 1
         p0_start = self.contact_pads[0].end
-        p0_end = self.contact_pads[7].end
-        p1 = p0_start + DPoint(1e6, 0)
-        p2 = DPoint(3.7e6, 9.1e6)
-        p3 = DPoint(p2.x, 6.0e6)
-        p4 = DPoint(4.13e6, 5.134e6)
-        p5 = p4 + 2 * DVector(ro_line_extension, -ro_line_extension)
-        p7 = p0_end + DPoint(0, 0.5e6)
-        p6 = DPoint(p5.x, p7.y)
-        pts = [p0_start, p1, p2, p3, p4, p5, p6, p7, p0_end]
+        p1_start = p0_start + DPoint(turn_radii, 0)
+        p0_end = self.contact_pads[5].end
+        # RO line extends by 2 curve radii of the resonator along coupling
+
+        pts_middle = []
+        qubits_ro_line0 = [10, 7, 3, 4, 0, 1]
+        for q_idx in [10, 7, 3, 4, 0, 1]:
+            # TODO: fix fucking problem with `origin` not tracking changes after construction had
+            #  to use `resonator.start` here for god's sake.
+            res_i = self.resonators[q_idx]
+            res_i_to_line = self.resonators_params.to_line_list[q_idx]
+            res_i_Lcoupling = self.resonators_params.L_coupling_list[q_idx]
+            res_i_r = self.resonators_params.res_r_list[q_idx]
+            res_i_rotation = DCplxTrans(
+                1, self.resonators_params.resonator_rotation_angles[q_idx], False, 0, 0
+            )
+            p_res_start = res_i.start + \
+                          res_i_rotation * DVector(res_i_Lcoupling + 3 * res_i_r, res_i_to_line)
+            p_res_end = res_i.start + \
+                        res_i_rotation * DVector(-3 * res_i_r, res_i_to_line)
+            pts_middle += [p_res_start, p_res_end]
+
+        p1_end = p0_end + DVector(0, 3 * turn_radii)
+        p2_end = DVector(pts_middle[-1].x, p1_end.y)
+        pts = [p0_start, p1_start] + pts_middle + [p2_end, p1_end, p0_end]
         self.ro_lines[0] = DPathCPW(
             points=pts,
             cpw_parameters=[self.ro_line_Z],
@@ -430,16 +445,33 @@ class Design12QStair(ChipDesign):
         self.ro_lines[0].place(self.region_ph, region_id="ph")
 
         # readout line 2
-        p1_start = self.contact_pads[15].end
-        p1_end = self.contact_pads[8].end
-        p1 = p1_start + DVector(0, -0.5e6)
-        p2 = DPoint(6.05e6, 10.2e6)
-        p3 = DPoint(7.50e6, 10.2e6)
-        p4 = DPoint(8.146e6, 9.6e6)
-        p5 = p4 + 6 * DVector(ro_line_extension, -ro_line_extension)
-        p7 = p1_end + DVector(0, 0.5e6)
-        p6 = DPoint(p5.x, p6.y)
-        pts = [p1_start, p1, p2, p3, p4, p5, p6, p7, p1_end]
+        p0_start = self.contact_pads[15].end
+        p1_start = p0_start + DPoint(0, -turn_radii)
+        p0_end = self.contact_pads[8].end
+        # RO line extends by 2 curve radii of the resonator along coupling
+
+        pts_middle = []
+        for q_idx in [11, 8, 9, 5, 6, 2]:
+            # TODO: fix fucking problem with `origin` not tracking changes after construction had
+            #  to use `resonator.start` here for god's sake.
+            res_i = self.resonators[q_idx]
+            res_i_to_line = self.resonators_params.to_line_list[q_idx]
+            res_i_Lcoupling = self.resonators_params.L_coupling_list[q_idx]
+            res_i_r = self.resonators_params.res_r_list[q_idx]
+            res_i_rotation = DCplxTrans(
+                1, self.resonators_params.resonator_rotation_angles[q_idx], False, 0, 0
+            )
+            p_res_start = res_i.start + \
+                        res_i_rotation * DVector(-1 * res_i_r, res_i_to_line)
+            p_res_end = res_i.start + \
+                          res_i_rotation * DVector(res_i_Lcoupling + 1 * res_i_r, res_i_to_line)
+            pts_middle += [p_res_start, p_res_end]
+
+        p1_end = p0_end + DVector(0, 3*turn_radii)
+        p2_end = DPoint(pts_middle[-1].x, p1_end.y)
+
+        p2_start = DPoint(pts_middle[0].x, p1_start.y)
+        pts = [p0_start, p1_start, p2_start] + pts_middle + [p2_end, p1_end, p0_end]
         self.ro_lines[1] = DPathCPW(
             points=pts,
             cpw_parameters=[self.ro_line_Z],
@@ -1439,7 +1471,7 @@ class Design12QStair(ChipDesign):
         p1 = self.qubits[q_idx].origin
         p2 = self.resonators[q_idx].start
         p2 = ICplxTrans(1, -rotated_angle_deg, False, 0, 0) * (
-                    p2 - rotation_center) + rotation_center
+                p2 - rotation_center) + rotation_center
         p2 += DVector(self.resonators[q_idx].L_coupling, to_line)
         p2 = DPoint(p2)
         print(p1)
@@ -1459,7 +1491,7 @@ class Design12QStair(ChipDesign):
         crop_box = DBox(
             cent + dv / 2 + DVector(border_up, border_up),
             cent - dv / 2 - DVector(border_down, border_down)
-            )
+        )
         self.crop(crop_box)
 
         self.sonnet_ports.append(readline.start)
@@ -1468,7 +1500,7 @@ class Design12QStair(ChipDesign):
         self.transform_region(
             self.region_ph, DTrans(-(cent - dv / 2 - DVector(border_down, border_down))),
             trans_ports=True
-            )
+        )
 
         return crop_box
 
@@ -1486,7 +1518,7 @@ def simulate_res_f_and_Q(q_idx, resolution=(2e3, 2e3), type='freq'):
         simulate_S_pars(
             design, crop_box,
             f'res_{q_idx}_{design.resonators_params.L1_list[q_idx] / 1e3:.01f}_S_pars.csv', 7.0, 8.0
-            )
+        )
     elif type == 'Q':
         simulate_S_pars(
             design, crop_box,
@@ -1494,7 +1526,7 @@ def simulate_res_f_and_Q(q_idx, resolution=(2e3, 2e3), type='freq'):
             ROResonatorParams.target_freqs[q_idx] - 0.01,
             ROResonatorParams.target_freqs[q_idx] + 0.01,
             resolution=resolution
-            )
+        )
 
 
 def simulate_S_pars(design, crop_box, filename, min_freq=6.0, max_freq=7.0, resolution=(2e3, 2e3)):
@@ -1721,5 +1753,5 @@ if __name__ == "__main__":
 
     ''' Resonators Q and f when placed together'''
     # simulate_resonators_f_and_Q_together()
-    #for i in [0, 1, 2, 3]:
+    # for i in [0, 1, 2, 3]:
     #    simulate_res_f_and_Q(i)

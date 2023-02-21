@@ -402,9 +402,10 @@ class ROResonatorParams():
     ]
     resonator_rotation_angles: np.ndarray = np.array(
         [
-            180, 180, 270, 90,
-            135, -45, 270, 90,
-            -45, -45, 90, 0
+            180, 180, 270,
+            90, 135, -45, 270,
+            90, -45, -45,
+            90, 0
         ],
         dtype=float
     )  # addressed by qubit index
