@@ -1490,6 +1490,8 @@ def simulate_res_f_and_Q(q_idx, resolution=(2e3, 2e3), type='freq'):
     design.show()
     ### DRAWING SECTION END ###
 
+    cur_freqs = [7.395, 7.465, 7.65, 7.485]
+
     if type == 'freq':
         simulate_S_pars(
             design, crop_box,
@@ -1688,9 +1690,9 @@ def simulate_Cqr(q_idxs: List[int], resolution=(4e3, 4e3)):
 if __name__ == "__main__":
     ''' draw and show design for manual design evaluation '''
     FABRICATION.OVERETCHING = 0.0e3
-    # design = Design12QStair("testScript")
-    # design.draw()
-    # design.show()
+    design = Design12QStair("testScript")
+    design.draw()
+    design.show()
     # test = Cqq_type2("cellName")
     # test.draw()
     # test.show()
@@ -1729,5 +1731,5 @@ if __name__ == "__main__":
 
     ''' Resonators Q and f when placed together'''
     # simulate_resonators_f_and_Q_together()
-    for i in [0, 3]:
-        simulate_res_f_and_Q(i)
+    #for i in [0, 1, 2, 3]:
+    #    simulate_res_f_and_Q(i)

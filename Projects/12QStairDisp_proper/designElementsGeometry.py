@@ -351,28 +351,28 @@ class ROResonatorParams():
         Geometry parameters has to be verified by simulation.
         """
     # see parameters details in `Design_fast.py`
-    target_freqs = [7.2, 7.36, 7.44, 7.28, 7.44, 7.52, 7.28, 7.52, 7.36, 7.2, 7.2, 7.28]
+    target_freqs = [7.6, 7.36, 7.44, 7.28, 7.44, 7.52, 7.6, 7.52, 7.36, 7.2, 7.2, 7.28]
 
     L_coupling_list = [
-        1e3 * x for x in [310, 320, 320, 310] * 3
+        1e3 * x for x in [310, 310, 310, 310] * 3
     ]
     L0_list = [986e3] * 12
     L1_list = [
         1e3 * x for x in
         [
-            120.5300043540022,
-            100.44999799730056,
-            150.4695886872512,
-            170.8310344827587,
-            39.68585304699104,
-            0,
-            169.01034482758623,
-            143.90000000000005,
-            31.24736842105267,
-            112.75904018735241,
-            178.2794594594595,
-            111.0
-        ]
+            97.68041077160032,
+            114.75000254984994,
+            174.67609952692922,
+            194.73092406491017,
+            54.19432055474881,
+            35.651946572570495,
+            149.0199335546049,
+            157.12727225058603,
+            68.20935545352937,
+            129.35206171474732,
+            204.73535930161088,
+            125.11764705882364
+         ]
     ]
     res_r_list = [60e3] * 12
     tail_turn_radiuses_list = [60e3] * 12  # res_r_list
@@ -381,7 +381,7 @@ class ROResonatorParams():
     L3_list = []  # get numericals from Design_fast
     L4_list = [60e3] * 12  # res_r_list
     Z_res_list = [CPWParameters(width=20e3, gap=10e3)] * 12
-    to_line_list = [50e3, 50e3, 50e3, 50e3] * 3
+    to_line_list = [56e3, 56e3, 56e3, 56e3] * 3
 
     tail_segments_list = [[60000.0, 215000.0, 60000.0]] * 12
     res_tail_shapes_list = ["LRLRL"] * 12
