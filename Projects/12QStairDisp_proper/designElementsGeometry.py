@@ -361,6 +361,12 @@ class ConnectivityMap:
         else:
             return 2
 
+    def get_md_connector_idx(self, q_idx):
+        if q_idx in [0, 1, 2, 3, 4, 7]:
+            return 5
+        else:
+            return 1
+
 
 @dataclass()
 class ROResonatorParams():
