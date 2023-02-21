@@ -409,11 +409,11 @@ class ROResonatorParams():
         dtype=float
     )  # adressed by qubit index
 
-    # corresponding to 5 ro frequencies from 7.2 to 7.52 both inclusive
-    _donut_metal_width_USS = 1e3 * np.array([9.86, 11.24, 12.69, 14.20, 15.76])
-    _donut_disk_d_USS = [20e3] * 5
-    _donut_metal_width_LSS = 1e3 * np.array([52.52, 53.86, 55.08, 56.2, 57.21])
-    _donut_disk_d_LSS = [10e3] * 5
+    # corresponding to 6 RO frequencies from 7.2 to 7.60 both inclusive
+    _donut_metal_width_USS = 1e3 * np.array([9.86, 11.24, 12.69, 14.20, 15.76, 17.36])
+    _donut_disk_d_USS = [20e3] * 6
+    _donut_metal_width_LSS = 1e3 * np.array([52.52, 53.86, 55.08, 56.2, 57.21, 58.12])
+    _donut_disk_d_LSS = [10e3] * 6
     # see correspondence of q_idx and freq_idx in the working journal
     q_idx_ro_freq_idx = None
     q_res_coupling_params: List[CqrCouplingParamsType1] = None
@@ -427,8 +427,8 @@ class ROResonatorParams():
 
         # see correspondence of q_idx and freq_idx in the working journal
         self.q_idx_ro_freq_idx = [
-            0, 2, 3,
-            1, 3, 4, 1,
+            5, 2, 3,
+            1, 3, 4, 5,
             4, 2, 0,
             0, 1
         ]
