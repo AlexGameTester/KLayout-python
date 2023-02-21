@@ -258,31 +258,16 @@ class Design12QStair(ChipDesign):
             contact_pad.place(self.region_ph)
 
     def draw_qubits_array(self, new_disk_r=DiskConn8Pars().disk_r, idx_list=[]):
-        def get_squid_connector_idx(qubit_idx: int):
-            """
-            Returns squid connector idx based on qubit idx
-            Parameters
-            ----------
-            qubit_idx: int
-                from 0 to 7
 
-            Returns
-            -------
-            int
-                qubit disk's connector idx
-            """
-            if qubit_idx in [0, 1, 2, 3, 4, 7]:
-                return 6
-            else:
-                return 2
 
         if len(idx_list) > 0:
             for qubit_idx in idx_list:
+                squid_connector_idx = self.connectivity_map.get_squid_connector_idx(qubit_idx)
                 pt = self.qubits_grid.get_pt(qubit_idx)
                 qubit_pars = QubitParams(
                     squid_params=SQUID_PARS,
                     qubit_cap_params=DiskConn8Pars(disk_r=new_disk_r),
-                    squid_connector_idx=get_squid_connector_idx(qubit_idx)
+                    squid_connector_idx=squid_connector_idx
                 )
                 qubit = Qubit(
                     origin=pt,
@@ -296,11 +281,12 @@ class Design12QStair(ChipDesign):
                 qubit.place(self.region_el, region_id="el")
         else:
             for qubit_idx in range(self.NQUBITS):
+                squid_connector_idx = self.connectivity_map.get_squid_connector_idx(qubit_idx)
                 pt = self.qubits_grid.get_pt(qubit_idx)
                 qubit_pars = QubitParams(
                     squid_params=SQUID_PARS,
                     qubit_cap_params=DiskConn8Pars(disk_r=new_disk_r),
-                    squid_connector_idx=get_squid_connector_idx(qubit_idx)
+                    squid_connector_idx=squid_connector_idx
                 )
                 qubit = Qubit(
                     origin=pt,
