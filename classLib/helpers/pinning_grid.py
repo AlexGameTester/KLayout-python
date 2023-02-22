@@ -45,29 +45,31 @@ def fill_holes(obj, dx=40e3, dy=40e3, width=32e3, height=32e3, d=150e3):
     def fill_poly(poly):
         bbox = poly.bbox()
         poly_reg = Region(poly)
-        t_reg = Region()
 
-        # Draw boundary region of width `2*d` along the
-        # inner holes of the polygon
+        # Excluide boundary region of width `2*d` along the
+        # inner contours (holes) of the polygon
         for hole_i in range(0, poly.holes()):
             points = [p for p in poly.each_point_hole(hole_i)]
             points.append(points[0])
             boundary = Path(points, 2 * d)
             poly_reg -= Region(boundary)
 
-        # Draw boundary region of width `2*d` along the
-        # outer edge of the polygon
+        # Exclude boundary region of width `2*d` along the
+        # outer contour (hull) of the polygon
         points = [p for p in poly.each_point_hull()]
         points.append(points[0])
         boundary = Path(points, 2 * d)
         poly_reg -= Region(boundary)
 
-        # Fill the boundary box with holes
+        # Create polygon's bounding box region with holes - `t_reg`
+        t_reg = Region()
         y = bbox.p1.y + height
         while y < bbox.p2.y - height:
             x = bbox.p1.x + width
             while x < bbox.p2.x - width:
-                box = pya.Box().from_dbox(pya.DBox(DPoint(x, y), DPoint(x + width, y + height)))
+                box = pya.Box(
+                    pya.DBox(DPoint(x, y), DPoint(x + width, y + height))
+                )
                 x += dx
                 t_reg.insert(box)
             y += dy
@@ -91,8 +93,10 @@ def fill_holes(obj, dx=40e3, dy=40e3, width=32e3, height=32e3, d=150e3):
         return fill_poly(poly)
     elif isinstance(obj, Region):
         reg = obj
+        poly_n = reg.count()
         result_reg = Region()
         for i, poly in enumerate(reg):
+            print(f"{i}-th polygon out of {poly_n}")
             result_reg.insert(fill_holes(poly, dx=dx, dy=dy, width=width,
                                          height=height, d=d))
         return result_reg

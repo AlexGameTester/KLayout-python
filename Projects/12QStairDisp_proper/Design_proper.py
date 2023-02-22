@@ -140,7 +140,7 @@ class Design12QStair(ChipDesign):
             CqrCouplingParamsType1] = self.resonators_params.q_res_coupling_params
 
         ''' READOUT LINES '''
-        self.ro_lines: List[DPathCPW] = [None] * 3
+        self.ro_lines: List[DPathCPW] = [None] * 2
         self.qCenter_roLine_distance = None
 
         ''' Microwave control lines '''
@@ -232,18 +232,19 @@ class Design12QStair(ChipDesign):
 
         self.draw_litography_alignment_marks()
         # self.draw_bridges()
-        # self.draw_pinning_holes()
+        self.draw_pinning_holes()
         # 4Q_Disp_Xmon v.0.3.0.8 p.12 - ensure that contact pads has no holes
         for contact_pad in self.contact_pads:
             contact_pad.place(self.region_ph)
-        # self.extend_photo_overetching()
-        # self.inverse_destination(self.region_ph)
-        # # convert to gds acceptable polygons (without inner holes)
-        # self.region_ph.merge()
-        # self.resolve_holes()
+
+        self.extend_photo_overetching()
+        self.inverse_destination(self.region_ph)
+        # convert to gds acceptable polygons (without inner holes)
+        self.region_ph.merge()
+        self.resolve_holes()
         # convert to litograph readable format. Litograph can't handle
         # polygons with more than 200 vertices.
-        # self.split_polygons_in_layers(max_pts=180)
+        self.split_polygons_in_layers(max_pts=180)
 
         # for processes after litographies
         self.draw_cutting_marks()
@@ -547,8 +548,8 @@ class Design12QStair(ChipDesign):
         qubit = self.qubits[q_idx]
         p_start = self.contact_pads[1].end
         p1 = p_start + DVector(0.25e6, 0)
-        p2 = DPoint(3.426e6, 7.137e6)
-        p3 = DPoint(4.910e6, 7.137e6)
+        p2 = DPoint(3.426e6, 7.077e6)
+        p3 = DPoint(4.910e6, 7.077e6)
         qubit_center_md_dv_n = p3 - qubit.origin
         qubit_center_md_dv_n /= qubit_center_md_dv_n.abs()
         p_end = qubit.origin + q_origin_md_end_d * qubit_center_md_dv_n
@@ -1025,7 +1026,7 @@ class Design12QStair(ChipDesign):
         ):
             for dpathcpw_line in ctr_lines:
                 # some qubit do not have control line of the certain type
-                if (dpathcpw_line is None) or (ro_line is None):
+                if dpathcpw_line is None:
                     continue
 
                 # ro line is placed later and is to be preserved continuous
@@ -1393,6 +1394,7 @@ class Design12QStair(ChipDesign):
                     )
 
         ''' contact wires '''
+        # TODO: fix this
         self.control_lines_avoid_points += [squid.origin for squid in self.squids]
         self.control_lines_avoid_points += self.intersection_points
         for ctr_line in itertools.chain(self.cpw_md_lines, self.cpw_fl_lines):
@@ -1454,6 +1456,7 @@ class Design12QStair(ChipDesign):
         #         )
 
         ''' readout lines  '''
+        # TODO: fix this
         self.resonator_avoid_points = []
         avoid_distances = []
         for res in self.resonators:
@@ -1480,8 +1483,16 @@ class Design12QStair(ChipDesign):
     def draw_pinning_holes(self):
         # points that select polygons of interest if they were clicked at)
         selection_pts = [
-            Point(0.1e6, 0.1e6)
+            Point(0.1e6, 0.1e6),
+            Point(self.chip.dx - 0.1e6, self.chip.dy - 0.1e6)
         ]
+
+        # append grounded polygons inside qubits grid
+        for q_idx in [0, 1, 3, 4, 7]:
+            selection_pts.append(
+                self.qubits[q_idx].origin +
+                DVector(self.qubits_grid.dx/2, self.qubits_grid.dy/2)
+            )
 
         # creating region of small boxes (polygon selection requires
         # regions)
@@ -1518,7 +1529,7 @@ class Design12QStair(ChipDesign):
         # have placed their objects on related regions.
         # This design avoids extensive copy/pasting of polygons to/from
         # `cell.shapes` structure.
-        super(Design12QStair, self)._transfer_regs2cell()
+        super()._transfer_regs2cell()
         self.cell.shapes(self.dc_bandage_layer).insert(self.dc_bandage_reg)
         self.cell.shapes(self.layer_bridges1).insert(self.region_bridges1)
         self.cell.shapes(self.layer_bridges2).insert(self.region_bridges2)

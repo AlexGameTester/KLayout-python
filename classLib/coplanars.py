@@ -102,7 +102,7 @@ class CPW(ElementBase):
             )
             self.metal_region.insert(pya.Polygon().from_dpoly(metal_poly))
             # hotfix rounding errors that lead to disconnections
-            # self.metal_region.size(1, 0, 0)
+            self.metal_region.size(2, 0, 0)
 
         if (self.gap != 0):
             # top empty rectangle
@@ -1519,7 +1519,7 @@ class Intersection:
         )
         ground_filling_cpw1.place(cpw_reg)
         # restoring `cpw2` state
-        cpw2.place(cpw_reg, region_id=cpw_reg_id)
+        cpw2.place(cpw_reg, region_id=cpw2.region_id)
 
         ''' Placing bridges '''
         # central cpw1 brigde
