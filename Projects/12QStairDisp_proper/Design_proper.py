@@ -235,6 +235,8 @@ class Design12QStair(ChipDesign):
         # # polygons with more than 200 vertices.
         # self.split_polygons_in_layers(max_pts=180)
 
+        self.draw_additional_boxes()
+
     def draw_postpone(self):
         """
         Placing elements that were scheduled for postpone drawing.
@@ -1482,6 +1484,32 @@ class Design12QStair(ChipDesign):
             self.region_el_protection
         )
         self.lv.zoom_fit()
+
+    def draw_additional_boxes(self):
+        abox_top_ph = pya.Box(Point(self.chip.dx/2,self.chip.dy/2) + Point(-self.chip.dx * 0.3, self.chip.dx * 0.52),
+                Point(self.chip.dx/2,self.chip.dy/2) + Point(self.chip.dx * 0.3, self.chip.dx * 0.62))
+        abox_bot_ph = pya.Box(Point(self.chip.dx/2,self.chip.dy/2) - Point(-self.chip.dx * 0.3, self.chip.dx * 0.52),
+                           Point(self.chip.dx/2,self.chip.dy/2) - Point(self.chip.dx * 0.3, self.chip.dx * 0.62))
+        self.region_ph.insert(abox_top_ph)
+        self.region_ph.insert(abox_bot_ph)
+
+        abox_top_el = pya.Box(
+            Point(self.chip.dx / 2, self.chip.dy / 2) + Point(-self.chip.dx * 0.35, self.chip.dx * 0.54),
+            Point(self.chip.dx / 2, self.chip.dy / 2) + Point(self.chip.dx * 0.35, self.chip.dx * 0.6))
+        abox_bot_el = pya.Box(
+            Point(self.chip.dx / 2, self.chip.dy / 2) - Point(-self.chip.dx * 0.35, self.chip.dx * 0.54),
+            Point(self.chip.dx / 2, self.chip.dy / 2) - Point(self.chip.dx * 0.35, self.chip.dx * 0.6))
+        self.region_bridges1.insert(abox_top_el)
+        self.region_bridges1.insert(abox_bot_el)
+
+        ext_chip_box = self.chip_box.dup()
+        ext_chip_box.left -= 2e6
+        ext_chip_box.bottom -= 2e6
+        ext_chip_box.top += 2e6
+        ext_chip_box.right += 2e6
+        ext_chip_box = Region(ext_chip_box)
+        ext_chip_box -= Region(self.chip_box)
+        self.region_bridges2 += ext_chip_box
 
     def draw_for_res_Q_sim(self, q_idx, border_down=360e3, border_up=200e3):
         self.draw_chip()
