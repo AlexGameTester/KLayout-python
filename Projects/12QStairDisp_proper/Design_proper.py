@@ -103,6 +103,12 @@ class Design12QStair(ChipDesign):
         self.region_el_protection = Region()
         self.layer_el_protection = self.layout.layer(info_el_protection)
 
+        self.regions: List[Region] = [
+            self.region_ph, self.region_bridges1, self.region_bridges2,
+            self.region_el, self.dc_bandage_reg,
+            self.region_el_protection, self.region_cut
+        ]
+
         # has to call it once more to add new layers
         # defined in this child of `ChipDesign`
         self.lv.add_missing_layers()
@@ -184,7 +190,7 @@ class Design12QStair(ChipDesign):
                 self.ro_line_Z, self.z_md1, self.z_fl1, self.z_md1, self.z_fl1,  # left side
                 self.z_fl1, self.z_fl1, self.ro_line_Z, self.z_fl1, self.z_fl1,  # bottom
                 self.ro_line_Z, self.z_fl1, self.z_fl1, self.z_fl1, self.z_fl1,  # right
-                self.ro_line_Z, self.z_fl1,  self.z_md1, self.z_fl1, self.z_md1  # top
+                self.ro_line_Z, self.z_fl1, self.z_md1, self.z_fl1, self.z_md1  # top
             ],
             back_metal_gap=200e3,
             back_metal_width=0e3,
@@ -209,7 +215,7 @@ class Design12QStair(ChipDesign):
         """
         self.draw_chip()
         self.draw_qubits_array()
-        # self.draw_qq_couplings()
+        self.draw_qq_couplings()
         #
         self.draw_readout_resonators()
         self.draw_microwave_drvie_lines()
@@ -218,26 +224,25 @@ class Design12QStair(ChipDesign):
 
         self.resolve_intersections()
 
-        # self.draw_test_structures()
-        # self.draw_express_test_structures_pads()
-        # self.draw_bandages()
+        self.draw_test_structures()
+        self.draw_express_test_structures_pads()
+        self.draw_bandages()
 
-        # self.add_chip_marking(text_bl=DPoint(7.5e6, 2e6), chip_name="8Q_0.0.0.1")
+        self.add_chip_marking(text_bl=DPoint(2.6e6, 1.2e6), chip_name="8Q_0.0.0.0", text_scale=200)
 
-        # self.draw_litography_alignment_marks()
-        self.draw_bridges()
+        self.draw_litography_alignment_marks()
+        # self.draw_bridges()
         # self.draw_pinning_holes()
-        # # 4Q_Disp_Xmon v.0.3.0.8 p.12 - ensure that contact pads has no holes
-        # for contact_pad in self.contact_pads:
-        #     contact_pad.place(self.region_ph)
+        # 4Q_Disp_Xmon v.0.3.0.8 p.12 - ensure that contact pads has no holes
+        for contact_pad in self.contact_pads:
+            contact_pad.place(self.region_ph)
         # self.extend_photo_overetching()
         # self.inverse_destination(self.region_ph)
         # # convert to gds acceptable polygons (without inner holes)
-        # self.draw_cut_marks()
         # self.region_ph.merge()
         # self.resolve_holes()
-        # # convert to litograph readable format. Litograph can't handle
-        # # polygons with more than 200 vertices.
+        # convert to litograph readable format. Litograph can't handle
+        # polygons with more than 200 vertices.
         # self.split_polygons_in_layers(max_pts=180)
 
         # for processes after litographies
@@ -245,6 +250,33 @@ class Design12QStair(ChipDesign):
 
         # requested by fabrication team
         self.draw_additional_boxes()
+
+    def split_polygons_in_layers(self, max_pts=200):
+        # TODO: add to parent class
+        self.region_ph = split_polygons(self.region_ph, max_pts)
+        self.region_bridges2 = split_polygons(
+            self.region_bridges2,
+            max_pts
+            )
+        for poly in self.region_ph:
+            if poly.num_points() > max_pts:
+                print("exists photo")
+        for poly in self.region_ph:
+            if poly.num_points() > max_pts:
+                print("exists bridge2")
+
+    def resolve_holes(self):
+        # TODO: add to parent class
+        for reg in self.regions:
+            tmp_reg = Region()
+            for poly in reg:
+                tmp_reg.insert(poly.resolved_holes())
+            reg.clear()
+            reg |= tmp_reg
+
+        # TODO: the following code is not working (region_bridges's polygons remain the same)
+        # for poly in chain(self.region_bridges2):
+        #     poly.resolve_holes()
 
     def draw_postpone(self):
         """
@@ -269,7 +301,6 @@ class Design12QStair(ChipDesign):
             contact_pad.place(self.region_ph)
 
     def draw_qubits_array(self, new_disk_r=DiskConn8Pars().disk_r, idx_list=[]):
-
 
         if len(idx_list) > 0:
             for qubit_idx in idx_list:
@@ -458,14 +489,14 @@ class Design12QStair(ChipDesign):
                 1, self.resonators_params.resonator_rotation_angles[q_idx], False, 0, 0
             )
             p_res_start = res_i.start + \
-                        res_i_rotation * DVector(-3 * res_i_r, res_i_to_line)
+                          res_i_rotation * DVector(-3 * res_i_r, res_i_to_line)
             p_res_end = res_i.start + \
-                          res_i_rotation * DVector(res_i_Lcoupling + 3 * res_i_r, res_i_to_line)
+                        res_i_rotation * DVector(res_i_Lcoupling + 3 * res_i_r, res_i_to_line)
             pts_middle += [p_res_start, p_res_end]
 
         p1_end = p0_end + DVector(-turn_radii, 0)
 
-        p2_start = DPoint(pts_middle[0].x, pts_middle[0].y + 2*turn_radii)
+        p2_start = DPoint(pts_middle[0].x, pts_middle[0].y + 2 * turn_radii)
         pts = [p0_start, p1_start, p2_start] + pts_middle + [p1_end, p0_end]
         self.ro_lines[1] = DPathCPW(
             points=pts,
@@ -520,7 +551,7 @@ class Design12QStair(ChipDesign):
         p3 = DPoint(4.910e6, 7.137e6)
         qubit_center_md_dv_n = p3 - qubit.origin
         qubit_center_md_dv_n /= qubit_center_md_dv_n.abs()
-        p_end = qubit.origin + q_origin_md_end_d*qubit_center_md_dv_n
+        p_end = qubit.origin + q_origin_md_end_d * qubit_center_md_dv_n
         cpwrl_md = DPathCPW(
             points=[p_start, p1, p2, p3, p_end],
             cpw_parameters=[self.z_md1],
@@ -736,7 +767,7 @@ class Design12QStair(ChipDesign):
         q_idx = 5
         qubit = self.qubits[q_idx]
         p_start = self.contact_pads[12].end
-        p1 = p_start + DVector(-3*r_turn, 0)
+        p1 = p_start + DVector(-3 * r_turn, 0)
         p2 = p1 + DVector(-0.25e6, 0)
         p_end = qubit.origin + DVector(
             0,
@@ -747,7 +778,7 @@ class Design12QStair(ChipDesign):
         p5 = DPoint(8.632e6, 7.466e6)
         p_tr_start = p_end + DVector(
             0,
-            CqqCouplingParamsType1().bendings_disk_center_d/2
+            CqqCouplingParamsType1().bendings_disk_center_d / 2
         )
         fl_dpath = DPathCPW(
             points=[p_start, p1, p2, p3, p4, p5, p_tr_start, p_end],
@@ -767,7 +798,7 @@ class Design12QStair(ChipDesign):
         p2 = DPoint(10.3e6, 7.2e6)
         p_tr_start = p_end + DVector(
             0,
-            CqqCouplingParamsType1().bendings_disk_center_d/2
+            CqqCouplingParamsType1().bendings_disk_center_d / 2
         )
         fl_dpath = DPathCPW(
             points=[p_start, p1, p2, p_tr_start, p_end],
@@ -832,7 +863,7 @@ class Design12QStair(ChipDesign):
         qubit = self.qubits[q_idx]
         p_start = self.contact_pads[5].end
         p1 = p_start + DVector(0, r_turn)
-        p_end = qubit.origin + (-1)*DVector(
+        p_end = qubit.origin + (-1) * DVector(
             8.0169e3,
             qubit.disk_cap_shunt.pars.disk_r + \
             qubit.disk_cap_shunt.pars.disk_gap
@@ -1011,7 +1042,7 @@ class Design12QStair(ChipDesign):
         struct_centers = [
             DPoint(1.8e6, 6.0e6),
             DPoint(11e6, 10.7e6),
-            DPoint(8.5e6, 4e6)
+            DPoint(4.5e6, 3e6)
         ]
         for struct_center in struct_centers:
             ## JJ test structures ##
@@ -1023,7 +1054,13 @@ class Design12QStair(ChipDesign):
                 # gnd gap in test structure is now equal to
                 # the same of first xmon cross, where polygon is placed
                 gnd_gap=20e3,
-                pads_gap=self.qubits[0].disk_cap_shunt.pars.disk_gap
+                pads_gap=(
+                        self.qubits[0].disk_cap_shunt.pars.disk_gap -
+                        (
+                                self.qubits[0].squid_pimp.length() -
+                                self.qubits[0].disk_cap_shunt.pars.disk_r
+                        )
+                )
             )
             self.test_squids_pads.append(test_struct1)
             test_struct1.place(self.region_ph)
@@ -1054,7 +1091,13 @@ class Design12QStair(ChipDesign):
             test_struct2 = TestStructurePadsSquare(
                 struct_center + DPoint(0.3e6, 0),
                 gnd_gap=20e3,
-                pads_gap=self.qubits[0].disk_cap_shunt.pars.disk_gap
+                pads_gap=(
+                        self.qubits[0].disk_cap_shunt.pars.disk_gap -
+                        (
+                                self.qubits[0].squid_pimp.length() -
+                                self.qubits[0].disk_cap_shunt.pars.disk_r
+                        )
+                )
             )
             self.test_squids_pads.append(test_struct2)
             test_struct2.place(self.region_ph)
@@ -1110,7 +1153,7 @@ class Design12QStair(ChipDesign):
         test_dc_el2_centers = [
             DPoint(1.8e6, 7.8e6),
             DPoint(12.5e6, 10.7e6),
-            DPoint(8.5e6, 3e6)
+            DPoint(4.5e6, 2e6)
         ]
         for struct_center in test_dc_el2_centers:
             test_struct1 = TestStructurePadsSquare(struct_center)
@@ -1337,7 +1380,7 @@ class Design12QStair(ChipDesign):
                             Bridge1.bridgify_CPW(
                                 primitive, bridges_step, dest=self.region_bridges1, gnd2gnd_dy=70e3,
                                 dest2=self.region_bridges2
-                                )
+                            )
                     continue
                 elif "fork" in name:  # skip fork primitives
                     continue
@@ -1356,7 +1399,6 @@ class Design12QStair(ChipDesign):
             if ctr_line is None:
                 continue
             else:
-                print("control lines avoid points", self.control_lines_avoid_points)
                 Bridge1.bridgify_CPW(
                     cpw=ctr_line,
                     bridges_step=bridges_step, gnd2gnd_dy=100e3,
@@ -1425,24 +1467,20 @@ class Design12QStair(ChipDesign):
             gnd2gnd_dy=100e3, dest2=self.region_bridges2,
             avoid_points=self.resonator_avoid_points + self.intersection_points,
             avoid_distances=avoid_distances
-            )
+        )
         Bridge1.bridgify_CPW(
             self.ro_lines[1], bridges_step=bridges_step, dest=self.region_bridges1,
             gnd2gnd_dy=100e3, dest2=self.region_bridges2,
             avoid_points=self.resonator_avoid_points + self.intersection_points,
             avoid_distances=avoid_distances
-            )
-
+        )
 
         ''' Cqq couplings '''
-
 
     def draw_pinning_holes(self):
         # points that select polygons of interest if they were clicked at)
         selection_pts = [
-            Point(0.1e6, 0.1e6),
-            (self.cpwrl_ro_line1.start + self.cpwrl_ro_line1.end) / 2,
-            (self.cpwrl_ro_line2.start + self.cpwrl_ro_line2.end) / 2
+            Point(0.1e6, 0.1e6)
         ]
 
         # creating region of small boxes (polygon selection requires
@@ -1490,19 +1528,41 @@ class Design12QStair(ChipDesign):
         self.lv.zoom_fit()
 
     def draw_additional_boxes(self):
-        abox_top_ph = pya.Box(Point(self.chip.dx/2,self.chip.dy/2) + Point(-self.chip.dx * 0.3, self.chip.dx * 0.52),
-                Point(self.chip.dx/2,self.chip.dy/2) + Point(self.chip.dx * 0.3, self.chip.dx * 0.62))
-        abox_bot_ph = pya.Box(Point(self.chip.dx/2,self.chip.dy/2) - Point(-self.chip.dx * 0.3, self.chip.dx * 0.52),
-                           Point(self.chip.dx/2,self.chip.dy/2) - Point(self.chip.dx * 0.3, self.chip.dx * 0.62))
+        abox_top_ph = pya.Box(
+            Point(self.chip.dx / 2, self.chip.dy / 2) + Point(
+                -self.chip.dx * 0.3, self.chip.dx * 0.52
+                ),
+            Point(self.chip.dx / 2, self.chip.dy / 2) + Point(
+                self.chip.dx * 0.3, self.chip.dx * 0.62
+                )
+            )
+        abox_bot_ph = pya.Box(
+            Point(self.chip.dx / 2, self.chip.dy / 2) - Point(
+                -self.chip.dx * 0.3, self.chip.dx * 0.52
+                ),
+            Point(self.chip.dx / 2, self.chip.dy / 2) - Point(
+                self.chip.dx * 0.3, self.chip.dx * 0.62
+                )
+            )
         self.region_ph.insert(abox_top_ph)
         self.region_ph.insert(abox_bot_ph)
 
         abox_top_el = pya.Box(
-            Point(self.chip.dx / 2, self.chip.dy / 2) + Point(-self.chip.dx * 0.35, self.chip.dx * 0.54),
-            Point(self.chip.dx / 2, self.chip.dy / 2) + Point(self.chip.dx * 0.35, self.chip.dx * 0.6))
+            Point(self.chip.dx / 2, self.chip.dy / 2) + Point(
+                -self.chip.dx * 0.35, self.chip.dx * 0.54
+                ),
+            Point(self.chip.dx / 2, self.chip.dy / 2) + Point(
+                self.chip.dx * 0.35, self.chip.dx * 0.6
+                )
+        )
         abox_bot_el = pya.Box(
-            Point(self.chip.dx / 2, self.chip.dy / 2) - Point(-self.chip.dx * 0.35, self.chip.dx * 0.54),
-            Point(self.chip.dx / 2, self.chip.dy / 2) - Point(self.chip.dx * 0.35, self.chip.dx * 0.6))
+            Point(self.chip.dx / 2, self.chip.dy / 2) - Point(
+                -self.chip.dx * 0.35, self.chip.dx * 0.54
+                ),
+            Point(self.chip.dx / 2, self.chip.dy / 2) - Point(
+                self.chip.dx * 0.35, self.chip.dx * 0.6
+                )
+        )
         self.region_bridges1.insert(abox_top_el)
         self.region_bridges1.insert(abox_bot_el)
 
@@ -1566,6 +1626,27 @@ class Design12QStair(ChipDesign):
         )
 
         return crop_box
+
+    def extend_photo_overetching(self):
+        # TODO: add to parent class
+        tmp_reg = Region()
+        ep = pya.EdgeProcessor()
+        for poly in self.region_ph.each():
+            tmp_reg.insert(
+                ep.simple_merge_p2p(
+                    [
+                        poly.sized(
+                            FABRICATION.OVERETCHING,
+                            FABRICATION.OVERETCHING,
+                            2
+                        )
+                    ],
+                    False,
+                    False,
+                    1
+                )
+            )
+        self.region_ph = tmp_reg
 
 
 def simulate_res_f_and_Q(q_idx, resolution=(2e3, 2e3), type='freq'):
