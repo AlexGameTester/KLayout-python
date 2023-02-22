@@ -36,5 +36,5 @@ SQUID_PARS = AsymSquidParams(
     TC_dy=5e3 * np.sqrt(2) / 2 + 1e3,
     BC_dx=(BC_dx, BC_dx),
     BC_dy=5e3 * np.sqrt(2) / 2 + 1e3,
-    TCW_dx=0.5e3, TCW_dy=15.232e3, BCW_dy=0e3
+    TCW_dx=0.5e3, TCW_dy=5.232e3, BCW_dy=0e3
 )

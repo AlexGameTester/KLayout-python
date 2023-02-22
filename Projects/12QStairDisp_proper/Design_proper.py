@@ -204,22 +204,22 @@ class Design12QStair(ChipDesign):
         """
         self.draw_chip()
         self.draw_qubits_array()
-        self.draw_qq_couplings()
+        # self.draw_qq_couplings()
+        #
+        # self.draw_readout_resonators()
+        # self.draw_microwave_drvie_lines()
+        # self.draw_flux_control_lines()
+        # self.draw_readout_lines()
 
-        self.draw_readout_resonators()
-        self.draw_microwave_drvie_lines()
-        self.draw_flux_control_lines()
-        self.draw_readout_lines()
+        # self.resolve_intersections()
 
-        self.resolve_intersections()
-
-        # self.draw_test_structures()
-        # self.draw_express_test_structures_pads()
+        self.draw_test_structures()
+        self.draw_express_test_structures_pads()
         self.draw_bandages()
 
-        # self.add_chip_marking(text_bl=DPoint(7.5e6, 2e6), chip_name="8Q_0.0.0.1")
+        self.add_chip_marking(text_bl=DPoint(7.5e6, 2e6), chip_name="8Q_0.0.0.1")
         #
-        self.draw_litography_alignment_marks()
+        # self.draw_litography_alignment_marks()
         # self.draw_bridges()
         # self.draw_pinning_holes()
         # # 4Q_Disp_Xmon v.0.3.0.8 p.12 - ensure that contact pads has no holes

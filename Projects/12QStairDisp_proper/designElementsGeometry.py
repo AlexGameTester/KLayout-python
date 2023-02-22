@@ -230,20 +230,6 @@ class Qubit(ComplexBase):
         qubit_finger_end = self.disk_cap_shunt.connections[0]
 
         # draw squid
-        # squid_pars = self.qubit_params.squid_params
-        # vertical shift of every squid local origin coordinates
-        # this line puts squid center on the
-        # "outer capacitor plate's edge" of the shunting capacitance.
-
-        # next step is to make additional shift such that top of the
-        # BC polygon is located at the former squid center position with
-        # additional `_shift_into_substrate = 1.5e3` um shift in direction of substrate
-        # _shift_to_BC_center = squid_pars.shadow_gap / 2 + \
-        #                       squid_pars.SQLBT_dy + squid_pars.SQB_dy + \
-        #                       squid_pars.BCW_dy + \
-        #                       self._shift_into_substrate
-        # squid_center += DVector(0, _shift_to_BC_center)
-
         self.squid = AsymSquid(
             origin=qubit_finger_end,
             params=self.qubit_params.squid_params,
@@ -253,11 +239,25 @@ class Qubit(ComplexBase):
         connector_angles = self.qubit_params.qubit_cap_params.connector_angles
         connector_idx = self.qubit_params.squid_connector_idx
         angle = connector_angles[connector_idx]
-        self.squid.make_trans(DCplxTrans(1, 0, False, 8.0001234e3, 0))
+        # shift squid to make its bottom contact pads intersected by ground plane
+        # exactly through center
+        outer_disk_r = self.disk_cap_shunt.pars.disk_r + self.disk_cap_shunt.pars.disk_gap
+        shift_dx =  outer_disk_r - self.squid.BC_list[0].center().x
+        self.squid.make_trans(DCplxTrans(1, 0, False, shift_dx, 0))
         self.squid.make_trans(DCplxTrans(1, angle, False, 0, 0))
 
         self.primitives["squid"] = self.squid
         self.primitives["disk_cap_shunt"] = self.disk_cap_shunt
+
+        # draw pimp in order to shorten SQUID vertical dimensions
+        self.squid_pimp = CPW(
+            start=origin,
+            end=self.squid.TC.center(),
+            width=2 * self.squid.squid_params.squid_dx,
+            gap=0,
+            region_id=self.region_ids[0]
+        )
+        self.primitives["squid_pimp"] = self.squid_pimp
 
         self.connections.append(origin)
 
