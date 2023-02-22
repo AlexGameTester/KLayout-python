@@ -1319,7 +1319,7 @@ class Bridge1(ElementBase):
         if hasattr(avoid_points, "__len__"):
             avoid_distances = [avoid_distances] * len(avoid_points)
 
-        if isinstance(cpw, CPW):
+        if cpw.__class__.__name__ == "CPW":
             # recursion base
             alpha = atan2(cpw.dr.y, cpw.dr.x)
             cpw_len = cpw.dr.abs()
@@ -1382,7 +1382,7 @@ class Bridge1(ElementBase):
                         dest=dest, layer_i=bridge_layer2,
                         region_id="bridges_2"
                     )
-        elif isinstance(cpw, CPWArc):
+        elif cpw.__class__.__name__ == "CPWArc":
             # only 1 bridge is placed, in the middle of an arc
 
             alpha_mid = cpw.alpha_start + cpw.delta_alpha / 2 - np.pi / 2
@@ -1411,10 +1411,9 @@ class Bridge1(ElementBase):
                     dest=dest, layer_i=bridge_layer2,
                     region_id="bridges_2"
                 )
-        elif isinstance(cpw, CPWRLPath) or isinstance(cpw, Coil_type_1) \
-                or isinstance(cpw, DPathCPW):
+        elif cpw.__class__.__name__ in ["CPWRLPath", "Coil_type_1", "DPathCPW"]:
             for name, primitive in cpw.primitives.items():
-                if isinstance(primitive, CPW):
+                if primitive.__class__.__name__ == "CPW":
                     Bridge1.bridgify_CPW(
                         cpw=primitive, bridges_step=bridges_step, dest=dest,
                         bridge_layer1=bridge_layer1, gnd2gnd_dy=gnd2gnd_dy,
