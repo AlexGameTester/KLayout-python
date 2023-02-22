@@ -1322,7 +1322,6 @@ class Design12QStair(ChipDesign):
 
     def draw_bridges(self):
         bridges_step = 130e3
-        fl_bridges_step = 130e3
 
         # for readout resonators
         for resonator in self.resonators:
@@ -1349,6 +1348,7 @@ class Design12QStair(ChipDesign):
                         res_primitive, bridges_step, dest=self.region_bridges1, gnd2gnd_dy=70e3,
                         dest2=self.region_bridges2
                     )
+
         ''' contact wires '''
         self.control_lines_avoid_points += [squid.origin for squid in self.squids]
         self.control_lines_avoid_points += self.intersection_points
@@ -1358,8 +1358,10 @@ class Design12QStair(ChipDesign):
             else:
                 print("control lines avoid points", self.control_lines_avoid_points)
                 Bridge1.bridgify_CPW(
-                    ctr_line, bridges_step, dest=self.region_bridges1, gnd2gnd_dy=100e3,
-                    dest2=self.region_bridges2, avoid_points=self.control_lines_avoid_points,
+                    cpw=ctr_line,
+                    bridges_step=bridges_step, gnd2gnd_dy=100e3,
+                    dest=self.region_bridges1, dest2=self.region_bridges2,
+                    avoid_points=self.control_lines_avoid_points,
                     avoid_distances=300e3
                 )
 

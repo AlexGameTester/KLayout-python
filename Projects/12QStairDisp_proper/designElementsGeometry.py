@@ -405,7 +405,12 @@ class ROResonatorParams():
     L3_list = []  # get numericals from Design_fast
     L4_list = [60e3] * 12  # res_r_list
     Z_res_list = [CPWParameters(width=20e3, gap=10e3)] * 12
-    to_line_list = [55e3, 55e3, 55e3, 55e3] * 3
+    to_line_list = [
+        55e3, 54e3, 54e3,
+        54e3, 55e3, 54e3, 55e3,
+        55e3, 54e3, 54e3,
+        54e3, 54e3
+    ]
 
     tail_segments_list = [[60000.0, 215000.0, 60000.0]] * 12
     res_tail_shapes_list = ["LRLRL"] * 12
