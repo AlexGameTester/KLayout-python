@@ -1535,7 +1535,7 @@ class Intersection:
         # sideways bridges, shifted along cpw2 (unit vector `s2`)
         bridge2 = Bridge1(
             center=intersection + cpw1.b * s2,
-            gnd2gnd_dy=ground_filling_cpw1.dr.abs() + cpw1.gap,
+            gnd2gnd_dy=ground_filling_cpw1.dr.abs() + 2 * cpw1.gap + cpw1.gap,
             trans_in=DCplxTrans(1, -90 + 180 * np.arctan2(s1.y, s1.x) / np.pi, False, 0, 0)
         )
         bridge2.place(bridge_reg1, region_id="bridges_1")
@@ -1543,7 +1543,7 @@ class Intersection:
 
         bridge3 = Bridge1(
             center=intersection - cpw1.b * s2,
-            gnd2gnd_dy=ground_filling_cpw1.dr.abs() + cpw1.gap,
+            gnd2gnd_dy=ground_filling_cpw1.dr.abs() + 2 * cpw1.gap + cpw1.gap,
             trans_in=DCplxTrans(1, -90 + 180 * np.arctan2(s1.y, s1.x) / np.pi, False, 0, 0)
         )
         bridge3.place(bridge_reg1, region_id="bridges_1")
