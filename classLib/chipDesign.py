@@ -1,13 +1,20 @@
-import pya
-from pya import Region, DPoint, Cell, Vector, Trans, DSimplePolygon
-from pya import ICplxTrans
-
-from classLib._PROG_SETTINGS import PROGRAM
-
+# import built-ins
 from collections import OrderedDict
 import numpy as np
 from numbers import Number
-from typing import Union
+from typing import Union, List
+
+# import good 3rd party
+
+# import project specific 3rd party
+import pya
+from pya import Region, DPoint, Cell, Vector, Trans
+from pya import ICplxTrans
+from pya import SimplePolygon, DSimplePolygon, DBox
+
+# import project lib
+from classLib._PROG_SETTINGS import PROGRAM
+from classLib.marks import CutMark
 
 
 class ChipDesign:
@@ -34,6 +41,7 @@ class ChipDesign:
         # basic regions for sample
         self.region_ph: Region = Region()
         self.region_el: Region = Region()
+        self.region_cut: Region = Region()
 
         # this insures that lv and cv are valid objects
         if (self.lv == None):
@@ -52,9 +60,11 @@ class ChipDesign:
 
         # basic layers for sample
         info = pya.LayerInfo(1, 0)
-        info2 = pya.LayerInfo(2, 0)
         self.layer_ph = self.layout.layer(info)  # photoresist layer
+        info2 = pya.LayerInfo(2, 0)
         self.layer_el = self.layout.layer(info2)  # e-beam lithography layer
+        info3 = pya.LayerInfo(10, 0)
+        self.layer_cut = self.layout.layer(info3)
 
         # clear this cell and layer
         self.cell.clear()
@@ -72,6 +82,9 @@ class ChipDesign:
         # self.draw(...) call are stored here as ordered dict
         self.design_pars = OrderedDict()
         self.sonnet_ports: list[DPoint] = []
+
+        # additional default design structures
+        self.cutting_marks: List[CutMark] = []
 
     def get_version(self):
         return self.version
@@ -97,13 +110,21 @@ class ChipDesign:
         """
         raise NotImplementedError
 
-    def add_chip_marking(self, text_bl:DPoint, text_scale=320, chip_name="forgotten chip_name"):
+    def add_chip_marking(self, text_bl: DPoint, text_scale=320, chip_name="forgotten chip_name"):
         text_reg = pya.TextGenerator.default_generator().text(
             chip_name, 0.001, text_scale, False, 0, 0)
         text_reg.transform(
             ICplxTrans(1.0, 0, False, text_bl.x, text_bl.y)
         )
         self.region_ph -= text_reg
+
+    def draw_cutting_marks(self):
+        box = DSimplePolygon(DBox(self.region_ph.bbox()))
+        for point in box.each_point():
+            self.cutting_marks.append(
+                CutMark(origin=point)
+            )
+            self.cutting_marks[-1].place(self.region_cut)
 
     # Call this m
     def show(self, design_params=None):
@@ -119,6 +140,7 @@ class ChipDesign:
         # layers set
         self.cell.shapes(self.layer_ph).insert(self.region_ph)
         self.cell.shapes(self.layer_el).insert(self.region_el)
+        self.cell.shapes(self.layer_cut).insert(self.region_cut)
         self.lv.zoom_fit()
 
     # Erases everything outside the box

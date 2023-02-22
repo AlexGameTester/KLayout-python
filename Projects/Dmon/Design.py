@@ -1589,10 +1589,9 @@ class DesignDmon(ChipDesign):
                         # but not on linear segments
                         if "arc" in primitive_name:
                             Bridge1.bridgify_CPW(
-                                primitive, bridges_step,
-                                dest=self.region_bridges1,
+                                primitive, bridges_step, dest=self.region_bridges1,
                                 dest2=self.region_bridges2
-                            )
+                                )
                     continue
                 elif "fork" in name:  # skip fork primitives
                     continue
@@ -1604,19 +1603,15 @@ class DesignDmon(ChipDesign):
                     if name == "arc1":
                         continue
                     Bridge1.bridgify_CPW(
-                        res_primitive, bridges_step,
-                        dest=self.region_bridges1,
+                        res_primitive, bridges_step, dest=self.region_bridges1,
                         dest2=self.region_bridges2
-                    )
+                        )
 
         for i, cpw_fl in enumerate(self.cpw_fl_lines):
             Bridge1.bridgify_CPW(
-                cpw_fl, bridges_step=bridges_step,
-                dest=self.region_bridges1,
-                dest2=self.region_bridges2,
-                avoid_points=[cpw_fl.end],
-                avoid_distances=130e3
-            )
+                cpw_fl, bridges_step=bridges_step, dest=self.region_bridges1,
+                dest2=self.region_bridges2, avoid_points=[cpw_fl.end], avoid_distances=130e3
+                )
             dy_list = [30e3, 130e3]
             for dy in dy_list:
                 if i < 3:
@@ -1636,11 +1631,10 @@ class DesignDmon(ChipDesign):
             )
 
         Bridge1.bridgify_CPW(
-            self.cpwrl_ro_line, bridges_step,
-            dest=self.region_bridges1, dest2=self.region_bridges2,
+            self.cpwrl_ro_line, bridges_step, dest=self.region_bridges1, dest2=self.region_bridges2,
             avoid_points=avoid_resonator_points,
             avoid_distances=3 / 4 * max(self.L_coupling_list) + self.res_r
-        )
+            )
 
     def draw_pinning_holes(self):
         selection_region = Region(

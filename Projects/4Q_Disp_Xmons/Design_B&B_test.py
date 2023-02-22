@@ -1179,10 +1179,9 @@ class Design5QTest(ChipDesign):
                         # but not on linear segments
                         if "arc" in primitive_name:
                             Bridge1.bridgify_CPW(
-                                primitive, bridges_step,
-                                dest=self.region_bridges1,
+                                primitive, bridges_step, dest=self.region_bridges1,
                                 dest2=self.region_bridges2
-                            )
+                                )
                     continue
                 elif "fork" in name:  # skip fork primitives
                     continue
@@ -1194,27 +1193,22 @@ class Design5QTest(ChipDesign):
                     if name == "arc1":
                         continue
                     Bridge1.bridgify_CPW(
-                        res_primitive, bridges_step,
-                        dest=self.region_bridges1,
+                        res_primitive, bridges_step, dest=self.region_bridges1,
                         dest2=self.region_bridges2
-                    )
+                        )
 
         # for contact wires
         for key, val in self.__dict__.items():
             if "cpwrl_md" in key:
                 Bridge1.bridgify_CPW(
-                    val, bridges_step,
-                    dest=self.region_bridges1, dest2=self.region_bridges2,
-                    avoid_points=[squid.origin for squid in self.squids],
-                    avoid_distances=200e3
-                )
+                    val, bridges_step, dest=self.region_bridges1, dest2=self.region_bridges2,
+                    avoid_points=[squid.origin for squid in self.squids], avoid_distances=200e3
+                    )
             elif "cpwrl_fl" in key:
                 Bridge1.bridgify_CPW(
-                    val, fl_bridges_step,
-                    dest=self.region_bridges1, dest2=self.region_bridges2,
-                    avoid_points=[squid.origin for squid in self.squids],
-                    avoid_distances=400e3
-                )
+                    val, fl_bridges_step, dest=self.region_bridges1, dest2=self.region_bridges2,
+                    avoid_points=[squid.origin for squid in self.squids], avoid_distances=400e3
+                    )
 
         for i, cpw_fl in enumerate(self.cpw_fl_lines):
             dy = 220e3
@@ -1236,9 +1230,8 @@ class Design5QTest(ChipDesign):
                 self.cpwrl_ro_line.primitives.values()):
             if idx in bridgified_primitives_idxs:
                 Bridge1.bridgify_CPW(
-                    primitive, bridges_step,
-                    dest=self.region_bridges1, dest2=self.region_bridges2
-                )
+                    primitive, bridges_step, dest=self.region_bridges1, dest2=self.region_bridges2
+                    )
 
     def draw_pinning_holes(self):
         selection_region = Region(

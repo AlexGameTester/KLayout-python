@@ -192,6 +192,11 @@ class Design12QStair(ChipDesign):
             transition_len=250e3
         )
 
+        ''' Bandages avoiding points '''
+        self.intersection_points: List[DPoint] = []
+        self.resonator_avoid_points: List[DPoint] = []
+        self.control_lines_avoid_points: List[DPoint] = []
+
     def draw(self, design_params=None):
         """
 
@@ -206,21 +211,21 @@ class Design12QStair(ChipDesign):
         self.draw_qubits_array()
         # self.draw_qq_couplings()
         #
-        # self.draw_readout_resonators()
-        # self.draw_microwave_drvie_lines()
-        # self.draw_flux_control_lines()
-        # self.draw_readout_lines()
+        self.draw_readout_resonators()
+        self.draw_microwave_drvie_lines()
+        self.draw_flux_control_lines()
+        self.draw_readout_lines()
 
-        # self.resolve_intersections()
+        self.resolve_intersections()
 
-        self.draw_test_structures()
-        self.draw_express_test_structures_pads()
-        self.draw_bandages()
+        # self.draw_test_structures()
+        # self.draw_express_test_structures_pads()
+        # self.draw_bandages()
 
-        self.add_chip_marking(text_bl=DPoint(7.5e6, 2e6), chip_name="8Q_0.0.0.1")
-        #
+        # self.add_chip_marking(text_bl=DPoint(7.5e6, 2e6), chip_name="8Q_0.0.0.1")
+
         # self.draw_litography_alignment_marks()
-        # self.draw_bridges()
+        self.draw_bridges()
         # self.draw_pinning_holes()
         # # 4Q_Disp_Xmon v.0.3.0.8 p.12 - ensure that contact pads has no holes
         # for contact_pad in self.contact_pads:
@@ -234,6 +239,9 @@ class Design12QStair(ChipDesign):
         # # convert to litograph readable format. Litograph can't handle
         # # polygons with more than 200 vertices.
         # self.split_polygons_in_layers(max_pts=180)
+
+        # for processes after litographies
+        self.draw_cutting_marks()
 
     def draw_postpone(self):
         """
@@ -987,13 +995,14 @@ class Design12QStair(ChipDesign):
                     continue
 
                 # ro line is placed later and is to be preserved continuous
-                res = Intersection.get_intersected_cpws(dpathcpw_line, ro_line)
-                if res is not None:
-                    cpw1, cpw2 = res
-                    Intersection.resolve_cpw_cpw_intersection(
+                result = Intersection.get_intersected_cpws(dpathcpw_line, ro_line)
+                if result is not None:
+                    cpw1, cpw2 = result
+                    intersection_pt = Intersection.resolve_cpw_cpw_intersection(
                         cpw1=cpw1, cpw2=cpw2, cpw_reg=self.region_ph,
                         bridge_reg1=self.region_bridges1, bridge_reg2=self.region_bridges2
                     )
+                    self.intersection_points.append(intersection_pt)
 
     def draw_test_structures(self):
         struct_centers = [
@@ -1320,60 +1329,49 @@ class Design12QStair(ChipDesign):
                     for primitive_name, primitive in subprimitives.items():
                         # place bridges only at arcs of coils
                         # but not on linear segments
+                        # hence "coil0" - primitive containing resonator-waveguide coupling
+                        # staright line will be excluded
                         if "arc" in primitive_name:
                             Bridge1.bridgify_CPW(
-                                primitive, bridges_step,
-                                gnd2gnd_dy=70e3,
-                                dest=self.region_bridges1,
+                                primitive, bridges_step, dest=self.region_bridges1, gnd2gnd_dy=70e3,
                                 dest2=self.region_bridges2
-                            )
+                                )
                     continue
                 elif "fork" in name:  # skip fork primitives
                     continue
+                elif "arc" in name:  # skip all arcs
+                    continue
                 else:
-                    # bridgify everything else except "arc1"
-                    # resonator.primitives["arc1"] is arc that connects
-                    # L_coupling with long vertical line for
-                    # `EMResonatorTL3QbitWormRLTailXmonFork`
-                    if name == "arc1":
-                        continue
                     Bridge1.bridgify_CPW(
-                        res_primitive, bridges_step,
-                        gnd2gnd_dy=70e3,
-                        dest=self.region_bridges1,
+                        res_primitive, bridges_step, dest=self.region_bridges1, gnd2gnd_dy=70e3,
                         dest2=self.region_bridges2
                     )
-
-        # for contact wires
-        for key, val in self.__dict__.items():
-            if "cpwrl_md" in key:
-                cpwrl_md = val
+        ''' contact wires '''
+        self.control_lines_avoid_points += [squid.origin for squid in self.squids]
+        self.control_lines_avoid_points += self.intersection_points
+        for ctr_line in itertools.chain(self.cpw_md_lines, self.cpw_fl_lines):
+            if ctr_line is None:
+                continue
+            else:
+                print("control lines avoid points", self.control_lines_avoid_points)
                 Bridge1.bridgify_CPW(
-                    cpwrl_md, bridges_step,
-                    gnd2gnd_dy=100e3,
-                    dest=self.region_bridges1, dest2=self.region_bridges2,
-                    avoid_points=[squid.origin for squid in self.squids],
-                    avoid_distances=900e3
-                )
-            elif "cpwrl_fl" in key:
-                cpwrl_fl = val
-                Bridge1.bridgify_CPW(
-                    cpwrl_fl, fl_bridges_step,
-                    gnd2gnd_dy=100e3,
-                    dest=self.region_bridges1, dest2=self.region_bridges2,
-                    avoid_points=[squid.origin for squid in self.squids],
-                    avoid_distances=900e3
+                    ctr_line, bridges_step, dest=self.region_bridges1, gnd2gnd_dy=100e3,
+                    dest2=self.region_bridges2, avoid_points=self.control_lines_avoid_points,
+                    avoid_distances=300e3
                 )
 
-        # close bridges for cpw_fl line
-        for i, cpw_fl in enumerate(self.cpw_fl_lines):
-            dy_list = [30e3, 100e3, 235e3, 365e3, 495e3, 625e3, 755e3]
+        # close bridges for flux contact wires
+        for q_idx, cpw_fl in enumerate(self.cpw_fl_lines):
+            if cpw_fl is None:
+                continue
+            dy_list = [30e3, 100e3]
             for dy in dy_list:
-                if i < 4:
+                squid_connector_idx = self.connectivity_map.get_squid_connector_idx(qubit_idx=q_idx)
+                if squid_connector_idx == 2:
                     pass
-                elif i >= 4:
+                else:
                     dy = -dy
-                bridge_center1 = cpw_fl.end + DVector(0, -dy)
+                bridge_center1 = cpw_fl.end + DVector(0, dy)
                 br = Bridge1(
                     center=bridge_center1, gnd2gnd_dy=70e3,
                     trans_in=Trans.R90
@@ -1387,48 +1385,52 @@ class Design12QStair(ChipDesign):
                     region_id="bridges_2"
                 )
 
-        for i, cpw_md in enumerate(self.cpw_md_lines):
-            dy_list = [110e3, 240e3, 370e3, 500e3, 630e3]
-            for dy in dy_list:
-                if i < 4:
-                    pass
-                elif i >= 4:
-                    dy = -dy
-                bridge_center1 = cpw_md.end + DVector(0, -dy)
-                br = Bridge1(
-                    center=bridge_center1, gnd2gnd_dy=70e3,
-                    trans_in=Trans.R90
-                )
-                br.place(
-                    dest=self.region_bridges1,
-                    region_id="bridges_1"
-                )
-                br.place(
-                    dest=self.region_bridges2,
-                    region_id="bridges_2"
-                )
+        # for q_idx, cpw_md in enumerate(self.cpw_md_lines):
+        #     dy_list = [110e3, 240e3, 370e3, 500e3, 630e3]
+        #     for dy in dy_list:
+        #         if q_idx < 4:
+        #             pass
+        #         elif q_idx >= 4:
+        #             dy = -dy
+        #         bridge_center1 = cpw_md.end + DVector(0, -dy)
+        #         br = Bridge1(
+        #             center=bridge_center1, gnd2gnd_dy=70e3,
+        #             trans_in=Trans.R90
+        #         )
+        #         br.place(
+        #             dest=self.region_bridges1,
+        #             region_id="bridges_1"
+        #         )
+        #         br.place(
+        #             dest=self.region_bridges2,
+        #             region_id="bridges_2"
+        #         )
 
-        # for readout waveguides
-        avoid_points = []
+        ''' readout lines  '''
+        self.resonator_avoid_points = []
         avoid_distances = []
         for res in self.resonators:
             av_pt = res.primitives["coil0"].primitives["cop1"].center()
-            avoid_points.append(av_pt)
-            av_dist = res.L_coupling / 2 + res.r + res.Z0.b / 2
-            avoid_distances.append(av_dist)
+            self.resonator_avoid_points.append(av_pt)
+            avoid_distance = res.L_coupling / 2 + res.r + res.Z0.b / 2
+            avoid_distances.append(avoid_distance)
+        print("RO lines avoid_distances:", avoid_distances)
+        Bridge1.bridgify_CPW(
+            self.ro_lines[0], bridges_step=bridges_step, dest=self.region_bridges1,
+            gnd2gnd_dy=100e3, dest2=self.region_bridges2,
+            avoid_points=self.resonator_avoid_points + self.intersection_points,
+            avoid_distances=avoid_distances
+            )
+        Bridge1.bridgify_CPW(
+            self.ro_lines[1], bridges_step=bridges_step, dest=self.region_bridges1,
+            gnd2gnd_dy=100e3, dest2=self.region_bridges2,
+            avoid_points=self.resonator_avoid_points + self.intersection_points,
+            avoid_distances=avoid_distances
+            )
 
-        Bridge1.bridgify_CPW(
-            self.ro_lines[0], gnd2gnd_dy=100e3,
-            bridges_step=bridges_step,
-            dest=self.region_bridges1, dest2=self.region_bridges2,
-            avoid_points=avoid_points, avoid_distances=avoid_distances
-        )
-        Bridge1.bridgify_CPW(
-            self.ro_lines[1], gnd2gnd_dy=100e3,
-            bridges_step=bridges_step,
-            dest=self.region_bridges1, dest2=self.region_bridges2,
-            avoid_points=avoid_points, avoid_distances=avoid_distances
-        )
+
+        ''' Cqq couplings '''
+        
 
     def draw_pinning_holes(self):
         # points that select polygons of interest if they were clicked at)
@@ -1473,8 +1475,7 @@ class Design12QStair(ChipDesign):
         # have placed their objects on related regions.
         # This design avoids extensive copy/pasting of polygons to/from
         # `cell.shapes` structure.
-        self.cell.shapes(self.layer_ph).insert(self.region_ph)
-        self.cell.shapes(self.layer_el).insert(self.region_el)
+        super(Design12QStair, self)._transfer_regs2cell()
         self.cell.shapes(self.dc_bandage_layer).insert(self.dc_bandage_reg)
         self.cell.shapes(self.layer_bridges1).insert(self.region_bridges1)
         self.cell.shapes(self.layer_bridges2).insert(self.region_bridges2)

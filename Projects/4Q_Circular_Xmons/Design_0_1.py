@@ -1238,18 +1238,18 @@ class Design4QSquare(ChipDesign):
                     # is adjacent to readout line and has length equal to `L_coupling`
                     for primitive in list(res_primitive.primitives.values())[1:]:
                         Bridge1.bridgify_CPW(
-                            primitive, bridges_step,
-                            dest=self.region_bridges1, dest2=self.region_bridges2
-                        )
+                            primitive, bridges_step, dest=self.region_bridges1,
+                            dest2=self.region_bridges2
+                            )
 
                     continue
                 elif "fork" in name:  # skip fork primitives
                     continue
                 else:  # bridgify everything else
                     Bridge1.bridgify_CPW(
-                        res_primitive, bridges_step,
-                        dest=self.region_bridges1, dest2=self.region_bridges2
-                    )
+                        res_primitive, bridges_step, dest=self.region_bridges1,
+                        dest2=self.region_bridges2
+                        )
 
         # for contact wires
         # avoid readout bridges
@@ -1259,44 +1259,39 @@ class Design4QSquare(ChipDesign):
                 if isinstance(val, list):
                     for cpw in val:
                         Bridge1.bridgify_CPW(
-                            cpw, bridges_step,
-                            dest=self.region_bridges1, dest2=self.region_bridges2,
+                            cpw, bridges_step, dest=self.region_bridges1,
+                            dest2=self.region_bridges2,
                             avoid_points=[squid.origin for squid in self.squids],
                             avoid_distances=200e3
-                        )
+                            )
                 elif isinstance(val, (CPW, CPWArc, CPWRLPath)):
                     cpw = val
                     Bridge1.bridgify_CPW(
-                        cpw, bridges_step,
-                        dest=self.region_bridges1, dest2=self.region_bridges2,
-                        avoid_points=[squid.origin for squid in self.squids],
-                        avoid_distances=200e3
-                    )
+                        cpw, bridges_step, dest=self.region_bridges1, dest2=self.region_bridges2,
+                        avoid_points=[squid.origin for squid in self.squids], avoid_distances=200e3
+                        )
             elif "cpwrl_fl" in key:
                 if isinstance(val, list):
                     for cpw in val:
                         Bridge1.bridgify_CPW(
-                            cpw, bridges_step,
-                            dest=self.region_bridges1, dest2=self.region_bridges2,
+                            cpw, bridges_step, dest=self.region_bridges1,
+                            dest2=self.region_bridges2,
                             avoid_points=[squid.origin for squid in self.squids],
                             avoid_distances=500e3
-                        )
+                            )
                 elif isinstance(val, (CPW, CPWArc, CPWRLPath)):
                     cpw = val
                     Bridge1.bridgify_CPW(
-                        cpw, bridges_step,
-                        dest=self.region_bridges1, dest2=self.region_bridges2,
-                        avoid_points=[squid.origin for squid in self.squids],
-                        avoid_distances=500e3
-                    )
+                        cpw, bridges_step, dest=self.region_bridges1, dest2=self.region_bridges2,
+                        avoid_points=[squid.origin for squid in self.squids], avoid_distances=500e3
+                        )
         # for readout waveguide
         bridgified_primitives_idxs = [0, 2, 4, 5, 6, 7, 8, 10, 12]
         for idx, cpw in enumerate(self.ro_line_segs_list):
             if idx in bridgified_primitives_idxs:
                 Bridge1.bridgify_CPW(
-                    cpw, bridges_step,
-                    dest=self.region_bridges1, dest2=self.region_bridges2
-                )
+                    cpw, bridges_step, dest=self.region_bridges1, dest2=self.region_bridges2
+                    )
 
     def draw_pinning_holes(self):
         selection_region = Region(

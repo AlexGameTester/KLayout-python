@@ -1050,33 +1050,30 @@ class Design5Q(ChipDesign):
                     # is adjacent to readout line and has length equal to `L_coupling`
                     for primitive in list(res_primitive.primitives.values())[1:]:
                         Bridge1.bridgify_CPW(
-                            primitive, bridges_step,
-                            dest=self.region_bridges1, dest2=self.region_bridges2
-                        )
+                            primitive, bridges_step, dest=self.region_bridges1,
+                            dest2=self.region_bridges2
+                            )
 
                     continue
                 elif "fork" in name:  # skip fork primitives
                     continue
                 else:  # bridgify everything else
                     Bridge1.bridgify_CPW(
-                        res_primitive, bridges_step,
-                        dest=self.region_bridges1, dest2=self.region_bridges2
-                    )
+                        res_primitive, bridges_step, dest=self.region_bridges1,
+                        dest2=self.region_bridges2
+                        )
 
         # for contact wires
         for key, val in self.__dict__.items():
             if "cpwrl_md" in key:
                 Bridge1.bridgify_CPW(
-                    val, bridges_step,
-                    dest=self.region_bridges1, dest2=self.region_bridges2
-                )
+                    val, bridges_step, dest=self.region_bridges1, dest2=self.region_bridges2
+                    )
             elif "cpwrl_fl" in key:
                 Bridge1.bridgify_CPW(
-                    val, bridges_step,
-                    dest=self.region_bridges1, dest2=self.region_bridges2,
-                    avoid_points=[squid.origin for squid in self.squids],
-                    avoid_distances=500e3
-                )
+                    val, bridges_step, dest=self.region_bridges1, dest2=self.region_bridges2,
+                    avoid_points=[squid.origin for squid in self.squids], avoid_distances=500e3
+                    )
         # for readout waveguide
         bridgified_primitives_idxs = list(range(2))
         bridgified_primitives_idxs += list(range(2, 2 * (len(self.resonators) + 1) + 1, 2))
@@ -1087,9 +1084,8 @@ class Design5Q(ChipDesign):
         for idx, primitive in enumerate(self.cpwrl_ro_line.primitives.values()):
             if idx in bridgified_primitives_idxs:
                 Bridge1.bridgify_CPW(
-                    primitive, bridges_step,
-                    dest=self.region_bridges1, dest2=self.region_bridges2
-                )
+                    primitive, bridges_step, dest=self.region_bridges1, dest2=self.region_bridges2
+                    )
 
     def draw_pinning_holes(self):
         selection_region = Region(

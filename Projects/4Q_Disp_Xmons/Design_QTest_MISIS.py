@@ -1204,10 +1204,9 @@ class Design5QTest(ChipDesign):
                         # but not on linear segments
                         if "arc" in primitive_name:
                             Bridge1.bridgify_CPW(
-                                primitive, bridges_step,
-                                dest=self.region_bridges1,
+                                primitive, bridges_step, dest=self.region_bridges1,
                                 dest2=self.region_bridges2
-                            )
+                                )
                     continue
                 elif "fork" in name:  # skip fork primitives
                     continue
@@ -1219,10 +1218,9 @@ class Design5QTest(ChipDesign):
                     if name == "arc1":
                         continue
                     Bridge1.bridgify_CPW(
-                        res_primitive, bridges_step,
-                        dest=self.region_bridges1,
+                        res_primitive, bridges_step, dest=self.region_bridges1,
                         dest2=self.region_bridges2
-                    )
+                        )
 
         for i, cpw_fl in enumerate(self.cpw_fl_lines):
             dy = 220e3
@@ -1241,11 +1239,10 @@ class Design5QTest(ChipDesign):
         for idx, primitive in enumerate(
                 self.cpwrl_ro_line.primitives.values()):
             Bridge1.bridgify_CPW(
-                primitive, bridges_step,
-                dest=self.region_bridges1, dest2=self.region_bridges2,
+                primitive, bridges_step, dest=self.region_bridges1, dest2=self.region_bridges2,
                 avoid_points=avoid_resonator_points,
                 avoid_distances=max(self.L_coupling_list) / 2 + self.r
-            )
+                )
 
     def draw_pinning_holes(self):
         selection_region = Region(

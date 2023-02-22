@@ -106,11 +106,8 @@ class MyDesign(ChipDesign):
         print(isinstance(self.arc, CPWArc))
         print(type(self.arc))
         Bridge1.bridgify_CPW(
-            self.arc,
-            bridges_step=100e3,
-            dest=self.region_bridges1,
-            dest2=self.region_bridges2,
-        )
+            self.arc, bridges_step=100e3, dest=self.region_bridges1, dest2=self.region_bridges2
+            )
 
 
     def _transfer_regs2cell(self):
