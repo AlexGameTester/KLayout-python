@@ -1883,6 +1883,77 @@ def simulate_Cqr(q_idxs: List[int], resolution=(4e3, 4e3)):
         )
 
 
+def simulate_md_Cg(q_idx: int, resolution=(5e3, 5e3)):
+    # dl_list = np.linspace(-20e3, 20e3, 3)
+    dl_list = [0]
+    for dl in dl_list:
+        design = Design12QStair("testScript")
+
+        design.draw_chip()
+        design.draw_qubits_array()
+        design.draw_qq_couplings()
+        #
+        design.draw_readout_resonators(q_idx_direct=q_idx)
+        design.draw_microwave_drvie_lines()
+
+        ''' CROP BOX CALCULATION SECTION START '''
+        qubit = design.qubits[q_idx]
+        q_reg = qubit.disk_cap_shunt.metal_region
+        md_line = design.cpw_md_lines[q_idx]
+        md_reg = md_line.metal_region
+
+        # TODO: make simulation such that all polygons (except those with ports are connected to
+        #  ground). Now it is tolerable to have some of them (with large capacity to ground) to
+        #  stay with floating potential (it will be close to ground plane potential due to their
+        #  respectively large capacitance to ground i.e. low impedance to ground).
+
+        md_dv_n = -list(md_line.primitives.values())[-1].dr  # goes out from qubit towards md line
+        md_dv_n /= md_dv_n.abs()
+        md_importance_length = design.md_line_cpw12_smoothhing + 3/2*design.md_line_cpw2_len
+
+        box_region = q_reg.sized(1 * q_reg.bbox().width(), 1 * q_reg.bbox().height()) + \
+                     Region(  # add a box-point to region
+                         pya.Box(
+                             qubit.origin + 2*md_importance_length*md_dv_n,
+                             qubit.origin + 2*md_importance_length*md_dv_n + DVector(1e3, 1e3)
+                         )
+                     )
+        # and take their smallest enclosing Region
+        box_region = Region(box_region.bbox())
+
+        C1, C12, C2 = simulate_cij(
+            design=design, layer=design.layer_ph,
+            subregs=[q_reg, md_reg], env_reg=box_region,
+            resolution=resolution, print_values=True
+        )
+        print()
+        '''SAVING REUSLTS SECTION START'''
+        design.save_as_gds2(
+            filename=os.path.join(
+                PROJECT_DIR,
+                f"Cg_md_{q_idx}.gds"
+            )
+        )
+
+        output_filepath = os.path.join(
+            PROJECT_DIR,
+            f"Cmd_q_results.csv"
+        )
+        save_sim_results(
+            output_filepath=output_filepath,
+            design=design,
+            additional_pars={
+                "q_idx"                       : q_idx,
+                "resolution"                  : resolution,
+                "md_line_cpw2_len, um"        : design.md_line_cpw2_len,
+                "md_line_cpw12_smoothhing, um": design.md_line_cpw12_smoothhing,
+                "C1, fF"                      : C1,
+                "C2, fF"                      : C2,
+                "C12, fF"                     : C12
+            }
+        )
+
+
 if __name__ == "__main__":
     ''' draw and show design for manual design evaluation '''
     FABRICATION.OVERETCHING = 0.0e3
@@ -1918,7 +1989,8 @@ if __name__ == "__main__":
     # simulate_Cqq(q1_idx=5, q2_idx=6, resolution=(2e3, 2e3))
 
     ''' MD line C_qd for md1,..., md6 '''
-    
+    for q_idx in [10, 11]:
+        simulate_md_Cg(q_idx=q_idx, resolution=(4e3, 4e3))
 
     ''' Resonators Q and f sim'''
     # simulate_resonators_f_and_Q(resolution=(2e3, 2e3))
