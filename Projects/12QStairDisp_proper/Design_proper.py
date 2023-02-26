@@ -227,6 +227,7 @@ class Design12QStair(ChipDesign):
         self.draw_test_structures()
         self.draw_express_test_structures_pads()
         self.draw_bandages()
+        self.draw_el_protection()
 
         self.add_chip_marking(text_bl=DPoint(2.6e6, 1.2e6), chip_name="8Q_0.0.0.0", text_scale=200)
 
@@ -1350,6 +1351,20 @@ class Design12QStair(ChipDesign):
             BC = squid.BC_list[i]
             recess_reg = BC.metal_region.dup().size(-1e3)
             self.region_ph -= recess_reg
+
+    def draw_el_protection(self):
+        protection_a = 300e3
+        for squid in (self.squids + self.test_squids):
+            self.region_el_protection.insert(
+                pya.Box().from_dbox(
+                    pya.DBox(
+                        squid.center - 0.5 * DVector(protection_a,
+                                                     protection_a),
+                        squid.center + 0.5 * DVector(protection_a,
+                                                     protection_a)
+                    )
+                )
+            )
 
     def draw_litography_alignment_marks(self):
         marks_centers = [
