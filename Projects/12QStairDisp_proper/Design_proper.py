@@ -1083,7 +1083,7 @@ class Design12QStair(ChipDesign):
 
             squid_center = test_struct1.center
             test_jj = AsymSquid(
-                squid_center + DVector(0, -8.0001234e3),
+                squid_center + DVector(0, -8.0001234e3) + DVector(0, 5.126e3),
                 pars_local
             )
             self.test_squids.append(test_jj)
@@ -1120,7 +1120,7 @@ class Design12QStair(ChipDesign):
 
             squid_center = test_struct2.center
             test_jj = AsymSquid(
-                squid_center + DVector(0, -8.0001234e3),
+                squid_center + DVector(0, -8.0001234e3) + DVector(0, 5.126e3),
                 pars_local
             )
             self.test_squids.append(test_jj)
