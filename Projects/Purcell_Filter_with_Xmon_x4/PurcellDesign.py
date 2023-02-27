@@ -51,7 +51,7 @@ from sonnetSim import SonnetLab, SonnetPort, SimulationBox
 # 0.0 - for development
 # 0.8e3 - estimation for fabrication by Bolgar photolytography etching
 # recipe
-FABRICATION.OVERETCHING = 0.e3
+FABRICATION.OVERETCHING = 0.5e3
 
 refractive_index = np.sqrt(6.26423)
 PROJECT_DIR = Path(r'C:\Users\Artem\Desktop\books\Phystech\LAQS\tasks')
@@ -168,7 +168,7 @@ class Design8QTest(ChipDesign):
         ### Contact pads ###
         self.contact_pads: list[
             ContactPad] = self.chip.get_contact_pads(
-            [self.cop_pars] * 20
+            [self.cop_pars] * 20, pad_length=700e3, back_metal_gap=100e3
         )
 
         ### Readline ###
@@ -886,7 +886,7 @@ class Design8QTest(ChipDesign):
     def draw_photo_el_marks(self):
         marks_centers = [
             DPoint(1.0e6, 12.0e6), DPoint(13.0e6, 12.0e6),
-            DPoint(1.0e6, 8.0e6), DPoint(13.0e6, 8.0e6),
+            DPoint(1.0e6, 9.0e6), DPoint(13.0e6, 9.0e6),
             DPoint(1.0e6, 2.0e6), DPoint(13.0e6, 2.0e6)
         ]
         for mark_center in marks_centers:

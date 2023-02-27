@@ -11,8 +11,6 @@ from classLib.chipTemplates import CHIP_16p5x16p5_20pads
 from classLib.resonators import EMResonatorTL3QbitWormRLTailXmonFork, EMResonatorTL3QbitWormRLTail
 from collections import OrderedDict
 
-from classLib.LogManager import LogManager
-
 
 class CapacitorParams(ElementBase):
     plate_pars: CPWParameters
