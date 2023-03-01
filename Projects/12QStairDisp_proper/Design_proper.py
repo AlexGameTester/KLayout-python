@@ -245,7 +245,7 @@ class Design12QStair(ChipDesign):
         self.resolve_holes()
         # convert to litograph readable format. Litograph can't handle
         # polygons with more than 200 vertices.
-        self.split_polygons_in_layers(max_pts=180)
+        # self.split_polygons_in_layers(max_pts=180)
 
         # for processes after litographies
         self.draw_cutting_marks()
@@ -1094,7 +1094,7 @@ class Design12QStair(ChipDesign):
 
             squid_center = test_struct1.center
             test_jj = AsymSquid(
-                squid_center + DVector(0, -8.0001234e3),
+                squid_center + DVector(0, -8.0001234e3) + DVector(0, 5.126e3),
                 pars_local
             )
             self.test_squids.append(test_jj)
@@ -1131,7 +1131,7 @@ class Design12QStair(ChipDesign):
 
             squid_center = test_struct2.center
             test_jj = AsymSquid(
-                squid_center + DVector(0, -8.0001234e3),
+                squid_center + DVector(0, -8.0001234e3) + DVector(0, 5.126e3),
                 pars_local
             )
             self.test_squids.append(test_jj)
@@ -1300,6 +1300,24 @@ class Design12QStair(ChipDesign):
                 shift2sq_center=0
             )
             # collect all bottom contacts
+
+    def draw_el_protection(self):
+        protection_a = 300e3
+        for squid in (self.squids + self.test_squids):
+            self.region_el_protection.insert(
+                pya.Box().from_dbox(
+                    pya.DBox(
+                        squid.center - 0.5 * DVector(
+                            protection_a,
+                            protection_a
+                            ),
+                        squid.center + 0.5 * DVector(
+                            protection_a,
+                            protection_a
+                            )
+                    )
+                )
+            )
 
     def _draw_squid_bandage(self, squid: AsymSquid = None, shift2sq_center=0):
         # squid direction from bottom to top
@@ -1487,7 +1505,9 @@ class Design12QStair(ChipDesign):
         # points that select polygons of interest if they were clicked at)
         selection_pts = [
             Point(0.1e6, 0.1e6),
-            Point(self.chip.dx - 0.1e6, self.chip.dy - 0.1e6)
+            Point(self.chip.dx - 0.1e6, self.chip.dy - 0.1e6),
+            DPoint(9.7e6, 2.5e6),
+            DPoint(0.3e6, 13.7e6)
         ]
 
         # append grounded polygons inside qubits grid
