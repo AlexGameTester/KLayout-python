@@ -232,7 +232,7 @@ class Design12QStair(ChipDesign):
         self.add_chip_marking(text_bl=DPoint(2.6e6, 1.2e6), chip_name="8Q_0.0.0.0", text_scale=200)
 
         self.draw_litography_alignment_marks()
-        # self.draw_bridges()
+        self.draw_bridges()
         self.draw_pinning_holes()
         # 4Q_Disp_Xmon v.0.3.0.8 p.12 - ensure that contact pads has no holes
         for contact_pad in self.contact_pads:
