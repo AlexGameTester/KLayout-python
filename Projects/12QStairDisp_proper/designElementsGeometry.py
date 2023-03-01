@@ -694,17 +694,17 @@ class ROResonator(EMResonatorTL3QbitWormRLTail):
         # print((self.arc_coupler.outer_arc_center - disk_far_bending_point).abs())
         # print(self.r)
         # print()
-        self.res_couling_arc_cpw_path = DPathCPW(
+        self.res_coulingArc_cpw_path = DPathCPW(
             points=[resonator_end, resonator_end_bending_pt,
                     disk_far_bending_point, self.arc_coupler.outer_arc_center],
             cpw_parameters=[self.Z0],
             turn_radii=[self.r],
             region_id=self.region_id
         )
-        self.primitives["res_couling_arc_cpw_path"] = self.res_couling_arc_cpw_path
+        self.primitives["res_coulingArc_cpw_path"] = self.res_coulingArc_cpw_path
 
         self.coupling_bandage = CPW(
-            start=self.res_couling_arc_cpw_path.end,
+            start=self.res_coulingArc_cpw_path.end,
             end=(self.arc_coupler.inner_arc_center + self.arc_coupler.outer_arc_center) / 2,
             width=self.Z0.width,
             gap=0,

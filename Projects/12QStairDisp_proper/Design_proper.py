@@ -259,7 +259,7 @@ class Design12QStair(ChipDesign):
         self.region_bridges2 = split_polygons(
             self.region_bridges2,
             max_pts
-            )
+        )
         for poly in self.region_ph:
             if poly.num_points() > max_pts:
                 print("exists photo")
@@ -398,7 +398,17 @@ class Design12QStair(ChipDesign):
                 qq_coupling.place(self.region_ph, region_id="ph")
                 self.q_couplings[pt1_1d_idx, pt2_1d_idx] = qq_coupling
 
-    def draw_readout_resonators(self, q_idx_direct=None):
+    def draw_readout_resonators(self, q_idx_direct: int=None):
+        """
+
+        Parameters
+        ----------
+        q_idx_direct : int
+            Draw only 1 parcticular resonator
+        Returns
+        -------
+
+        """
         q_idxs = list(range(12))
         resonator_kw_args_list = list(
             map(
@@ -584,10 +594,7 @@ class Design12QStair(ChipDesign):
                     smoothing=self.md_line_cpw12_smoothhing
                 )
 
-    def modify_md_line_end_and_place(
-        self, md_line: DPathCPW,
-        mod_length=100e3, smoothing=20e3
-    ):
+    def modify_md_line_end_and_place(self, md_line: DPathCPW, mod_length=100e3, smoothing=20e3):
         """
         Changes coplanar for `mod_length` length from the end of `md_line`.
         Transition region length along the `md_line` is controlled by passing `smoothing` value.
@@ -1041,16 +1048,20 @@ class Design12QStair(ChipDesign):
                     self.intersection_points.append(intersection_pt)
 
     def draw_test_structures(self):
+        # TODO: fix test structure SQUIDs
+        ''' Triplet of test structures for separate SQUID's JJ and bridges '''
         struct_centers = [
             DPoint(1.8e6, 6.0e6),
             DPoint(11e6, 10.7e6),
             DPoint(4.5e6, 3e6)
         ]
+        test_struct_gnd_gap = 20e3  # TODO: move to designElementsGeometry
+        test_struct_pads_gap = 40e3
         for struct_center in struct_centers:
             ## JJ test structures ##
             dx = SQUID_PARS.SQB_dx / 2 - SQUID_PARS.SQLBT_dx / 2
 
-            # test structure with big critical current (#1)
+            # test structure for left JJ's critical currents
             test_struct1 = TestStructurePadsSquare(
                 struct_center,
                 # gnd gap in test structure is now equal to
@@ -1083,7 +1094,7 @@ class Design12QStair(ChipDesign):
 
             squid_center = test_struct1.center
             test_jj = AsymSquid(
-                squid_center + DVector(0, -8.0001234e3) + DVector(0, 5.126e3),
+                squid_center + DVector(0, -8.0001234e3),
                 pars_local
             )
             self.test_squids.append(test_jj)
@@ -1120,7 +1131,7 @@ class Design12QStair(ChipDesign):
 
             squid_center = test_struct2.center
             test_jj = AsymSquid(
-                squid_center + DVector(0, -8.0001234e3) + DVector(0, 5.126e3),
+                squid_center + DVector(0, -8.0001234e3),
                 pars_local
             )
             self.test_squids.append(test_jj)
@@ -1290,10 +1301,7 @@ class Design12QStair(ChipDesign):
             )
             # collect all bottom contacts
 
-    def _draw_squid_bandage(
-        self, squid: AsymSquid = None,
-        shift2sq_center=0
-    ):
+    def _draw_squid_bandage(self, squid: AsymSquid = None, shift2sq_center=0):
         # squid direction from bottom to top
         squid_BT_dv = squid.TC.start - squid.TC.end
         squid_BT_dv_s = squid_BT_dv / squid_BT_dv.abs()  # normalized
@@ -1352,20 +1360,6 @@ class Design12QStair(ChipDesign):
             recess_reg = BC.metal_region.dup().size(-1e3)
             self.region_ph -= recess_reg
 
-    def draw_el_protection(self):
-        protection_a = 300e3
-        for squid in (self.squids + self.test_squids):
-            self.region_el_protection.insert(
-                pya.Box().from_dbox(
-                    pya.DBox(
-                        squid.center - 0.5 * DVector(protection_a,
-                                                     protection_a),
-                        squid.center + 0.5 * DVector(protection_a,
-                                                     protection_a)
-                    )
-                )
-            )
-
     def draw_litography_alignment_marks(self):
         marks_centers = [
             DPoint(0.5e6, 13.5e6), DPoint(8.3e6, 13.5e6), DPoint(13.5e6, 13.5e6),
@@ -1390,27 +1384,33 @@ class Design12QStair(ChipDesign):
                     for primitive_name, primitive in subprimitives.items():
                         # place bridges only at arcs of coils
                         # but not on linear segments
-                        # hence "coil0" - primitive containing resonator-waveguide coupling
-                        # staright line will be excluded
+                        # Note: "coil0" contains resonator-waveguide coupling as "CPW", hence it
+                        # is excluded
                         if "arc" in primitive_name:
                             Bridge1.bridgify_CPW(
-                                primitive, bridges_step, dest=self.region_bridges1, gnd2gnd_dy=70e3,
-                                dest2=self.region_bridges2
+                                cpw=primitive,
+                                bridges_step=bridges_step, gnd2gnd_dy=70e3,
+                                dest=self.region_bridges1, dest2=self.region_bridges2
                             )
+                elif any([(skip_name in name) for skip_name in ["fork", "arc"]]):
+                    # skip primitives with names above
                     continue
-                elif "fork" in name:  # skip fork primitives
-                    continue
-                elif "arc" in name:  # skip all arcs
-                    continue
-                else:
+                elif any(
+                        [
+                            (primitive_type in res_primitive.__class__.__name__)
+                            for primitive_type in ["DPathCPW", "CPW", "CPWArc"]
+                        ]
+                ):
+                    # bridgify the rest
                     Bridge1.bridgify_CPW(
-                        res_primitive, bridges_step, dest=self.region_bridges1, gnd2gnd_dy=70e3,
-                        dest2=self.region_bridges2
+                        cpw=res_primitive,
+                        bridges_step=bridges_step, gnd2gnd_dy=70e3,
+                        dest=self.region_bridges1, dest2=self.region_bridges2
                     )
 
         ''' contact wires '''
         # TODO: fix this
-        self.control_lines_avoid_points += [squid.origin for squid in self.squids]
+        self.control_lines_avoid_points += [squid.center for squid in self.squids]
         self.control_lines_avoid_points += self.intersection_points
         for ctr_line in itertools.chain(self.cpw_md_lines, self.cpw_fl_lines):
             if ctr_line is None:
@@ -1421,7 +1421,7 @@ class Design12QStair(ChipDesign):
                     bridges_step=bridges_step, gnd2gnd_dy=100e3,
                     dest=self.region_bridges1, dest2=self.region_bridges2,
                     avoid_points=self.control_lines_avoid_points,
-                    avoid_distances=300e3
+                    avoid_distances=[200e3]
                 )
 
         # close bridges for flux contact wires
@@ -1449,51 +1449,39 @@ class Design12QStair(ChipDesign):
                     region_id="bridges_2"
                 )
 
-        # for q_idx, cpw_md in enumerate(self.cpw_md_lines):
-        #     dy_list = [110e3, 240e3, 370e3, 500e3, 630e3]
-        #     for dy in dy_list:
-        #         if q_idx < 4:
-        #             pass
-        #         elif q_idx >= 4:
-        #             dy = -dy
-        #         bridge_center1 = cpw_md.end + DVector(0, -dy)
-        #         br = Bridge1(
-        #             center=bridge_center1, gnd2gnd_dy=70e3,
-        #             trans_in=Trans.R90
-        #         )
-        #         br.place(
-        #             dest=self.region_bridges1,
-        #             region_id="bridges_1"
-        #         )
-        #         br.place(
-        #             dest=self.region_bridges2,
-        #             region_id="bridges_2"
-        #         )
-
         ''' readout lines  '''
-        # TODO: fix this
+        # collecting avoid points
+        # TODO: refactor such that resonator bridgifying process utilizes
+        #  `self.resonator_avoid_points`
         self.resonator_avoid_points = []
-        avoid_distances = []
+        resonator_avoid_distances = []
         for res in self.resonators:
+            # avoid placing bridges close to thin resonator coupling
             av_pt = res.primitives["coil0"].primitives["cop1"].center()
             self.resonator_avoid_points.append(av_pt)
             avoid_distance = res.L_coupling / 2 + res.r + res.Z0.b / 2
-            avoid_distances.append(avoid_distance)
-        print("RO lines avoid_distances:", avoid_distances)
-        Bridge1.bridgify_CPW(
-            self.ro_lines[0], bridges_step=bridges_step, dest=self.region_bridges1,
-            gnd2gnd_dy=100e3, dest2=self.region_bridges2,
-            avoid_points=self.resonator_avoid_points + self.intersection_points,
-            avoid_distances=avoid_distances
-        )
-        Bridge1.bridgify_CPW(
-            self.ro_lines[1], bridges_step=bridges_step, dest=self.region_bridges1,
-            gnd2gnd_dy=100e3, dest2=self.region_bridges2,
-            avoid_points=self.resonator_avoid_points + self.intersection_points,
-            avoid_distances=avoid_distances
-        )
+            resonator_avoid_distances.append(avoid_distance)
+
+        ro_lines_avoid_points = self.resonator_avoid_points + self.intersection_points
+        # 150 um from intersectoins
+        resonator_avoid_distances += [150e3] * len(self.intersection_points)
+        for ro_line in self.ro_lines:
+            Bridge1.bridgify_CPW(
+                cpw=ro_line,
+                bridges_step=bridges_step, gnd2gnd_dy=100e3,
+                dest=self.region_bridges1, dest2=self.region_bridges2,
+                avoid_points=ro_lines_avoid_points,
+                avoid_distances=resonator_avoid_distances
+            )
 
         ''' Cqq couplings '''
+        for cqq_coupling in self.q_couplings.flat:
+            if cqq_coupling is not None:
+                Bridge1.bridgify_CPW(
+                    cpw=cqq_coupling.primitives["cpw_central"],
+                    bridges_step=bridges_step, gnd2gnd_dy=100e3,
+                    dest=self.region_bridges1, dest2=self.region_bridges2,
+                )
 
     def draw_pinning_holes(self):
         # points that select polygons of interest if they were clicked at)
@@ -1506,7 +1494,7 @@ class Design12QStair(ChipDesign):
         for q_idx in [0, 1, 3, 4, 7]:
             selection_pts.append(
                 self.qubits[q_idx].origin +
-                DVector(self.qubits_grid.dx/2, self.qubits_grid.dy/2)
+                DVector(self.qubits_grid.dx / 2, self.qubits_grid.dy / 2)
             )
 
         # creating region of small boxes (polygon selection requires
@@ -1557,37 +1545,37 @@ class Design12QStair(ChipDesign):
         abox_top_ph = pya.Box(
             Point(self.chip.dx / 2, self.chip.dy / 2) + Point(
                 -self.chip.dx * 0.3, self.chip.dx * 0.52
-                ),
+            ),
             Point(self.chip.dx / 2, self.chip.dy / 2) + Point(
                 self.chip.dx * 0.3, self.chip.dx * 0.62
-                )
             )
+        )
         abox_bot_ph = pya.Box(
             Point(self.chip.dx / 2, self.chip.dy / 2) - Point(
                 -self.chip.dx * 0.3, self.chip.dx * 0.52
-                ),
+            ),
             Point(self.chip.dx / 2, self.chip.dy / 2) - Point(
                 self.chip.dx * 0.3, self.chip.dx * 0.62
-                )
             )
+        )
         self.region_ph.insert(abox_top_ph)
         self.region_ph.insert(abox_bot_ph)
 
         abox_top_el = pya.Box(
             Point(self.chip.dx / 2, self.chip.dy / 2) + Point(
                 -self.chip.dx * 0.35, self.chip.dx * 0.54
-                ),
+            ),
             Point(self.chip.dx / 2, self.chip.dy / 2) + Point(
                 self.chip.dx * 0.35, self.chip.dx * 0.6
-                )
+            )
         )
         abox_bot_el = pya.Box(
             Point(self.chip.dx / 2, self.chip.dy / 2) - Point(
                 -self.chip.dx * 0.35, self.chip.dx * 0.54
-                ),
+            ),
             Point(self.chip.dx / 2, self.chip.dy / 2) - Point(
                 self.chip.dx * 0.35, self.chip.dx * 0.6
-                )
+            )
         )
         self.region_bridges1.insert(abox_top_el)
         self.region_bridges1.insert(abox_bot_el)
@@ -1879,6 +1867,77 @@ def simulate_Cqr(q_idxs: List[int], resolution=(4e3, 4e3)):
         )
 
 
+def simulate_md_Cg(q_idx: int, resolution=(5e3, 5e3)):
+    # dl_list = np.linspace(-20e3, 20e3, 3)
+    dl_list = [0]
+    for dl in dl_list:
+        design = Design12QStair("testScript")
+
+        design.draw_chip()
+        design.draw_qubits_array()
+        design.draw_qq_couplings()
+        #
+        design.draw_readout_resonators(q_idx_direct=q_idx)
+        design.draw_microwave_drvie_lines()
+
+        ''' CROP BOX CALCULATION SECTION START '''
+        qubit = design.qubits[q_idx]
+        q_reg = qubit.disk_cap_shunt.metal_region
+        md_line = design.cpw_md_lines[q_idx]
+        md_reg = md_line.metal_region
+
+        # TODO: make simulation such that all polygons (except those with ports are connected to
+        #  ground). Now it is tolerable to have some of them (with large capacity to ground) to
+        #  stay with floating potential (it will be close to ground plane potential due to their
+        #  respectively large capacitance to ground i.e. low impedance to ground).
+
+        md_dv_n = -list(md_line.primitives.values())[-1].dr  # goes out from qubit towards md line
+        md_dv_n /= md_dv_n.abs()
+        md_importance_length = design.md_line_cpw12_smoothhing + 3/2*design.md_line_cpw2_len
+
+        box_region = q_reg.sized(1 * q_reg.bbox().width(), 1 * q_reg.bbox().height()) + \
+                     Region(  # add a box-point to region
+                         pya.Box(
+                             qubit.origin + 2*md_importance_length*md_dv_n,
+                             qubit.origin + 2*md_importance_length*md_dv_n + DVector(1e3, 1e3)
+                         )
+                     )
+        # and take their smallest enclosing Region
+        box_region = Region(box_region.bbox())
+
+        C1, C12, C2 = simulate_cij(
+            design=design, layer=design.layer_ph,
+            subregs=[q_reg, md_reg], env_reg=box_region,
+            resolution=resolution, print_values=True
+        )
+        print()
+        '''SAVING REUSLTS SECTION START'''
+        design.save_as_gds2(
+            filename=os.path.join(
+                PROJECT_DIR,
+                f"Cg_md_{q_idx}.gds"
+            )
+        )
+
+        output_filepath = os.path.join(
+            PROJECT_DIR,
+            f"Cmd_q_results.csv"
+        )
+        save_sim_results(
+            output_filepath=output_filepath,
+            design=design,
+            additional_pars={
+                "q_idx"                       : q_idx,
+                "resolution"                  : resolution,
+                "md_line_cpw2_len, um"        : design.md_line_cpw2_len,
+                "md_line_cpw12_smoothhing, um": design.md_line_cpw12_smoothhing,
+                "C1, fF"                      : C1,
+                "C2, fF"                      : C2,
+                "C12, fF"                     : C12
+            }
+        )
+
+
 if __name__ == "__main__":
     ''' draw and show design for manual design evaluation '''
     FABRICATION.OVERETCHING = 0.0e3
@@ -1892,7 +1951,7 @@ if __name__ == "__main__":
     # design.save_as_gds2(
     #     os.path.join(
     #         PROJECT_DIR,
-    #         "Dmon_" + __version__ + "_overetching_0um.gds"
+    #         __version__ + "_overetching_0um.gds"
     #     )
     # )
 
@@ -1914,9 +1973,8 @@ if __name__ == "__main__":
     # simulate_Cqq(q1_idx=5, q2_idx=6, resolution=(2e3, 2e3))
 
     ''' MD line C_qd for md1,..., md6 '''
-    # for md_idx in [0,1]:
-    #     for q_idx in range(2):
-    #         simulate_md_Cg(md_idx=md_idx, q_idx=q_idx, resolution=(1e3, 1e3))
+    # for q_idx in [10, 11]:
+    #     simulate_md_Cg(q_idx=q_idx, resolution=(4e3, 4e3))
 
     ''' Resonators Q and f sim'''
     # simulate_resonators_f_and_Q(resolution=(2e3, 2e3))

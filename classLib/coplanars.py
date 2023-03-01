@@ -101,8 +101,6 @@ class CPW(ElementBase):
                  DPoint(0, self.width / 2)]
             )
             self.metal_region.insert(pya.Polygon().from_dpoly(metal_poly))
-            # hotfix rounding errors that lead to disconnections
-            self.metal_region.size(2, 0, 0)
 
         if (self.gap != 0):
             # top empty rectangle
@@ -140,6 +138,9 @@ class CPW(ElementBase):
 
         alpha_trans = DCplxTrans(1, 180 * (alpha / pi), False, 0, 0)
         self.make_trans(dCplxTrans=alpha_trans)
+        # hotfix rounding errors that lead to disconnections
+        self.metal_region.size(2, 0, 0)
+        self.empty_region.size(2, 0, 0)
 
     def _refresh_named_connections(self):
         self.start = self.connections[0]
@@ -1233,7 +1234,7 @@ class Bridge1(ElementBase):
         bridge_layer2=-1,
         dest2: Region = None,
         avoid_points: List[DPoint] = None,
-        avoid_distances: Union[float, List[float]] = None
+        avoid_distances: List[float] = None
     ):
         """
             Function puts bridge patterns to fabricate bridges on
@@ -1268,7 +1269,7 @@ class Bridge1(ElementBase):
         """
         bridge_tmp = Bridge1(DPoint(0, 0), gnd2gnd_dy=gnd2gnd_dy)
         bridge_tmp.__bridgify_CPW(
-            cpw, bridges_step,
+            cpw=cpw, bridges_step=bridges_step,
             dest=dest, bridge_layer1=bridge_layer1,
             dest2=dest2, bridge_layer2=bridge_layer2,
             gnd2gnd_dy=gnd2gnd_dy,
@@ -1281,7 +1282,7 @@ class Bridge1(ElementBase):
         dest: Region = None, bridge_layer1=-1,
         dest2: Region = None, bridge_layer2=-1,
         gnd2gnd_dy=70e3,
-        avoid_points: List[DPoint] = None, avoid_distances: Union[float, List[float]] = None
+        avoid_points: List[DPoint] = None, avoid_distances: List[float] = None
     ):
         """
             Function puts bridge patterns to fabricate bridges on coplanar waveguide
@@ -1303,7 +1304,7 @@ class Bridge1(ElementBase):
             index of the layer in the `cell` with empty polygons
         avoid_points : list[Union[DPoint,Point,Vector, DVector]]
             list points that you wish to keep bridges away
-        avoid_distances : Union[list[float], float]
+        avoid_distances : Union[list[float]]
             distance in nm where there will be no bridges
             near the `avoid_points`. Each avoid distance correspond to
             avoid point.
@@ -1311,13 +1312,15 @@ class Bridge1(ElementBase):
         -------
         None
         """
-        # if avoid distance passed as float - it is interpreted as the
-        # same for all points
+        # parse arguments
         if avoid_points is None:
             avoid_points = []
 
-        if hasattr(avoid_points, "__len__"):
-            avoid_distances = [avoid_distances] * len(avoid_points)
+        if avoid_distances is None:
+            avoid_distances = []
+
+        if len(avoid_distances) == 1:
+            avoid_distances = [avoid_distances[0]] * len(avoid_points)
 
         if cpw.__class__.__name__ == "CPW":
             # recursion base
@@ -1387,7 +1390,7 @@ class Bridge1(ElementBase):
 
             alpha_mid = cpw.alpha_start + cpw.delta_alpha / 2 - np.pi / 2
 
-            # unit vector from a center of the arc to its mid point
+            # unit vector from a center of the arc to its middle point
             v_arc_mid = DVector(np.cos(alpha_mid), np.sin(alpha_mid))
             arc_mid = cpw.center + cpw.R * v_arc_mid
             # tangent vector to the center of a bridge
@@ -1412,6 +1415,7 @@ class Bridge1(ElementBase):
                     region_id="bridges_2"
                 )
         elif cpw.__class__.__name__ in ["CPWRLPath", "Coil_type_1", "DPathCPW"]:
+            # compound types
             for name, primitive in cpw.primitives.items():
                 if primitive.__class__.__name__ == "CPW":
                     Bridge1.bridgify_CPW(
@@ -1452,7 +1456,7 @@ class Intersection:
     @staticmethod
     def resolve_cpw_cpw_intersection(
         cpw1: CPW, cpw2: CPW, cpw_reg: Region, bridge_reg1: Region, bridge_reg2: Region,
-        clearance_mul=1, cpw_reg_id="ph"
+        clearance_mul=1
     ):
         """
         Places bridges between all grounds and slightly modifies geometry of the cutted coplanar
@@ -1466,8 +1470,6 @@ class Intersection:
             was drawn second
         cpw_reg : Region
             Region where both cpws are going to be placed
-        cpw_reg_id : str
-            id of the region of CPW that is to be placed. Usually it's "ph"
         clearance_mul : float
             distance between cpw2 center line and cpw1 `repaired` edges centers in units of cpw2.b.
             (point to line distance)

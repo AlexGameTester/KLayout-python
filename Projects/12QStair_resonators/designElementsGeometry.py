@@ -712,7 +712,7 @@ class ROResonator(EMResonatorTL3QbitWormRLTail):
             turn_radii=[self.r],
             region_id=self.region_id
         )
-        self.primitives["res_couling_arc_cpw_path"] = self.res_couling_arc_cpw_path
+        self.primitives["res_coulingArc_cpw_path"] = self.res_couling_arc_cpw_path
 
         self.coupling_bandage = CPW(
             start=self.res_couling_arc_cpw_path.end,
