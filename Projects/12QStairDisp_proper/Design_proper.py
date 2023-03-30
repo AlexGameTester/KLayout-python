@@ -1,4 +1,4 @@
-__version__ = "12QStair_0.0.0.0"
+__version__ = "12QStair_0.0.0.2"
 
 '''
 NOTE:
@@ -1425,7 +1425,8 @@ class Design12QStair(ChipDesign):
                     Bridge1.bridgify_CPW(
                         cpw=res_primitive,
                         bridges_step=bridges_step, gnd2gnd_dy=70e3,
-                        dest=self.region_bridges1, dest2=self.region_bridges2
+                        dest=self.region_bridges1, dest2=self.region_bridges2,
+                        avoid_points = [resonator.end], avoid_distances = [30e3]
                     )
 
         ''' contact wires '''
@@ -1448,7 +1449,7 @@ class Design12QStair(ChipDesign):
         for q_idx, cpw_fl in enumerate(self.cpw_fl_lines):
             if cpw_fl is None:
                 continue
-            dy_list = [30e3, 100e3]
+            dy_list = [30e3, 85e3]
             for dy in dy_list:
                 squid_connector_idx = self.connectivity_map.get_squid_connector_idx(qubit_idx=q_idx)
                 if squid_connector_idx == 2:
@@ -1497,10 +1498,13 @@ class Design12QStair(ChipDesign):
         ''' Cqq couplings '''
         for cqq_coupling in self.q_couplings.flat:
             if cqq_coupling is not None:
+                cpw_to_bridgify = cqq_coupling.primitives["cpw_central"]
                 Bridge1.bridgify_CPW(
-                    cpw=cqq_coupling.primitives["cpw_central"],
+                    cpw=cpw_to_bridgify,
                     bridges_step=bridges_step, gnd2gnd_dy=100e3,
                     dest=self.region_bridges1, dest2=self.region_bridges2,
+                    avoid_points=[cpw_to_bridgify.start, cpw_to_bridgify.end],
+                    avoid_distances=[30e3]
                 )
 
     def draw_pinning_holes(self):
