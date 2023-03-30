@@ -17,8 +17,20 @@ from classLib._PROG_SETTINGS import PROGRAM
 from classLib.marks import CutMark
 
 
+class GlobalDesignParameters:
+    """
+    static mutable class holding all the global definitions for this particular design.
+    Has to be instantiated for every particular design.
+    """
+    PHOTO_OVERETCHING = 0.0
+
+
 class ChipDesign:
-    def __init__(self, cell_name="testScript"):
+    def __init__(
+        self,
+        cell_name="testScript",
+        global_design_params:GlobalDesignParameters=GlobalDesignParameters()
+    ):
         """
         Inherit this class for working on width chip design
         and override draw() method where other drawing
@@ -30,6 +42,11 @@ class ChipDesign:
         ----------
         cell_name : str
             chip_name of cell design will be written into, e.g. 'testScript'
+        global_design_params: GlobalDesignParameters
+            static mutable class holding all the global definitions for this particular design.
+        photo_overetching: Optional[float]
+            photo_overetching in wet etching process. Distance the real polygon-wafer boundary moves
+            towards polygon's guts during wet etching.
         """
         # getting main references of the application
         self.app = pya.Application.instance()
@@ -40,6 +57,7 @@ class ChipDesign:
 
         # basic regions for sample
         self.region_ph: Region = Region()
+        self.photo_overetching = global_design_params.PHOTO_OVERETCHING
         self.region_el: Region = Region()
         self.region_cut: Region = Region()
 
@@ -129,6 +147,39 @@ class ChipDesign:
     # Call this m
     def show(self, design_params=None):
         self._transfer_regs2cell()
+
+    def extend_photo_overetching(self, over_etching: int=0.0):
+        """
+
+        Parameters
+        ----------
+        over_etching : float
+            photo_overetching in wet etching process. Distance the real polygon-wafer boundary moves
+            towards polygon's guts during wet etching.
+
+        Returns
+        -------
+        None
+        """
+        self.photo_overetching = over_etching
+        tmp_reg = Region()
+        ep = pya.EdgeProcessor()
+        for poly in self.region_ph.each():
+            tmp_reg.insert(
+                ep.simple_merge_p2p(
+                    [
+                        poly.sized(
+                            self.photo_overetching,
+                            self.photo_overetching,
+                            2
+                        )
+                    ],
+                    False,
+                    False,
+                    1
+                )
+            )
+        self.region_ph = tmp_reg
 
     def _transfer_regs2cell(self):
         # this too methods assumes that all previous drawing

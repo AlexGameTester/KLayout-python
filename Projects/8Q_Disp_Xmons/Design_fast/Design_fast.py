@@ -1768,7 +1768,20 @@ class Design8Q(ChipDesign):
 
         self.region_ph = filled_reg + other_polys_reg
 
-    def extend_photo_overetching(self):
+    def extend_photo_overetching(self, over_etching: int):
+        """
+
+        Parameters
+        ----------
+        over_etching : float
+            photo_overetching in wet etching process. Distance the real polygon-wafer boundary moves
+            towards polygon's guts during wet etching.
+
+        Returns
+        -------
+        None
+        """
+        self.overetching = over_etching
         tmp_reg = Region()
         ep = pya.EdgeProcessor()
         for poly in self.region_ph.each():
@@ -1776,8 +1789,8 @@ class Design8Q(ChipDesign):
                 ep.simple_merge_p2p(
                     [
                         poly.sized(
-                            FABRICATION.OVERETCHING,
-                            FABRICATION.OVERETCHING,
+                            self.overetching,
+                            self.overetching,
                             2
                         )
                     ],

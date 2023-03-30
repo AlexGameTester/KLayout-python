@@ -96,7 +96,7 @@ class Mark2(ComplexBase):
 
 
 class MarkBolgar(ComplexBase):
-    def __init__(self, origin, lines_thickness=3e3, ring1_thickness=15e3, ring2_thickness=15e3,
+    def __init__(self, origin, lines_thickness=5.6e3, ring1_thickness=15e3, ring2_thickness=15e3,
                  overetching=0.0, trans_in=None):
         self.ring1_outer_r = 200e3 - overetching
         self.ring1_thickness = ring1_thickness + 2*overetching

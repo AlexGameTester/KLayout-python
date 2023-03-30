@@ -542,7 +542,7 @@ class Design4QSquare(ChipDesign):
         -------
 
         """
-        # TODO: MDriveLineEnd - working bad with overetching
+        # TODO: MDriveLineEnd - working bad with photo_overetching
         md_fl_together_l = 200e3
         md_end_l = md_fl_together_l / 2
         md_cross_shift_transversal = 60e3

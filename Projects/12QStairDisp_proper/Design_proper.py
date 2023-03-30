@@ -39,7 +39,7 @@ import classLib
 reload(classLib)
 from classLib.coplanars import CPW, CPW2CPW, CPWParameters, DPathCPW, Bridge1, Intersection
 from sonnetSim import SonnetLab, SonnetPort, SimulationBox
-from classLib.chipDesign import ChipDesign
+from classLib.chipDesign import ChipDesign, GlobalDesignParameters
 from classLib.chipTemplates import CHIP_14x14_20pads
 from classLib.marks import MarkBolgar
 from classLib.contactPads import ContactPad
@@ -75,10 +75,12 @@ reload(Cqq_couplings)
 from Cqq_couplings import CqqCouplingType2, CqqCouplingParamsType2
 from Cqq_couplings import CqqCouplingType1, CqqCouplingParamsType1
 
-
 class Design12QStair(ChipDesign):
-    def __init__(self, cell_name):
-        super().__init__(cell_name)
+    def __init__(
+        self, cell_name,
+        global_design_params:GlobalDesignParameters=GlobalDesignParameters()
+    ):
+        super().__init__(cell_name, global_design_params=GlobalDesignParameters())
 
         ''' DEFINE LYTOGRAPHY LAYERS AND REGIONS '''
         # `Region` objects are used as intermediate buffers for actual
@@ -1660,27 +1662,6 @@ class Design12QStair(ChipDesign):
         )
 
         return crop_box
-
-    def extend_photo_overetching(self):
-        # TODO: add to parent class
-        tmp_reg = Region()
-        ep = pya.EdgeProcessor()
-        for poly in self.region_ph.each():
-            tmp_reg.insert(
-                ep.simple_merge_p2p(
-                    [
-                        poly.sized(
-                            FABRICATION.OVERETCHING,
-                            FABRICATION.OVERETCHING,
-                            2
-                        )
-                    ],
-                    False,
-                    False,
-                    1
-                )
-            )
-        self.region_ph = tmp_reg
 
 
 def simulate_res_f_and_Q(q_idx, resolution=(2e3, 2e3), type='freq'):
