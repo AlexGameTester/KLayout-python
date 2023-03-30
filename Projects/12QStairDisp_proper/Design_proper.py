@@ -1426,7 +1426,8 @@ class Design12QStair(ChipDesign):
                         cpw=res_primitive,
                         bridges_step=bridges_step, gnd2gnd_dy=70e3,
                         dest=self.region_bridges1, dest2=self.region_bridges2,
-                        avoid_points = [resonator.end], avoid_distances = [30e3]
+                        avoid_points=[resonator.res_coulingArc_cpw_path.end],
+                        avoid_distances = [30e3]
                     )
 
         ''' contact wires '''
