@@ -1,4 +1,4 @@
-__version__ = "12QStair_0.0.0.2"
+__version__ = "12QStair_0.0.0.3"
 
 '''
 NOTE:
@@ -7,7 +7,8 @@ in ascending order to qubit idxs.
 E.g. self.resonators[1] - resonator that belongs to qubit №1 (starting from 0)
 
 Changes log
-    
+12QStair_0.0.0.3
+    1. Change upside-down SQUIDs JJ's dimension. Interchange dx and dy.
 '''
 
 # import built-ins
@@ -75,12 +76,13 @@ reload(Cqq_couplings)
 from Cqq_couplings import CqqCouplingType2, CqqCouplingParamsType2
 from Cqq_couplings import CqqCouplingType1, CqqCouplingParamsType1
 
+
 class Design12QStair(ChipDesign):
     def __init__(
         self, cell_name,
-        global_design_params:GlobalDesignParameters=GlobalDesignParameters()
+        global_design_params: GlobalDesignParameters=None
     ):
-        super().__init__(cell_name, global_design_params=GlobalDesignParameters())
+        super().__init__(cell_name, global_design_params=global_design_params)
 
         ''' DEFINE LYTOGRAPHY LAYERS AND REGIONS '''
         # `Region` objects are used as intermediate buffers for actual
@@ -304,59 +306,62 @@ class Design12QStair(ChipDesign):
         for contact_pad in self.contact_pads:
             contact_pad.place(self.region_ph)
 
-    def draw_qubits_array(self, new_disk_r=DiskConn8Pars().disk_r, idx_list=[]):
+    def draw_qubits_array(self, new_disk_r=DiskConn8Pars().disk_r, idx_list=None):
 
-        if len(idx_list) > 0:
-            for qubit_idx in idx_list:
-                squid_connector_idx = self.connectivity_map.get_squid_connector_idx(qubit_idx)
-                pt = self.qubits_grid.get_pt(qubit_idx)
-                qubit_pars = QubitParams(
-                    squid_params=SQUID_PARS,
-                    qubit_cap_params=DiskConn8Pars(disk_r=new_disk_r),
-                    squid_connector_idx=squid_connector_idx
-                )
-                qubit = Qubit(
-                    origin=pt,
-                    qubit_params=qubit_pars,
-                    postpone_drawing=False
-                )
-                self.qubits[qubit_idx] = qubit
-                self.squids[qubit_idx] = qubit.squid
-
-                qubit.place(self.region_ph, region_id="ph")
-                qubit.place(self.region_el, region_id="el")
+        # draw qubits with indexes from `idx_list` if supplied
+        if (idx_list is not None) and (len(idx_list) == 0):
+            pass
         else:
-            for qubit_idx in range(self.NQUBITS):
-                squid_connector_idx = self.connectivity_map.get_squid_connector_idx(qubit_idx)
-                pt = self.qubits_grid.get_pt(qubit_idx)
-                qubit_pars = QubitParams(
-                    squid_params=SQUID_PARS,
-                    qubit_cap_params=DiskConn8Pars(disk_r=new_disk_r),
-                    squid_connector_idx=squid_connector_idx
-                )
-                qubit = Qubit(
-                    origin=pt,
-                    qubit_params=qubit_pars,
-                    postpone_drawing=False
-                )
-                self.qubits[qubit_idx] = qubit
-                self.squids[qubit_idx] = qubit.squid
-                # TODO: not working, qubit.squid.origin is wrong | partially
-                #  dealt with defining origin as a connection in `self.init_regions(
-                #  `_refresh_named_connections` has to include `self.origin` by default
-                # shift squid to suit into scheme
-                # qubit.squid.make_trans(DCplxTrans(1, 0, False, 0, -20e3))
-                # q_origin = qubit.origin.dup()  # memorize origin
-                # # transfer to origin
-                # qubit.make_trans(DCplxTrans(1, 0, False, -q_origin))
-                # # rotate depending on qubit group
-                # if pt_i in [0, 1, 3]:
-                #     qubit.make_trans(DCplxTrans(1, -45, False, 0, 0))
-                # else:
-                #     qubit.make_trans(DCplxTrans(1, -45, True, 0, 0))
-                # qubit.make_trans(DCplxTrans(1, 0, False, q_origin))
-                qubit.place(self.region_ph, region_id="ph")
-                qubit.place(self.region_el, region_id="el")
+            # draw all qubits if `idx_list` is not supplied (default behaviour)
+            idx_list = range(self.NQUBITS)
+
+        for qubit_idx in idx_list:
+            squid_fl_connector_idx = self.connectivity_map.get_squid_connector_idx(qubit_idx)
+            pt = self.qubits_grid.get_pt(qubit_idx)
+
+            # # v.12Q_0.0.0.3: interchange dx,dy JJ's dimensions for upside-down SQUIDS
+            if qubit_idx in self.connectivity_map.direct_squids_idxs:
+                squid_pars = SQUID_PARS
+            elif qubit_idx in self.connectivity_map.upsidedown_squids_idxs:
+                squid_pars = copy.deepcopy(SQUID_PARS)
+                # interchange dx, dy for left JJ (for default orientation)
+                squid_pars.SQLBJJ_dy, squid_pars.SQLTJJ_dx = \
+                    squid_pars.SQLTJJ_dx, squid_pars.SQLBJJ_dy
+                # interchange dx, dy for right JJ (for default orientation)
+                squid_pars.SQRBJJ_dy, squid_pars.SQRTJJ_dx = \
+                    squid_pars.SQRTJJ_dx, squid_pars.SQRBJJ_dy
+            qubit_pars = QubitParams(
+                squid_params=squid_pars,
+                qubit_cap_params=DiskConn8Pars(disk_r=new_disk_r),
+                squid_connector_idx=squid_fl_connector_idx
+            )
+            qubit = Qubit(
+                origin=pt,
+                qubit_params=qubit_pars,
+                postpone_drawing=False
+            )
+            self.qubits[qubit_idx] = qubit
+            self.squids[qubit_idx] = qubit.squid
+
+            qubit.place(self.region_ph, region_id="ph")
+            qubit.place(self.region_el, region_id="el")
+
+            # TODO: not working, qubit.squid.origin is wrong | partially
+            #  dealt with defining origin as a connection in `self.init_regions(
+            #  `_refresh_named_connections` has to include `self.origin` by default
+            # shift squid to suit into scheme
+            # qubit.squid.make_trans(DCplxTrans(1, 0, False, 0, -20e3))
+            # q_origin = qubit.origin.dup()  # memorize origin
+            # # transfer to origin
+            # qubit.make_trans(DCplxTrans(1, 0, False, -q_origin))
+            # # rotate depending on qubit group
+            # if pt_i in [0, 1, 3]:
+            #     qubit.make_trans(DCplxTrans(1, -45, False, 0, 0))
+            # else:
+            #     qubit.make_trans(DCplxTrans(1, -45, True, 0, 0))
+            # qubit.make_trans(DCplxTrans(1, 0, False, q_origin))
+            qubit.place(self.region_ph, region_id="ph")
+            qubit.place(self.region_el, region_id="el")
 
     def draw_qq_couplings(
         self, donut_metal_width=CqqCouplingParamsType1().donut_metal_width, direct_list=[]
@@ -457,8 +462,8 @@ class Design12QStair(ChipDesign):
         # RO line extends by 2 curve radii of the resonator along coupling
 
         pts_middle = []
-        for q_idx in [10, 7, 3, 4, 0, 1]:
-            # TODO: fix fucking problem with `origin` not tracking changes after construction had
+        for q_idx in [10, 7, 3, 4, 0, 1]:  # TODO: move this list to geometry config file
+            # TODO: fix problem with `origin` not tracking changes after construction had
             #  to use `resonator.start` here for god's sake.
             res_i = self.resonators[q_idx]
             res_i_to_line = self.resonators_params.to_line_list[q_idx]
@@ -492,7 +497,7 @@ class Design12QStair(ChipDesign):
         # RO line extends by 2 curve radii of the resonator along coupling
 
         pts_middle = []
-        for q_idx in [11, 8, 9, 5, 6, 2]:
+        for q_idx in [11, 8, 9, 5, 6, 2]:  # TODO: move this list to geometry config file
             # TODO: fix fucking problem with `origin` not tracking changes after construction had
             #  to use `resonator.start` here for god's sake.
             res_i = self.resonators[q_idx]
@@ -1947,7 +1952,7 @@ def simulate_md_Cg(q_idx: int, resolution=(5e3, 5e3)):
 if __name__ == "__main__":
     ''' draw and show design for manual design evaluation '''
     FABRICATION.OVERETCHING = 0.0e3
-    design = Design12QStair("testScript")
+    design = Design12QStair("testScript", global_design_params=GlobalDesignParameters())
     design.draw()
     design.show()
     # test = Cqq_type2("cellName")

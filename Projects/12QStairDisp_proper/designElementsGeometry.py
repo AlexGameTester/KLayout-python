@@ -300,6 +300,11 @@ class ConnectivityMap:
     # qubits connectors idxs (see schematics for details)
     # if any of connectors idxs is equal to `-1` then qubit pair considered disconnected
     qq_coupling_connectors_map: np.ndarray = np.zeros((12, 12, 2), dtype=int) - 1
+
+    # squids directed from bottom to top (qubit indexes)
+    direct_squids_idxs = [0, 1, 2, 3, 4, 7]
+    # upside-down squids (qubit indexes)
+    upsidedown_squids_idxs = [5, 6, 8, 9, 10, 11]
     # TODO: fill structure automatically for more qubits
     # horizontal
     qq_coupling_connectors_map[0, 1] = np.array((0, 3))
@@ -329,43 +334,57 @@ class ConnectivityMap:
     # q_idx, res_idx, q_connector_idx, ro_line_idx
     # for `q_connector_idx` see schematics .drawio
     # `-1` in element entry means that no such element exists
+    # grouped in rows by readout lines.
+    # ATTENTION: GROUPING ABOVE FOR CODE READABILITY ONLY. THIS STRUCTURE IS SORTED IN ASCENDING
+    # ORDER BY qubit idx (see `self.__post_init`)
     q_res_connector_roline_map: np.ndarray = np.array(
         [
             (10, 0, 4, 0), (7, 1, 4, 0), (3, 2, 4, 0), (4, 3, 4, 0),
             (11, 4, 0, 1), (8, 5, 0, 1), (9, 6, 0, 1), (5, 7, 0, 1),
             (6, 8, 0, -1), (2, 9, 0, -1), (1, 10, 4, -1), (0, 11, 4, -1)
         ],
-    )  # grouped in rows by readout lines for partially confusing clarity
+    )
     q_idx_map: np.ndarray = None
 
     def __post_init__(self):
-        # sort by `q_idx` equivalent to sort by first entry in every row
+        # sort by `q_idx` equivalent to sort by first entry in every row of
+        # `q_res_connector_roline_map` in ascending order.
         self.q_idx_map = self.q_res_connector_roline_map[:, 0].argsort()
         self.q_res_connector_roline_map = self.q_res_connector_roline_map[self.q_idx_map]
 
     def get_squid_connector_idx(self, qubit_idx: int):
         """
-        Returns squid connector idx based on qubit idx
+        Returns qubit capacitor disk connector idx for squid
         Parameters
         ----------
         qubit_idx: int
-            from 0 to 7
+            integer from `range(0,12)`
 
         Returns
         -------
         int
             qubit disk's connector idx
         """
-        if qubit_idx in [0, 1, 2, 3, 4, 7]:
+        if qubit_idx in self.direct_squids_idxs:
             return 6
-        else:
+        elif qubit_idx in self.upsidedown_squids_idxs:
             return 2
-
-    def get_md_connector_idx(self, q_idx):
-        if q_idx in [0, 1, 2, 3, 4, 7]:
-            return 5
         else:
-            return 1
+            raise Exception("ConnectivityMap.get_squid_connector_idx:"
+                            f"squid connector idx for qubit_idx={qubit_idx}"
+                            f"is not defined.")
+
+    def get_md_connector_idx(self, qubit_idx):
+        if qubit_idx in self.direct_squids_idxs:
+            return 5
+        elif qubit_idx in self.upsidedown_squids_idxs:
+            return 2
+        else:
+            raise Exception(
+                "ConnectivityMap.get_md_connector_idx:"
+                f"squid connector idx for qubit_idx={qubit_idx}"
+                f"is not defined."
+                )
 
 
 @dataclass()

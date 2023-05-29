@@ -137,7 +137,7 @@ class AsymSquidParams:
         self.SQLBJJ_dy = SQLBJJ_dy
         self.SQLBJJ_dx = SQLBJJ_dx
 
-        ''' right side of the squid parameters '''
+        ''' right bottom side of the squid parameters '''
         # RHS params, if not passed, equal to LHS params
         self.SQRBJJ_dy = SQRBJJ_dy if SQRBJJ_dy is not None else SQLBJJ_dy
         self.SQRBJJ_dx = SQRBJJ_dx if SQRBJJ_dx is not None else SQLBJJ_dx

@@ -93,10 +93,10 @@ def fill_holes(obj, dx=40e3, dy=40e3, width=32e3, height=32e3, d=150e3):
         return fill_poly(poly)
     elif isinstance(obj, Region):
         reg = obj
-        poly_n = reg.count()
+        # poly_n = reg.count()  #  DEBUG
         result_reg = Region()
         for i, poly in enumerate(reg):
-            print(f"{i}-th polygon out of {poly_n}")
+            # print(f"{i}-th polygon out of {poly_n}")  # DEBUG
             result_reg.insert(fill_holes(poly, dx=dx, dy=dy, width=width,
                                          height=height, d=d))
         return result_reg

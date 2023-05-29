@@ -29,7 +29,7 @@ class ChipDesign:
     def __init__(
         self,
         cell_name="testScript",
-        global_design_params:GlobalDesignParameters=GlobalDesignParameters()
+        global_design_params: GlobalDesignParameters = None
     ):
         """
         Inherit this class for working on width chip design
@@ -104,6 +104,12 @@ class ChipDesign:
         # additional default design structures
         self.cutting_marks: List[CutMark] = []
 
+        # global design parameters
+        if global_design_params is not None:
+            self.global_design_parameters = global_design_params
+        else:
+            self.global_design_parameters = GlobalDesignParameters()
+
     def get_version(self):
         return self.version
 
@@ -130,7 +136,8 @@ class ChipDesign:
 
     def add_chip_marking(self, text_bl: DPoint, text_scale=320, chip_name="forgotten chip_name"):
         text_reg = pya.TextGenerator.default_generator().text(
-            chip_name, 0.001, text_scale, False, 0, 0)
+            chip_name, 0.001, text_scale, False, 0, 0
+        )
         text_reg.transform(
             ICplxTrans(1.0, 0, False, text_bl.x, text_bl.y)
         )
@@ -148,7 +155,7 @@ class ChipDesign:
     def show(self, design_params=None):
         self._transfer_regs2cell()
 
-    def extend_photo_overetching(self, over_etching: int=0.0):
+    def extend_photo_overetching(self, over_etching: int = 0.0):
         """
 
         Parameters
