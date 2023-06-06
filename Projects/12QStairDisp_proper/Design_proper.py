@@ -1,4 +1,4 @@
-__version__ = "12QStair_0.0.0.3"
+__version__ = "12QStair_0.0.0.4"
 
 '''
 NOTE:
@@ -7,6 +7,8 @@ in ascending order to qubit idxs.
 E.g. self.resonators[1] - resonator that belongs to qubit №1 (starting from 0)
 
 Changes log
+12QStair_0.0.0.4
+    1. Add electron convertion rectangles for bandages.
 12QStair_0.0.0.3
     1. Change upside-down SQUIDs JJ's dimension. Interchange dx and dy.
 '''
@@ -182,6 +184,8 @@ class Design12QStair(ChipDesign):
 
         ''' Litography alignment marks '''
         self.marks: List[MarkBolgar] = []
+        ''' e-beam litography convertion regions (in addition for squid)'''
+        self.test_struct_bandages: List[TestStructurePadsSquare] = []
 
         ''' CHIP PARAMETERS '''
         self.chip = CHIP
@@ -221,41 +225,41 @@ class Design12QStair(ChipDesign):
         self.draw_qubits_array()
         self.draw_qq_couplings()
         #
-        self.draw_readout_resonators()
-        self.draw_microwave_drvie_lines()
-        self.draw_flux_control_lines()
-        self.draw_readout_lines()
+        # self.draw_readout_resonators()
+        # self.draw_microwave_drvie_lines()
+        # self.draw_flux_control_lines()
+        # self.draw_readout_lines()
 
-        self.resolve_intersections()
+        # self.resolve_cpw_intersections()
 
         self.draw_test_structures()
         self.draw_express_test_structures_pads()
         self.draw_bandages()
-        self.draw_el_protection()
+        self.draw_el_convertion_regions()
 
-        self.add_chip_marking(text_bl=DPoint(2.6e6, 1.2e6), chip_name="8Q_0.0.0.0", text_scale=200)
-
-        self.draw_litography_alignment_marks()
-        self.draw_bridges()
-        self.draw_pinning_holes()
-        # 4Q_Disp_Xmon v.0.3.0.8 p.12 - ensure that contact pads has no holes
-        for contact_pad in self.contact_pads:
-            contact_pad.place(self.region_ph)
-
-        self.extend_photo_overetching()
-        self.inverse_destination(self.region_ph)
-        # convert to gds acceptable polygons (without inner holes)
-        self.region_ph.merge()
-        self.resolve_holes()
-        # convert to litograph readable format. Litograph can't handle
-        # polygons with more than 200 vertices.
-        # self.split_polygons_in_layers(max_pts=180)
-
-        # for processes after litographies
-        self.draw_cutting_marks()
-
-        # requested by fabrication team
-        self.draw_additional_boxes()
+        # self.add_chip_marking(text_bl=DPoint(2.6e6, 1.2e6), chip_name="8Q_0.0.0.0", text_scale=200)
+        #
+        # self.draw_litography_alignment_marks()
+        # self.draw_bridges()
+        # self.draw_pinning_holes()
+        # # 4Q_Disp_Xmon v.0.3.0.8 p.12 - ensure that contact pads has no holes
+        # for contact_pad in self.contact_pads:
+        #     contact_pad.place(self.region_ph)
+        #
+        # self.extend_photo_overetching()
+        # self.inverse_destination(self.region_ph)
+        # # convert to gds acceptable polygons (without inner holes)
+        # self.region_ph.merge()
+        # self.resolve_holes()
+        # # convert to litograph readable format. Litograph can't handle
+        # # polygons with more than 200 vertices.
+        # # self.split_polygons_in_layers(max_pts=180)
+        #
+        # # for processes after litographies
+        # self.draw_cutting_marks()
+        #
+        # # requested by fabrication team
+        # self.draw_additional_boxes()
 
     def split_polygons_in_layers(self, max_pts=200):
         # TODO: add to parent class
@@ -405,7 +409,7 @@ class Design12QStair(ChipDesign):
                 qq_coupling.place(self.region_ph, region_id="ph")
                 self.q_couplings[pt1_1d_idx, pt2_1d_idx] = qq_coupling
 
-    def draw_readout_resonators(self, q_idx_direct: int=None):
+    def draw_readout_resonators(self, q_idx_direct: int = None):
         """
 
         Parameters
@@ -710,7 +714,7 @@ class Design12QStair(ChipDesign):
         p1 = p_start + DVector(0, -0.25e6)
         p_end = qubit.origin + DVector(
             0,
-            qubit.disk_cap_shunt.pars.disk_r + \
+            qubit.disk_cap_shunt.pars.disk_r +
             qubit.disk_cap_shunt.pars.disk_gap
         ) + DVector(8.0169e3, 0)
         p_tr_start = DPoint(p_end.x, 9.7e6)
@@ -727,7 +731,7 @@ class Design12QStair(ChipDesign):
         p1 = p_start + DVector(0, -0.25e6)
         p_end = qubit.origin + DVector(
             0,
-            qubit.disk_cap_shunt.pars.disk_r + \
+            qubit.disk_cap_shunt.pars.disk_r +
             qubit.disk_cap_shunt.pars.disk_gap
         ) + DVector(8.0169e3, 0)
         p2 = DPoint(6e6, 11e6)
@@ -881,7 +885,7 @@ class Design12QStair(ChipDesign):
         p1 = p_start + DVector(0, r_turn)
         p_end = qubit.origin + (-1) * DVector(
             8.0169e3,
-            qubit.disk_cap_shunt.pars.disk_r + \
+            qubit.disk_cap_shunt.pars.disk_r +
             qubit.disk_cap_shunt.pars.disk_gap
         )
         p2 = DPoint(4.70e6, 4.43e6)
@@ -903,7 +907,7 @@ class Design12QStair(ChipDesign):
         p1 = p_start + DVector(0, r_turn)
         p_end = qubit.origin + (-1) * DVector(
             8.0169e3,
-            qubit.disk_cap_shunt.pars.disk_r + \
+            qubit.disk_cap_shunt.pars.disk_r +
             qubit.disk_cap_shunt.pars.disk_gap
         )
         p2 = DPoint(6.7e6, 3.5e6)
@@ -925,7 +929,7 @@ class Design12QStair(ChipDesign):
         p1 = p_start + DVector(0, r_turn)
         p_end = qubit.origin + (-1) * DVector(
             8.0169e3,
-            qubit.disk_cap_shunt.pars.disk_r + \
+            qubit.disk_cap_shunt.pars.disk_r +
             qubit.disk_cap_shunt.pars.disk_gap
         )
         p_tr_start = p_end - DVector(
@@ -945,7 +949,7 @@ class Design12QStair(ChipDesign):
         p1 = p_start + DVector(0, r_turn)
         p_end = qubit.origin + (-1) * DVector(
             8.0169e3,
-            qubit.disk_cap_shunt.pars.disk_r + \
+            qubit.disk_cap_shunt.pars.disk_r +
             qubit.disk_cap_shunt.pars.disk_gap
         )
         p_tr_start = p_end - DVector(
@@ -1034,7 +1038,7 @@ class Design12QStair(ChipDesign):
         flux_line._refresh_named_connections()
         flux_line.place(self.region_ph)
 
-    def resolve_intersections(self):
+    def resolve_cpw_intersections(self):
         for ctr_lines, ro_line in itertools.product(
                 zip(self.cpw_md_lines, self.cpw_fl_lines),
                 self.ro_lines
@@ -1056,7 +1060,7 @@ class Design12QStair(ChipDesign):
 
     def draw_test_structures(self):
         # TODO: fix test structure SQUIDs
-        ''' Triplet of test structures for separate SQUID's JJ and bridges '''
+        """ Triplet of test structures for separate SQUID's JJ and bridges """
         struct_centers = [
             DPoint(1.8e6, 6.0e6),
             DPoint(11e6, 10.7e6),
@@ -1194,6 +1198,7 @@ class Design12QStair(ChipDesign):
             p1 = struct_center - DVector(rec_width / 2, rec_height / 2)
             dc_rec = Rectangle(p1, rec_width, rec_height)
             dc_rec.place(self.dc_bandage_reg)
+            self.test_struct_bandages.append(test_struct1)
 
     def draw_express_test_structures_pads(self):
         el_pad_height = 30e3
@@ -1308,21 +1313,22 @@ class Design12QStair(ChipDesign):
             )
             # collect all bottom contacts
 
-    def draw_el_protection(self):
+    def draw_el_convertion_regions(self):
         protection_a = 300e3
+        dv = 0.5 * DVector(protection_a, protection_a)
+
+        # squids convertion
         for squid in (self.squids + self.test_squids):
             self.region_el_protection.insert(
                 pya.Box().from_dbox(
-                    pya.DBox(
-                        squid.center - 0.5 * DVector(
-                            protection_a,
-                            protection_a
-                            ),
-                        squid.center + 0.5 * DVector(
-                            protection_a,
-                            protection_a
-                            )
-                    )
+                    pya.DBox(squid.center - dv, squid.center + dv)
+                )
+            )
+
+        for test_struct in self.test_struct_bandages:
+            self.region_el_protection.insert(
+                pya.Box().from_dbox(
+                    pya.DBox(test_struct.center - dv, test_struct.center + dv)
                 )
             )
 
@@ -1514,7 +1520,7 @@ class Design12QStair(ChipDesign):
                 )
 
     def draw_pinning_holes(self):
-        # points that select polygons of interest if they were clicked at)
+        # points that select polygons of interest as if they were clicked at
         selection_pts = [
             Point(0.1e6, 0.1e6),
             Point(self.chip.dx - 0.1e6, self.chip.dy - 0.1e6),
@@ -1554,12 +1560,12 @@ class Design12QStair(ChipDesign):
         self.region_ph = filled_reg + other_polys_reg
 
     def _transfer_regs2cell(self):
-        '''
+        """
 
         Returns
         -------
 
-        '''
+        """
         # this method is used after all drawing
         # have placed their objects on related regions.
         # This design avoids extensive copy/pasting of polygons to/from
@@ -1904,13 +1910,13 @@ def simulate_md_Cg(q_idx: int, resolution=(5e3, 5e3)):
 
         md_dv_n = -list(md_line.primitives.values())[-1].dr  # goes out from qubit towards md line
         md_dv_n /= md_dv_n.abs()
-        md_importance_length = design.md_line_cpw12_smoothhing + 3/2*design.md_line_cpw2_len
+        md_importance_length = design.md_line_cpw12_smoothhing + 3 / 2 * design.md_line_cpw2_len
 
         box_region = q_reg.sized(1 * q_reg.bbox().width(), 1 * q_reg.bbox().height()) + \
                      Region(  # add a box-point to region
                          pya.Box(
-                             qubit.origin + 2*md_importance_length*md_dv_n,
-                             qubit.origin + 2*md_importance_length*md_dv_n + DVector(1e3, 1e3)
+                             qubit.origin + 2 * md_importance_length * md_dv_n,
+                             qubit.origin + 2 * md_importance_length * md_dv_n + DVector(1e3, 1e3)
                          )
                      )
         # and take their smallest enclosing Region
