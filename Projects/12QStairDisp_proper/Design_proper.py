@@ -224,42 +224,42 @@ class Design12QStair(ChipDesign):
         self.draw_chip()
         self.draw_qubits_array()
         self.draw_qq_couplings()
-        #
-        # self.draw_readout_resonators()
-        # self.draw_microwave_drvie_lines()
-        # self.draw_flux_control_lines()
-        # self.draw_readout_lines()
 
-        # self.resolve_cpw_intersections()
+        self.draw_readout_resonators()
+        self.draw_microwave_drvie_lines()
+        self.draw_flux_control_lines()
+        self.draw_readout_lines()
+
+        self.resolve_cpw_intersections()
 
         self.draw_test_structures()
         self.draw_express_test_structures_pads()
         self.draw_bandages()
         self.draw_el_convertion_regions()
 
-        # self.add_chip_marking(text_bl=DPoint(2.6e6, 1.2e6), chip_name="8Q_0.0.0.0", text_scale=200)
-        #
-        # self.draw_litography_alignment_marks()
-        # self.draw_bridges()
-        # self.draw_pinning_holes()
-        # # 4Q_Disp_Xmon v.0.3.0.8 p.12 - ensure that contact pads has no holes
-        # for contact_pad in self.contact_pads:
-        #     contact_pad.place(self.region_ph)
-        #
-        # self.extend_photo_overetching()
-        # self.inverse_destination(self.region_ph)
-        # # convert to gds acceptable polygons (without inner holes)
-        # self.region_ph.merge()
-        # self.resolve_holes()
-        # # convert to litograph readable format. Litograph can't handle
-        # # polygons with more than 200 vertices.
-        # # self.split_polygons_in_layers(max_pts=180)
-        #
-        # # for processes after litographies
-        # self.draw_cutting_marks()
-        #
-        # # requested by fabrication team
-        # self.draw_additional_boxes()
+        self.add_chip_marking(text_bl=DPoint(2.6e6, 1.2e6), chip_name="8Q_0.0.0.0", text_scale=200)
+
+        self.draw_litography_alignment_marks()
+        self.draw_bridges()
+        self.draw_pinning_holes()
+        # 4Q_Disp_Xmon v.0.3.0.8 p.12 - ensure that contact pads has no holes
+        for contact_pad in self.contact_pads:
+            contact_pad.place(self.region_ph)
+
+        self.extend_photo_overetching()
+        self.inverse_destination(self.region_ph)
+        # convert to gds acceptable polygons (without inner holes)
+        self.region_ph.merge()
+        self.resolve_holes()
+        # convert to litograph readable format. Litograph can't handle
+        # polygons with more than 200 vertices.
+        # self.split_polygons_in_layers(max_pts=180)
+
+        # for processes after litographies
+        self.draw_cutting_marks()
+
+        # requested by fabrication team
+        self.draw_additional_boxes()
 
     def split_polygons_in_layers(self, max_pts=200):
         # TODO: add to parent class
