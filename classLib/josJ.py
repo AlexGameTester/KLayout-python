@@ -25,12 +25,12 @@ class AsymSquidParams:
             squid_dy=5e3,
             TC_dx=8e3,
             TC_dy=10e3,
-            BC_dx: Union[List[float], float] = 5e3,
+            BC_dx: List[float]=[5e3],
             BC_dy=7e3,
             beta=0.5,
             TCW_dx=1e3,
             TCW_dy=10e3,
-            BCW_dx: Union[List[float], float] = 1e3,
+            BCW_dx: List[float]=[1e3],
             BCW_dy=1.5e3,
             SQT_dy=500,
             SQLTT_dx=None,
@@ -53,7 +53,7 @@ class AsymSquidParams:
             SQRTJJ_dx=398.086,  # j2_dx
             SQRBJJ_dy=250,  # j2_dy
             SQRBJJ_dx=None,
-            bot_wire_x=0,
+            bot_wire_x=[0],
             SQRBT_dy=None
     ):
         """
