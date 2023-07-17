@@ -29,6 +29,7 @@ class MeanderParams:
         self.line_squares_n = line_squares_n
 
         check_positive(line_width_dx, "Line width along Ox axis", "line_width_dx")
+        self.line_width_dx = line_width_dx
 
         check_positive(line_width_dy, "Line width along Oy axis", "line_width_dy")
         self.line_width_dy = line_width_dy
@@ -46,6 +47,7 @@ class KinIndMeander(DPathCPWStraight):
         self.meander_params = meander_params
         points, cpw_pars = self._initialize_dpath()
         super().__init__(points, cpw_pars, trans_in, region_id)
+
 
     def _initialize_dpath(self):
         self.dx = self.meander_params.dr.x

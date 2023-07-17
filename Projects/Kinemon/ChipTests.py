@@ -38,7 +38,7 @@ class TestDesign(DesignDmon):
         self.lv.add_missing_layers()
 
     def draw_kin_ind(self):
-        meander_params = MeanderParams(DPoint(5e3, 5e3), 10, 100, 20, 20, 30e3, 0)
+        meander_params = MeanderParams(DPoint(5e3, 5e3), 10, 100, 5, 5, 30e3, 0)
         self.kin_ind = KinIndMeander(meander_params, region_id="kinInd")
         self.kin_ind.place(self.region_kinInd, region_id="kinInd")
 
