@@ -1,26 +1,43 @@
-from classLib import ComplexBase
-from classLib.josJ import AsymSquidParams, AsymSquid
+import numpy as np
+from pya import DPoint, DVector
+
 from Projects.Dmon.Design import RFSquidParams, DPathCPWStraight
-from pya import DPoint
+from classLib import CPWParameters, ChipDesign
+from classLib.josJ import AsymSquid
+
+
+def check_positive(val, full_name, short_name):
+    if val < 0:
+        raise ValueError(f"{full_name} must be positive but {short_name}={val:.1e} was given")
 
 
 class MeanderParams:
-    def __init__(self, dr: DPoint, line_gap: float, line_squares_n: int, line_width_dy: float):
+    def __init__(self, dr: DPoint,
+                 line_gap: float,
+                 line_squares_n: int,
+                 line_width_dx: float,
+                 line_width_dy: float,
+                 line_length: float,
+                 add_dx_mid: float,
+                 ):
         self.dr = dr
 
-        if line_gap < 0:
-            raise ValueError(f"Line gap must be positive but line_gap={line_gap:.1e} was given")
+        check_positive(line_gap, "Line gap", "line_gap")
         self.line_gap = line_gap
 
-        if line_squares_n < 0:
-            raise ValueError(f"Line squares number must be positive but line_squares_n={line_squares_n} was given")
+        check_positive(line_squares_n, "Line squares number", "line_squares_n")
         self.line_squares_n = line_squares_n
 
-        if line_width_dy < 0:
-            raise ValueError(f"Line width must be positive but line_width_dy={line_width_dy} was given")
+        check_positive(line_width_dx, "Line width along Ox axis", "line_width_dx")
+
+        check_positive(line_width_dy, "Line width along Oy axis", "line_width_dy")
         self.line_width_dy = line_width_dy
 
+        check_positive(line_length, "Total meander length", "line_length")
+        self.line_length = line_length
 
+        check_positive(add_dx_mid, "Additional Ox shift", "add_dx_mid")
+        self.add_dx_mid = add_dx_mid
 
 
 class KinIndMeander(DPathCPWStraight):
@@ -31,12 +48,12 @@ class KinIndMeander(DPathCPWStraight):
         super().__init__(points, cpw_pars, trans_in, region_id)
 
     def _initialize_dpath(self):
-        self.dx = self.meander_params.dr.dx
-        self.dy = self.meander_params.dr.dy
+        self.dx = self.meander_params.dr.x
+        self.dy = self.meander_params.dr.y 
 
         if self.dy < self.meander_params.line_gap:
             print(
-                "Kinetic inductivity meander drawing error:"
+                "Kinetic inductance meander drawing error:"
                 f"impossible to draw line with meander step "
                 f"{self.meander_params.line_gap:.0f} nm"
                 f"total dy of meander is too small: dy = {self.dy:.f} nm\n"
@@ -49,10 +66,47 @@ class KinIndMeander(DPathCPWStraight):
         self.dx_step = self.dx / (self.n_periods + 1)
         self.dy_step = self.dy / (2 * self.n_periods + 1)  # >= `line_gap`
 
-        y_squares_n = self.dy/self.meander_params.line_width_dy
-        if y_squares_n > self.meander_params.line_squares_n:
-            print("Error, to little squares for fixed inductor height.")
+        # y_squares_n = self.dy/self.meander_params.line_width_dy
 
+        # Let's remove restriction on number of squares and better limit total line length
+        # if y_squares_n > self.meander_params.line_squares_n:
+        #     print("Error, to little squares for fixed inductor height.")
+
+        self.s = (self.meander_params.line_length - self.dy + self.dx - 2 * self.meander_params.add_dx_mid) / (
+                    self.n_periods + 1) / 2
+        ''' draw meander '''
+        # creating points for kin.ind. line
+        # first 180 turn
+        line_pts = []
+        p1 = DPoint(0, 0)
+        p2 = p1 + DVector(self.s, 0)
+        p3 = p2 + DVector(0, self.dy_step)
+        p4 = p3 + DVector(-self.s + self.dx_step, 0)
+        line_pts += [p1, p2, p3, p4]
+
+        # further meander
+        for i in range(self.n_periods):
+            p1 = line_pts[-1]
+            p2 = p1 + DVector(0, self.dy_step)
+            p3 = p2 + DVector(self.s, 0)
+            p4 = p3 + DVector(0, self.dy_step)
+            p5 = p4 + DVector(-self.s + self.dx_step, 0)
+            line_pts += [p2, p3, p4, p5]
+
+        line_pts = np.array(line_pts)
+        # shift all but first and last point by certain amount
+        # in Ox direction
+        line_pts[1:-1] += DVector(self.meander_params.add_dx_mid, 0)
+        cpw_pars1 = CPWParameters(
+            width=self.meander_params.line_width_dx, gap=0
+        )
+        cpw_pars2 = CPWParameters(
+            width=self.meander_params.line_width_dy, gap=0  # width=180, gap=0
+        )
+        cpw_params_list = [cpw_pars1, cpw_pars2, cpw_pars1] + [
+            cpw_pars2, cpw_pars1, cpw_pars2, cpw_pars1] * self.n_periods
+
+        return line_pts, cpw_params_list
 
 
 class KinemonParams(RFSquidParams):
@@ -76,10 +130,10 @@ class Kinemon(AsymSquid):
         super().init_primitives()
 
 
+class DesignKinemon(ChipDesign):
+    def __init__(self, cell_name="testScript"):
+        super().__init__(cell_name)
 
-class DesignKinemon:
-    pass
 
 if __name__ == "__main__":
     kmon = DesignKinemon()
-
