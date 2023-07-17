@@ -1,5 +1,8 @@
+from importlib import reload
+
 from Projects.Dmon.Design import DesignDmon
 from pya import DPoint
+import Projects.Kinemon.KmonDesign
 from Projects.Kinemon.KmonDesign import KinIndMeander, MeanderParams
 from classLib import ChipDesign
 from pya import Region
@@ -38,7 +41,7 @@ class TestDesign(DesignDmon):
         self.lv.add_missing_layers()
 
     def draw_kin_ind(self):
-        meander_params = MeanderParams(DPoint(5e3, 5e3), 10, 100, 5, 5, 30e3, 0)
+        meander_params = MeanderParams(DPoint(0, 5e3), 10, 100, 5, 5, 20e3, 0)
         self.kin_ind = KinIndMeander(meander_params, region_id="kinInd")
         self.kin_ind.place(self.region_kinInd, region_id="kinInd")
 
@@ -53,6 +56,7 @@ class TestDesign(DesignDmon):
 
 
 if __name__ == "__main__":
+    reload(Projects.Kinemon.KmonDesign)
     test_design = TestDesign("testScript")
     test_design.draw()
     test_design.show()

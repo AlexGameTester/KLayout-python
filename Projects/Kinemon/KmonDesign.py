@@ -1,8 +1,8 @@
 import numpy as np
-from pya import DPoint, DVector
+from pya import DPoint, DVector, DPolygon
 
 from Projects.Dmon.Design import RFSquidParams, DPathCPWStraight
-from classLib import CPWParameters, ChipDesign
+from classLib import CPWParameters, ChipDesign, ElementBase
 from classLib.josJ import AsymSquid
 
 
@@ -41,12 +41,16 @@ class MeanderParams:
         self.add_dx_mid = add_dx_mid
 
 
-class KinIndMeander(DPathCPWStraight):
+class KinIndMeander(ElementBase):
     # TODO: Возможно, нужно будет задавать trans_in, чтобы правильно распологать меандр относительно других элементов
     def __init__(self, meander_params: MeanderParams, trans_in=None, region_id="default"):
         self.meander_params = meander_params
-        points, cpw_pars = self._initialize_dpath()
-        super().__init__(points, cpw_pars, trans_in, region_id)
+        super().__init__(DPoint(0,0), trans_in=trans_in, region_id=region_id)
+        # points, cpw_pars = self._initialize_dpath()
+        # super().__init__(points, cpw_pars, trans_in, region_id)
+
+    def init_regions(self):
+        self._initialize_dpath()
 
 
     def _initialize_dpath(self):
@@ -76,39 +80,82 @@ class KinIndMeander(DPathCPWStraight):
 
         self.s = (self.meander_params.line_length - self.dy + self.dx - 2 * self.meander_params.add_dx_mid) / (
                     self.n_periods + 1) / 2
+
+        poly = self.construct_poly()
+        self.metal_region.insert(poly)
         ''' draw meander '''
         # creating points for kin.ind. line
         # first 180 turn
-        line_pts = []
-        p1 = DPoint(0, 0)
-        p2 = p1 + DVector(self.s, 0)
-        p3 = p2 + DVector(0, self.dy_step)
+        # line_pts = []
+        # p1 = DPoint(0, 0)
+        # p2 = p1 + DVector(self.s, 0)
+        # p3 = p2 + DVector(0, self.dy_step)
+        # p4 = p3 + DVector(-self.s + self.dx_step, 0)
+        # line_pts += [p1, p2, p3, p4]
+        #
+        # # further meander
+        # for i in range(self.n_periods):
+        #     p1 = line_pts[-1]
+        #     p2 = p1 + DVector(0, self.dy_step)
+        #     p3 = p2 + DVector(self.s, 0)
+        #     p4 = p3 + DVector(0, self.dy_step)
+        #     p5 = p4 + DVector(-self.s + self.dx_step, 0)
+        #     line_pts += [p2, p3, p4, p5]
+        #
+        # line_pts = np.array(line_pts)
+        # # shift all but first and last point by certain amount
+        # # in Ox direction
+        # line_pts[1:-1] += DVector(self.meander_params.add_dx_mid, 0)
+        # cpw_pars1 = CPWParameters(
+        #     width=self.meander_params.line_width_dx, gap=0
+        # )
+        # cpw_pars2 = CPWParameters(
+        #     width=self.meander_params.line_width_dy, gap=0  # width=180, gap=0
+        # )
+        # cpw_params_list = [cpw_pars1, cpw_pars2, cpw_pars1] + [
+        #     cpw_pars2, cpw_pars1, cpw_pars2, cpw_pars1] * self.n_periods
+        #
+        # return line_pts, cpw_params_list
+
+    def construct_poly(self):
+        # Exterior points
+        ext_points = []
+        dy_hw = self.meander_params.line_width_dy / 2
+        dx_hw = self.meander_params.line_width_dx / 2
+        p1 = DPoint(0, -dy_hw)
+        p2 = p1 + DVector(self.s + dx_hw, 0)
+        p3 = p2 + DVector(0, self.dy_step + 2 * dy_hw)
         p4 = p3 + DVector(-self.s + self.dx_step, 0)
-        line_pts += [p1, p2, p3, p4]
-
-        # further meander
+        ext_points += [p1, p2, p3, p4]
         for i in range(self.n_periods):
-            p1 = line_pts[-1]
-            p2 = p1 + DVector(0, self.dy_step)
+            p1 = ext_points[-1]
+            p2 = p1 + DVector(0, self.dy_step - 2 * dy_hw)
             p3 = p2 + DVector(self.s, 0)
-            p4 = p3 + DVector(0, self.dy_step)
+            p4 = p3 + DVector(0, self.dy_step + 2 * dy_hw)
             p5 = p4 + DVector(-self.s + self.dx_step, 0)
-            line_pts += [p2, p3, p4, p5]
+            ext_points += [p1, p2, p3, p4, p5]
 
-        line_pts = np.array(line_pts)
-        # shift all but first and last point by certain amount
-        # in Ox direction
-        line_pts[1:-1] += DVector(self.meander_params.add_dx_mid, 0)
-        cpw_pars1 = CPWParameters(
-            width=self.meander_params.line_width_dx, gap=0
-        )
-        cpw_pars2 = CPWParameters(
-            width=self.meander_params.line_width_dy, gap=0  # width=180, gap=0
-        )
-        cpw_params_list = [cpw_pars1, cpw_pars2, cpw_pars1] + [
-            cpw_pars2, cpw_pars1, cpw_pars2, cpw_pars1] * self.n_periods
+        # Interior points
+        int_points = []
+        p1 = DPoint(0, dy_hw)
+        p2 = p1 + DVector(self.s - dx_hw, 0)
+        p3 = p2 + DVector(0, self.dy_step - 2 * dy_hw)
+        p4 = p3 + DVector(-self.s + self.dx_step, 0)
+        int_points += [p1, p2, p3, p4]
 
-        return line_pts, cpw_params_list
+        for i in range(self.n_periods):
+            p1 = int_points[-1]
+            p2 = p1 + DVector(0, self.dy_step + 2 * dy_hw)
+            p3 = p2 + DVector(self.s, 0)
+            p4 = p3 + DVector(0, self.dy_step - 2 * dy_hw)
+            p5 = p4 + DVector(-self.s + self.dx_step, 0)
+            int_points += [p1, p2, p3, p4, p5]
+
+        int_points.reverse()
+        points = ext_points + int_points
+
+        return DPolygon(points)
+
 
 
 class KinemonParams(RFSquidParams):
