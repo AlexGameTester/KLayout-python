@@ -144,7 +144,7 @@ FABRICATION.OVERETCHING = 0.5e3
 PROJECT_DIR = os.path.dirname(__file__)
 
 
-class DPathCPWStraght(ComplexBase):
+class DPathCPWStraight(ComplexBase):
     def __init__(self, points, cpw_pars_list, trans_in=None,
              region_id="default"):
         self.points = points
@@ -354,7 +354,7 @@ class Fluxonium(AsymSquid):
         )
         cpw_params_list = [cpw_pars1, cpw_pars2, cpw_pars1] + [
             cpw_pars2, cpw_pars1, cpw_pars2, cpw_pars1]*self.n_periods
-        self.line = DPathCPWStraght(
+        self.line = DPathCPWStraight(
             points=line_pts,
             cpw_pars_list=cpw_params_list,
             region_id="kinInd"
