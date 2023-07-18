@@ -1,6 +1,8 @@
 __version__ = "v.0.0.5.13.1"
 
+import logging
 import sys
+
 
 '''
 Description:
@@ -2268,9 +2270,10 @@ def simulate_resonators_f_and_Q_together():
     ''' RESULT SAVING SECTION END '''
 
 
-def simulate_Cqr(resolution=(4e3, 4e3), mode="Cq", pts=3, par_d=10e3):
+def simulate_Cqr(resolution=(4e3, 4e3), mode="Cq", pts=3, par_d=10e3, output_fname=None):
     # TODO: 1. make 2d geometry parameters mesh, for simultaneous finding of C_qr and C_q
     #  2. make 3d geometry optimization inside kLayout for simultaneous finding of C_qr, C_q and C_qq
+
     resolution_dx = resolution[0]
     resolution_dy = resolution[1]
     # if linspace is requested with single point it will return
@@ -2341,6 +2344,7 @@ def simulate_Cqr(resolution=(4e3, 4e3), mode="Cq", pts=3, par_d=10e3):
 
         port_pt = None
         min_dist = 10e6
+
         for center_edge in reg1.edges().centers(0, 0).each():
             edge_center = center_edge.p1
             dist = np.min(
@@ -2397,7 +2401,7 @@ def simulate_Cqr(resolution=(4e3, 4e3), mode="Cq", pts=3, par_d=10e3):
 
         ml_terminal.send_polygons(design.cell, design.layer_ph)
         ml_terminal.set_linspace_sweep(0.01, 0.01, 1)
-        print("simulating...")
+        logging.info("simulating...")
         result_path = ml_terminal.start_simulation(wait=True)
         ml_terminal.release()
 
@@ -2431,20 +2435,24 @@ def simulate_Cqr(resolution=(4e3, 4e3), mode="Cq", pts=3, par_d=10e3):
             y21 = -2 * s[1][0] / delta * 1 / R
             C12 = 1e15 / (2 * math.pi * freq0 * 1e9 * (1 / y21).imag)
 
-        print(
+        logging.info(
             f"cross_x_len[{res_idx}] = {design.cross_len_x_list[res_idx] / 1e3}")
-        print("C1 = ", C1)
-        print("C12 = ", C12)
-        print("C2 = ", C2)
-        print("------------")  # 12 `-` whitespace
+        logging.info("C1 = ", C1)
+        logging.info("C12 = ", C12)
+        logging.info("C2 = ", C2)
+        logging.info("------------")  # 12 `-` whitespace
         ### CALCULATE C_QR CAPACITANCE SECTION START ###
 
         ### SAVING REUSLTS SECTION START ###
         design.layout.write(
             os.path.join(PROJECT_DIR, f"Cqr_{res_idx}_{dl}_um.gds")
         )
-        output_filepath = os.path.join(PROJECT_DIR,
-                                       save_fname)
+        if output_fname is None:
+            output_filepath = os.path.join(PROJECT_DIR,
+                                           save_fname)
+        else:
+            output_filepath = output_fname
+
         if os.path.exists(output_filepath):
             # append data to file
             with open(output_filepath, "a", newline='') as csv_file:
@@ -2897,9 +2905,6 @@ if __name__ == "__main__":
     #     )
     # )
     ''' C_qr sim '''
-    with open("./output.txt", 'a') as f:
-        f.write(var322)
-    print(sys.argv)
     simulate_Cqr(resolution=(4e3, 4e3), mode="Cqr", pts=3, par_d=10e3)
     # simulate_Cqr(resolution=(1e3, 1e3), mode="Cq", pts=3, par_d=20e3)
     # simulate_Cqr(resolution=(1e3, 1e3), mode="Cqr")

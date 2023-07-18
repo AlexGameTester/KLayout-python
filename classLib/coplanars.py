@@ -101,8 +101,8 @@ class CPW(ElementBase):
                         DPoint(self.dr.abs(), -self.width / 2))
                 )
             )
-        self.metal_region.size(1, 0, 0)
-        self.empty_region.size(1, 0, 0)
+        # self.metal_region.size(1, 0, 0)
+        # self.empty_region.size(1, 0, 0)
         self.metal_region.transform(alpha_trans)
         self.empty_region.transform(alpha_trans)
 
