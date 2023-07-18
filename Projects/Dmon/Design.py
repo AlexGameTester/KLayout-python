@@ -2872,8 +2872,8 @@ def simulate_md_Cg(md_idx, q_idx, resolution=(5e3, 5e3)):
 
 if __name__ == "__main__":
     ''' draw and show design for manual design evaluation '''
-    FABRICATION.OVERETCHING = 0.0e3
-    design = DesignDmon("testScript")
+    # FABRICATION.OVERETCHING = 0.0e3
+    # design = DesignDmon("testScript")
     # design.draw()
     # design.show()
     #

@@ -1,7 +1,7 @@
 import numpy as np
 from pya import DPoint, DVector, DPolygon
 
-from Projects.Dmon.Design import RFSquidParams, DPathCPWStraight
+from Projects.Dmon.Design import RFSquidParams, DPathCPWStraight, DesignDmon
 from classLib import CPWParameters, ChipDesign, ElementBase
 from classLib.josJ import AsymSquid
 
@@ -46,14 +46,8 @@ class KinIndMeander(ElementBase):
     def __init__(self, meander_params: MeanderParams, trans_in=None, region_id="default"):
         self.meander_params = meander_params
         super().__init__(DPoint(0,0), trans_in=trans_in, region_id=region_id)
-        # points, cpw_pars = self._initialize_dpath()
-        # super().__init__(points, cpw_pars, trans_in, region_id)
 
     def init_regions(self):
-        self._initialize_dpath()
-
-
-    def _initialize_dpath(self):
         self.dx = self.meander_params.dr.x
         self.dy = self.meander_params.dr.y 
 
@@ -72,50 +66,11 @@ class KinIndMeander(ElementBase):
         self.dx_step = self.dx / (self.n_periods + 1)
         self.dy_step = self.dy / (2 * self.n_periods + 1)  # >= `line_gap`
 
-        # y_squares_n = self.dy/self.meander_params.line_width_dy
-
-        # Let's remove restriction on number of squares and better limit total line length
-        # if y_squares_n > self.meander_params.line_squares_n:
-        #     print("Error, to little squares for fixed inductor height.")
-
         self.s = (self.meander_params.line_length - self.dy + self.dx - 2 * self.meander_params.add_dx_mid) / (
                     self.n_periods + 1) / 2
 
         poly = self.construct_poly()
         self.metal_region.insert(poly)
-        ''' draw meander '''
-        # creating points for kin.ind. line
-        # first 180 turn
-        # line_pts = []
-        # p1 = DPoint(0, 0)
-        # p2 = p1 + DVector(self.s, 0)
-        # p3 = p2 + DVector(0, self.dy_step)
-        # p4 = p3 + DVector(-self.s + self.dx_step, 0)
-        # line_pts += [p1, p2, p3, p4]
-        #
-        # # further meander
-        # for i in range(self.n_periods):
-        #     p1 = line_pts[-1]
-        #     p2 = p1 + DVector(0, self.dy_step)
-        #     p3 = p2 + DVector(self.s, 0)
-        #     p4 = p3 + DVector(0, self.dy_step)
-        #     p5 = p4 + DVector(-self.s + self.dx_step, 0)
-        #     line_pts += [p2, p3, p4, p5]
-        #
-        # line_pts = np.array(line_pts)
-        # # shift all but first and last point by certain amount
-        # # in Ox direction
-        # line_pts[1:-1] += DVector(self.meander_params.add_dx_mid, 0)
-        # cpw_pars1 = CPWParameters(
-        #     width=self.meander_params.line_width_dx, gap=0
-        # )
-        # cpw_pars2 = CPWParameters(
-        #     width=self.meander_params.line_width_dy, gap=0  # width=180, gap=0
-        # )
-        # cpw_params_list = [cpw_pars1, cpw_pars2, cpw_pars1] + [
-        #     cpw_pars2, cpw_pars1, cpw_pars2, cpw_pars1] * self.n_periods
-        #
-        # return line_pts, cpw_params_list
 
     def construct_poly(self):
         # Exterior points
@@ -151,11 +106,14 @@ class KinIndMeander(ElementBase):
             p5 = p4 + DVector(-self.s + self.dx_step, 0)
             int_points += [p1, p2, p3, p4, p5]
 
+        # Last point correction
+        int_points[-1] += DVector(dx_hw, 0)
+        ext_points[-1] += DVector(-dx_hw, 0)
+
         int_points.reverse()
         points = ext_points + int_points
 
         return DPolygon(points)
-
 
 
 class KinemonParams(RFSquidParams):
@@ -179,9 +137,12 @@ class Kinemon(AsymSquid):
         super().init_primitives()
 
 
-class DesignKinemon(ChipDesign):
+class DesignKinemon(DesignDmon):
     def __init__(self, cell_name="testScript"):
         super().__init__(cell_name)
+
+    def draw(self):
+        self.draw_chip()
 
 
 if __name__ == "__main__":
