@@ -1,5 +1,7 @@
 __version__ = "v.0.0.5.13.1"
 
+import sys
+
 '''
 Description:
 This program is made to generate litography blueprints for testing of the 
@@ -2894,8 +2896,10 @@ if __name__ == "__main__":
     #         "Dmon_" + __version__ + "_overetching_0um5.gds"
     #     )
     # )
-
     ''' C_qr sim '''
+    with open("./output.txt", 'a') as f:
+        f.write(var322)
+    print(sys.argv)
     simulate_Cqr(resolution=(4e3, 4e3), mode="Cqr", pts=3, par_d=10e3)
     # simulate_Cqr(resolution=(1e3, 1e3), mode="Cq", pts=3, par_d=20e3)
     # simulate_Cqr(resolution=(1e3, 1e3), mode="Cqr")
