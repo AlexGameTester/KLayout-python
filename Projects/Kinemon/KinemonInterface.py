@@ -9,6 +9,7 @@ import logging
 # mode = ""
 # pts = ""
 # par_d = ""
+# output_file = ""
 LOG_PATH = "./log.txt"
 LOG_FORMAT = "%(asctime)s - %(level)s - %(message)s"
 LOG_DATE = "%d.%m.%Y-%H:%M:%S"
@@ -19,15 +20,9 @@ class KinemonInterface(CalculationInterface):
         self.output_fname = output_fname
 
     def process(self):
-        global pts, mode, par_d
-        logging.info('Process started')
-        if mode == "Cqr":
-            pts = int(pts)
-            par_d = float(par_d)
-            Projects.Dmon.Design.simulate_Cqr(resolution=(4e3, 4e3), mode="Cqr", pts=pts, par_d=par_d, output_fname=self.output_fname)
-        else:
-            logging.error('Incorrect mode')
-        logging.info(f"pts={pts}, mode={mode}")
+        global pts, mode, par_d, output_file
+        design = Projects.Dmon.Design.DesignDmon('testScript')
+        Pe
 
 
 if __name__ == "__main__":

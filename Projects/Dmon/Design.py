@@ -2270,42 +2270,36 @@ def simulate_resonators_f_and_Q_together():
     ''' RESULT SAVING SECTION END '''
 
 
-def simulate_Cqr(resolution=(4e3, 4e3), mode="Cq", pts=3, par_d=10e3, output_fname=None):
+def simulate_Cqr(design: DesignDmon, output_fname, res_idx=0, sim_param_name="fork_y_span_list", param_value_interval=(1, 10), param_value_number=10,
+                 resolution=(4e3, 4e3), pts=3, par_d=10e3):
     # TODO: 1. make 2d geometry parameters mesh, for simultaneous finding of C_qr and C_q
     #  2. make 3d geometry optimization inside kLayout for simultaneous finding of C_qr, C_q and C_qq
 
+    design_params = {"fork_y_span_list": design.fork_y_span_list,
+              "fork_metal_width_list": design.fork_metal_width_list,
+              "fork_x_span_list": design.fork_x_span_list,
+              "cross_width_x_list": design.cross_width_x_list,
+              "cross_width_y_list": design.cross_width_y_list,
+              "cross_len_x_list": design.cross_len_x_list,
+              "cross_len_y_list": design.cross_len_y_list,
+              }
+
     resolution_dx = resolution[0]
     resolution_dy = resolution[1]
-    # if linspace is requested with single point it will return
-    # lhs border of the interval
-    dl_list = np.linspace(-par_d / 2, par_d / 2, pts)
-    # dl_list = [0e3]
-    from itertools import product
 
-    for dl, res_idx in list(
-            product(
-                dl_list, range(8)
-            )
-    ):
-        if res_idx != 0:
-            continue
-        ### DRAWING SECTION START ###
-        design = DesignDmon("testScript")
-        # adjusting `self.fork_y_span_list` for C_qr
-        if mode == "Cqr":
-            design.fork_y_span_list += dl
-            # design.fork_metal_width_list += dl
-            # design.fork_x_span_list += 2*dl
-            save_fname = "Cqr_Cqr_results.csv"
-        elif mode == "Cq":
-            # adjusting `cross_len_x` to gain proper E_C
-            # design.cross_width_y_list += dl
-            # design.cross_width_x_list += dl
-            # design.cross_len_x_list += dl
-            design.cross_len_y_list += dl
-            save_fname = "Cqr_Cq_results.csv"
+    if res_idx < 0 or res_idx >= 8:
+        raise ValueError(f"Resonator index must be from interval [0, 7] but res_idx={res_idx} was given")
 
-        # exclude coils from simulation (sometimes port is placed onto coil (TODO: fix)
+    if sim_param_name not in design_params:
+        raise ValueError(f'Simulation parameter must be from list {design_params.keys()} but "{sim_param_name}" was given')
+
+    param_values = np.linspace(*param_value_interval, param_value_number)
+
+    logging.info('Simulation section for Cqr started')
+    for pv in param_values:
+        logging.info(f'Performing simulation for resonator #{res_idx} with {sim_param_name}={pv:.1f}')
+        design_params[sim_param_name][res_idx] = pv
+
         design.N_coils = [0] * design.NQUBITS
         design.draw_for_Cqr_simulation(res_idx=res_idx)
 
@@ -2445,14 +2439,10 @@ def simulate_Cqr(resolution=(4e3, 4e3), mode="Cq", pts=3, par_d=10e3, output_fna
 
         ### SAVING REUSLTS SECTION START ###
         design.layout.write(
-            os.path.join(PROJECT_DIR, f"Cqr_{res_idx}_{dl}_um.gds")
+            os.path.join(PROJECT_DIR, f"{output_fname}.gds")
         )
-        if output_fname is None:
-            output_filepath = os.path.join(PROJECT_DIR,
-                                           save_fname)
-        else:
-            output_filepath = output_fname
 
+        output_filepath = output_fname
         if os.path.exists(output_filepath):
             # append data to file
             with open(output_filepath, "a", newline='') as csv_file:
@@ -2477,7 +2467,7 @@ def simulate_Cqr(resolution=(4e3, 4e3), mode="Cq", pts=3, par_d=10e3, output_fna
                      C1]
                 )
 
-        ### SAVING REUSLTS SECTION END ###
+    logging.info("Simulation section ended")
 
 
 def simulate_Cqq(q1_idx, q2_idx, resolution=(5e3, 5e3)):
