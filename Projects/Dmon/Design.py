@@ -145,7 +145,7 @@ reload(sonnetSim)
 from sonnetSim import SonnetLab, SonnetPort, SimulationBox
 
 FABRICATION.OVERETCHING = 0.5e3
-PROJECT_DIR = os.path.dirname(__file__)
+PROJECT_DIR = r"C:\klayout_dev\kmon-calculations\Cq_Cqr"
 
 
 class DPathCPWStraight(ComplexBase):
@@ -521,7 +521,7 @@ class DesignDmon(ChipDesign):
         )
         self.cross_len_y_list = np.array(
             [1e3 * x for x in
-             [245.0, 225.0, 211.0, 154.0, 154.0, 258.0, 267.0, 267.0]]
+             [115.0, 225.0, 211.0, 154.0, 154.0, 258.0, 267.0, 267.0]]
         )
         self.cross_width_y_list = np.array(
             [1e3 * x for x in [16, 16, 16, 16, 16, 32, 56, 56]]
@@ -2287,8 +2287,8 @@ def simulate_Cqr(resolution=(4e3, 4e3), mode="Cq", pts=3, par_d=10e3, output_fna
                 dl_list, range(8)
             )
     ):
-        if res_idx != 0:
-            continue
+        # if res_idx != 0:
+        #     continue
         ### DRAWING SECTION START ###
         design = DesignDmon("testScript")
         # adjusting `self.fork_y_span_list` for C_qr
@@ -2905,7 +2905,7 @@ if __name__ == "__main__":
     #     )
     # )
     ''' C_qr sim '''
-    simulate_Cqr(resolution=(4e3, 4e3), mode="Cqr", pts=3, par_d=10e3)
+    simulate_Cqr(resolution=(3e3, 3e3), mode="Cq", pts=3, par_d=10e3)
     # simulate_Cqr(resolution=(1e3, 1e3), mode="Cq", pts=3, par_d=20e3)
     # simulate_Cqr(resolution=(1e3, 1e3), mode="Cqr")
 

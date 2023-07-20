@@ -144,6 +144,9 @@ class DesignKinemon(DesignDmon):
     def draw(self):
         self.draw_chip()
 
+    def draw_kin_ind(self):
+        pass
+
 
 if __name__ == "__main__":
     kmon = DesignKinemon()
