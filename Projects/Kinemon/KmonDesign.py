@@ -1,5 +1,5 @@
 import numpy as np
-from pya import DPoint, DVector, DPolygon
+from pya import DPoint, DVector, DPolygon, DCplxTrans
 
 from Projects.Dmon.Design import RFSquidParams, DPathCPWStraight, DesignDmon
 from classLib import CPWParameters, ChipDesign, ElementBase
@@ -44,10 +44,16 @@ class MeanderParams:
 class KinIndMeander(ElementBase):
     # TODO: Возможно, нужно будет задавать trans_in, чтобы правильно распологать меандр относительно других элементов
     def __init__(self, meander_params: MeanderParams, trans_in=None, region_id="default"):
+        print("Meander __init__")
         self.meander_params = meander_params
         super().__init__(DPoint(0,0), trans_in=trans_in, region_id=region_id)
 
+    def place(self, dest, layer_i=-1, region_id="default", merge=False):
+        super().place(dest, layer_i, region_id, merge)
+        print(f"Meander place, region_id: {region_id}")
+
     def init_regions(self):
+        print("Meander init_regions")
         self.dx = self.meander_params.dr.x
         self.dy = self.meander_params.dr.y 
 
@@ -73,6 +79,7 @@ class KinIndMeander(ElementBase):
         self.metal_region.insert(poly)
 
     def construct_poly(self):
+        print("Meander construct_poly")
         # Exterior points
         ext_points = []
         dy_hw = self.meander_params.line_width_dy / 2
@@ -117,25 +124,52 @@ class KinIndMeander(ElementBase):
 
 
 class KinemonParams(RFSquidParams):
-    def __init__(self, rf_sq_params: RFSquidParams):
+    def __init__(self, rf_sq_params: RFSquidParams, meander_params: MeanderParams, area_ratio=1 / 2):
         self.__dict__.update(rf_sq_params.__dict__)
+        self.meander_params = meander_params
+        # TODO: Implement variable area_ratio
+        self.area_ratio = area_ratio
 
 
 class Kinemon(AsymSquid):
     def __init__(self, origin: DPoint, squid_params: KinemonParams, trans_in=None):
+        print("Initializing Kinemon")
         self.center = origin
 
         self.r_curve = max(squid_params.line_width_dx,
                            squid_params.line_width_dy)
         self.TCBC_round_r = 500  # nm
         # declare for proper code completion
-        self.squid_params: RFSquidParams = None
+        self.squid_params: KinemonParams = None
         super().__init__(origin=origin, params=squid_params,
                          trans_in=trans_in)
+
+    def init_kin_ind(self):
+        print("Initializing meander")
+        pars = self.squid_params
+        x_arr = self.squid_params.bot_wire_x
+        left_bc = DPoint(x_arr[0], -pars.squid_dy / 2 - pars.BCW_dy)
+        right_bc = DPoint(x_arr[1], -pars.squid_dy / 2 - pars.BCW_dy)
+        tc = DPoint(0, pars.squid_dy / 2 + pars.SQT_dy + pars.TCW_dy + pars.TC_dy)
+
+        print(f"TC position: {tc}")
+        r1 = tc - left_bc
+        r2 = tc - right_bc
+        r0 = (r1 + r2) / 2
+        # r0 = DVector(10e3, 10e3)
+
+        self.squid_params.meander_params.dr = r0
+        trans = DCplxTrans(tc + r1 - r0)
+        print(f"Meander position is determined by transformation: {trans}")
+        print(f"Meander length is determined by vector: {r0}")
+        self.kin_ind_meander = KinIndMeander(self.squid_params.meander_params, trans_in=trans, region_id="kinInd")
+        self.primitives["kinIndMeander"] = self.kin_ind_meander
+
 
     def init_primitives(self):
         super().init_primitives()
 
+        self.init_kin_ind()
 
 class DesignKinemon(DesignDmon):
     def __init__(self, cell_name="testScript"):
@@ -143,6 +177,8 @@ class DesignKinemon(DesignDmon):
 
     def draw(self):
         self.draw_chip()
+
+
 
     def draw_kin_ind(self):
         pass

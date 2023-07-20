@@ -2,7 +2,7 @@ from importlib import reload
 from Projects.Dmon.Design import DesignDmon
 from pya import DPoint
 import Projects.Kinemon.KmonDesign
-from Projects.Kinemon.KmonDesign import KinIndMeander, MeanderParams
+from Projects.Kinemon.KmonDesign import KinIndMeander, MeanderParams, Kinemon
 from classLib import ChipDesign
 from pya import Region, DCplxTrans, DVector
 import pya
@@ -29,6 +29,8 @@ class TestDesign(DesignDmon):
             if poly.num_points() > max_pts:
                 print(f'Splitting kinetic inductance region is not done. Problem with polygon: {poly}')
 
+    def draw_kinemon(self):
+        kinemon = Kinemon(DPoint(10e3, 50e3), )
     def draw(self, design_params=None):
         self.draw_chip()
 
