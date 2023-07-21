@@ -1,4 +1,4 @@
-from pya import DPoint, DVector, DPolygon, DCplxTrans
+from pya import DPoint, DVector, DPolygon, DCplxTrans, Region
 
 from Projects.Dmon.Design import RFSquidParams, DesignDmon
 from classLib import ElementBase, CPW
@@ -13,7 +13,6 @@ def check_positive(val, full_name, short_name):
 class MeanderParams:
     def __init__(self, dr: DPoint,
                  line_gap: float,
-                 line_squares_n: int,
                  line_width_dx: float,
                  line_width_dy: float,
                  line_length: float,
@@ -23,9 +22,6 @@ class MeanderParams:
 
         check_positive(line_gap, "Line gap", "line_gap")
         self.line_gap = line_gap
-
-        check_positive(line_squares_n, "Line squares number", "line_squares_n")
-        self.line_squares_n = line_squares_n
 
         check_positive(line_width_dx, "Line width along Ox axis", "line_width_dx")
         self.line_width_dx = line_width_dx
@@ -48,8 +44,6 @@ class KinIndMeander(ElementBase):
         self.end = None
         super().__init__(DPoint(0,0), trans_in=trans_in, region_id=region_id)
 
-    def place(self, dest, layer_i=-1, region_id="default", merge=False):
-        super().place(dest, layer_i, region_id, merge)
 
     def init_regions(self):
         self.dx = self.meander_params.dr.x
@@ -133,7 +127,9 @@ class KinemonParams(RFSquidParams):
                  KI_bridge_height=4e3,
                  KI_pad_y_offset=0.2e3,
                  KI_pad_width=3e3,
-                 KI_ledge_y_offset=0.3e3):
+                 KI_ledge_y_offset=0.3e3,
+                 KI_JJ_ledge_height=6.95e3,
+                 KI_JJ_ledge_width=2e3):
         """
         @param rf_sq_params:
         @param meander_params: Object that contains parameters of kinetic inductance meander
@@ -165,6 +161,8 @@ class KinemonParams(RFSquidParams):
         self.KI_pad_y_offset = KI_pad_y_offset
         self.KI_pad_width = KI_pad_width
         self.KI_ledge_y_offset = KI_ledge_y_offset
+        self.KI_JJ_ledge_height = KI_JJ_ledge_height
+        self.KI_JJ_ledge_width = KI_JJ_ledge_width
 
 
 class Kinemon(AsymSquid):
@@ -175,11 +173,21 @@ class Kinemon(AsymSquid):
                            squid_params.line_width_dy)
         self.TCBC_round_r = 500  # nm
         self.TCBC_round_n = 50
+        self.JJ_wire_width_offset = 0.3e3
         # declare for proper code completion
         self.kin_ind_meander: KinIndMeander = None
         self.squid_params: KinemonParams = None
+
+
         super().__init__(origin=origin, params=squid_params,
                          trans_in=trans_in)
+
+
+    def init_regions(self):
+        print("Kinemon init_regions")
+        if "photo" not in self.empty_regions:
+            self.empty_regions["photo"] = Region()
+
 
     def init_kin_ind(self):
         # Making meander
@@ -241,6 +249,24 @@ class Kinemon(AsymSquid):
         self.BKIP.metal_region.round_corners(0, self.TCBC_round_r, self.TCBC_round_n)
         self.primitives["BKIP"] = self.BKIP
         self.BC_list.append(self.BKIP)
+
+
+        # josephson junction contact kinetic inductance ledge
+        # Offset is required as contact bridge actually ends higher than JJ contact pad
+        # as its wire width is added to its height(height is determined by its CPW parameters)
+        tjjckil_start = self.TKIB.end + DVector(0, -self.JJ_wire_width_offset)
+        tjjckil_end = tjjckil_start + DVector(0, -self.JJ_wire_width_offset + self.squid_params.KI_JJ_ledge_height)
+
+        self.TJJCKIL = CPW(start=tjjckil_start,
+                           end=tjjckil_end,
+                           width=self.squid_params.KI_JJ_ledge_width,
+                           gap=0,
+                           region_id="default")
+        recess_region = Region()
+        self.TJJCKIL.place(recess_region, region_id="default")
+        # TODO: Potentially can cause errors if empty region is modified somewhere else. Fix
+        # self.TC.empty_regions["default"] = (recess_region)
+        self.SQT.empty_regions["default"] = recess_region
 
 
     def init_primitives(self):

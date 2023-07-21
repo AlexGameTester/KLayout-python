@@ -151,6 +151,19 @@ from sonnetSim import SonnetLab, SonnetPort, SimulationBox
 FABRICATION.OVERETCHING = 0.5e3
 PROJECT_DIR = r"C:\klayout_dev\kmon-calculations\Cq_Cqr"
 
+class DefaultParams:
+    meander_params_dict = {
+        'dr': DPoint(0, 0),
+        'line_width_dx': 0.120e3,
+        'line_width_dy': 0.120e3,
+        'add_dx_mid': 0,
+        'line_gap': 1.8e3
+    }
+    kinemon_params_dict = {
+
+    }
+
+
 
 class DPathCPWStraight(ComplexBase):
     def __init__(self, points, cpw_pars_list, trans_in=None,
@@ -727,7 +740,7 @@ class DesignDmon(ChipDesign):
         # marks
         self.marks: List[MarkBolgar] = []
 
-        self.example_meander = MeanderParams(dr=DPoint(10e3, 10e3), line_gap=1e3, line_squares_n=10, line_width_dx=0.2e3, line_width_dy=0.2e3, line_length=120e3, add_dx_mid=0)
+        self.example_meander = MeanderParams(**DefaultParams.meander_params_dict, line_length=120e3)
         self.meander_params = [self.example_meander] * 8
         ### ADDITIONAL VARIABLES SECTION END ###
 
@@ -1082,6 +1095,7 @@ class DesignDmon(ChipDesign):
                     trans_in=trans
                 )
                 squid.place(self.region_el, region_id="default")
+                squid.place(self.region_el, region_id="default_empty")
                 squid.place(self.region_kinInd, region_id="kinInd")
             elif res_idx >= 6:
                 kmon_params = KinemonParams(squid_pars, meander_pars)
@@ -1094,6 +1108,7 @@ class DesignDmon(ChipDesign):
                     trans_in=trans
                 )
                 squid.place(self.region_el, region_id="default")
+                squid.place(self.region_el, region_id="default_empty")
                 squid.place(self.region_kinInd, region_id="kinInd")
             self.squids.append(squid)
 
