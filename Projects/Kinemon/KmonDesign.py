@@ -1,8 +1,7 @@
-import numpy as np
 from pya import DPoint, DVector, DPolygon, DCplxTrans
 
-from Projects.Dmon.Design import RFSquidParams, DPathCPWStraight, DesignDmon
-from classLib import CPWParameters, ChipDesign, ElementBase
+from Projects.Dmon.Design import RFSquidParams, DesignDmon
+from classLib import ElementBase, CPW
 from classLib.josJ import AsymSquid
 
 
@@ -44,27 +43,21 @@ class MeanderParams:
 class KinIndMeander(ElementBase):
     # TODO: Возможно, нужно будет задавать trans_in, чтобы правильно распологать меандр относительно других элементов
     def __init__(self, meander_params: MeanderParams, trans_in=None, region_id="default"):
-        print("Meander __init__")
         self.meander_params = meander_params
+        self.start = None
+        self.end = None
         super().__init__(DPoint(0,0), trans_in=trans_in, region_id=region_id)
 
     def place(self, dest, layer_i=-1, region_id="default", merge=False):
         super().place(dest, layer_i, region_id, merge)
-        print(f"Meander place, region_id: {region_id}")
 
     def init_regions(self):
-        print("Meander init_regions")
         self.dx = self.meander_params.dr.x
         self.dy = self.meander_params.dr.y 
 
-        if self.dy < self.meander_params.line_gap:
-            print(
-                "Kinetic inductance meander drawing error:"
-                f"impossible to draw line with meander step "
-                f"{self.meander_params.line_gap:.0f} nm"
-                f"total dy of meander is too small: dy = {self.dy:.f} nm\n"
-            )
-            return
+        if abs(self.dy) < self.meander_params.line_gap:
+            raise ValueError(f"Meander line gap must be less than its total height dy={abs(self.dy)} but line_gap={self.meander_params.line_gap} was given")
+
         self.n_periods = (self.dy - self.meander_params.line_gap) // \
                          (2 * self.meander_params.line_gap)
         self.n_periods = int(self.n_periods)
@@ -79,13 +72,12 @@ class KinIndMeander(ElementBase):
         self.metal_region.insert(poly)
 
     def construct_poly(self):
-        print("Meander construct_poly")
         # Exterior points
         ext_points = []
         dy_hw = self.meander_params.line_width_dy / 2
         dx_hw = self.meander_params.line_width_dx / 2
         p1 = DPoint(0, -dy_hw)
-        p2 = p1 + DVector(self.s + dx_hw, 0)
+        p2 = p1 + DVector(self.s / 2 + dx_hw, 0)
         p3 = p2 + DVector(0, self.dy_step + 2 * dy_hw)
         p4 = p3 + DVector(-self.s + self.dx_step, 0)
         ext_points += [p1, p2, p3, p4]
@@ -94,13 +86,17 @@ class KinIndMeander(ElementBase):
             p2 = p1 + DVector(0, self.dy_step - 2 * dy_hw)
             p3 = p2 + DVector(self.s, 0)
             p4 = p3 + DVector(0, self.dy_step + 2 * dy_hw)
-            p5 = p4 + DVector(-self.s + self.dx_step, 0)
+            if i == self.n_periods - 1:
+                p5 = p4 + DVector(-self.s / 2 + self.dx_step, 0)
+            else:
+                p5 = p4 + DVector(-self.s + self.dx_step, 0)
+
             ext_points += [p1, p2, p3, p4, p5]
 
         # Interior points
         int_points = []
         p1 = DPoint(0, dy_hw)
-        p2 = p1 + DVector(self.s - dx_hw, 0)
+        p2 = p1 + DVector(self.s / 2 - dx_hw, 0)
         p3 = p2 + DVector(0, self.dy_step - 2 * dy_hw)
         p4 = p3 + DVector(-self.s + self.dx_step, 0)
         int_points += [p1, p2, p3, p4]
@@ -110,7 +106,13 @@ class KinIndMeander(ElementBase):
             p2 = p1 + DVector(0, self.dy_step + 2 * dy_hw)
             p3 = p2 + DVector(self.s, 0)
             p4 = p3 + DVector(0, self.dy_step - 2 * dy_hw)
-            p5 = p4 + DVector(-self.s + self.dx_step, 0)
+
+            # half of the width for the last point
+            if i == self.n_periods - 1:
+                p5 = p4 + DVector(-self.s / 2 + self.dx_step, 0)
+            else:
+                p5 = p4 + DVector(-self.s + self.dx_step, 0)
+
             int_points += [p1, p2, p3, p4, p5]
 
         # Last point correction
@@ -124,46 +126,147 @@ class KinIndMeander(ElementBase):
 
 
 class KinemonParams(RFSquidParams):
-    def __init__(self, rf_sq_params: RFSquidParams, meander_params: MeanderParams, area_ratio=1 / 2):
+    def __init__(self, rf_sq_params: RFSquidParams, meander_params: MeanderParams, area_ratio=1 / 2,
+                 MC_dy=None,
+                 MC_dx=None,
+                 KI_bridge_width=1e3,
+                 KI_bridge_height=4e3,
+                 KI_pad_y_offset=0.2e3,
+                 KI_pad_width=3e3,
+                 KI_ledge_y_offset=0.3e3):
+        """
+        @param rf_sq_params:
+        @param meander_params: Object that contains parameters of kinetic inductance meander
+        @param area_ratio:
+        @param MC_dy:
+        @param MC_dx:
+        @param KI_bridge_width: Width of a thin bridge that connects kinetic inductance meander to its large contact pad
+        @param KI_bridge_height: Height of a thin bridge that connects kinetic inductance meander to its large contact pad
+        @param KI_pad_y_offset: Offset of end of kinetic inductance contact pad relatively to contact pads of josephson junctions
+        @param KI_pad_width: Width of kinetic inductance contact pad
+        """
         self.__dict__.update(rf_sq_params.__dict__)
         self.meander_params = meander_params
         # TODO: Implement variable area_ratio
         self.area_ratio = area_ratio
 
+        if MC_dy is None:
+            self.MC_dy = self.TC_dy
+        else:
+            self.MC_dy = MC_dy
+
+        if MC_dx is None:
+            self.MC_dx = self.TC_dx
+        else:
+            self.MC_dx = MC_dx
+
+        self.KI_bridge_width = KI_bridge_width
+        self.KI_bridge_height = KI_bridge_height
+        self.KI_pad_y_offset = KI_pad_y_offset
+        self.KI_pad_width = KI_pad_width
+        self.KI_ledge_y_offset = KI_ledge_y_offset
+
 
 class Kinemon(AsymSquid):
     def __init__(self, origin: DPoint, squid_params: KinemonParams, trans_in=None):
-        print("Initializing Kinemon")
         self.center = origin
 
         self.r_curve = max(squid_params.line_width_dx,
                            squid_params.line_width_dy)
         self.TCBC_round_r = 500  # nm
+        self.TCBC_round_n = 50
         # declare for proper code completion
+        self.kin_ind_meander: KinIndMeander = None
         self.squid_params: KinemonParams = None
         super().__init__(origin=origin, params=squid_params,
                          trans_in=trans_in)
 
     def init_kin_ind(self):
-        print("Initializing meander")
-        pars = self.squid_params
-        x_arr = self.squid_params.bot_wire_x
-        left_bc = DPoint(x_arr[0], -pars.squid_dy / 2 - pars.BCW_dy)
-        right_bc = DPoint(x_arr[1], -pars.squid_dy / 2 - pars.BCW_dy)
-        tc = DPoint(0, pars.squid_dy / 2 + pars.SQT_dy + pars.TCW_dy + pars.TC_dy)
+        # Making meander
+        assert len(self.BC_list) == 2
+        self.BC_list.sort(key=lambda bc: bc.start.x)
+        left_bc_object = self.BC_list[0]
+        right_bc_object = self.BC_list[1]
+        tc_object = self.TC
 
-        print(f"TC position: {tc}")
+        tc = tc_object.end
+        left_bc = left_bc_object.start
+        right_bc = right_bc_object.start
+
         r1 = tc - left_bc
         r2 = tc - right_bc
-        r0 = (r1 + r2) / 2
+        print(f'r1 = {r1}, r2 = {r2}')
+        r0 = (r1 + r2) / 2 + DVector(0, -2 * self.squid_params.KI_bridge_height)
         # r0 = DVector(10e3, 10e3)
 
+        start = tc - r0 + DVector(0, -self.squid_params.KI_bridge_height)
+        end = start + r0
+
         self.squid_params.meander_params.dr = r0
-        trans = DCplxTrans(tc + r1 - r0)
-        print(f"Meander position is determined by transformation: {trans}")
-        print(f"Meander length is determined by vector: {r0}")
+        trans = DCplxTrans(start)
         self.kin_ind_meander = KinIndMeander(self.squid_params.meander_params, trans_in=trans, region_id="kinInd")
+        self.kin_ind_meander.start = start
+        self.kin_ind_meander.end = end
         self.primitives["kinIndMeander"] = self.kin_ind_meander
+
+        # Making meander contacts
+        # top kinetic inductance bridge
+        self.TKIB = CPW(start=self.kin_ind_meander.end + DVector(0, - self.squid_params.meander_params.line_width_dy / 2),
+                        end=self.kin_ind_meander.end + DVector(0, self.squid_params.KI_bridge_height),
+                        width=self.squid_params.KI_bridge_width, gap=0,
+                        region_id="kinInd")
+        self.primitives["TKIB"] = self.TKIB
+
+        self.BKIB = CPW(start=self.kin_ind_meander.start + DVector(0, + self.squid_params.meander_params.line_width_dy / 2),
+                        end=self.kin_ind_meander.start + DVector(0, -self.squid_params.KI_bridge_height),
+                        width=self.squid_params.KI_bridge_width, gap=0,
+                        region_id="kinInd")
+        self.primitives["BKIB"] = self.BKIB
+
+        # top kinetic inductance pad
+        self.TKIP = CPW(start=self.TKIB.end,
+                        end=self.TC.start + DVector(0, -self.squid_params.KI_pad_y_offset),
+                        width=self.squid_params.KI_pad_width,
+                        gap=0,
+                        region_id="kinInd")
+        self.TKIP.metal_region.round_corners(0, self.TCBC_round_r, self.TCBC_round_n)
+        self.primitives["TKIP"] = self.TKIP
+
+        bkip_end = DVector((self.BC_list[0].start.x + self.BC_list[1].start.x) / 2, self.BC_list[0].end.y + self.squid_params.KI_pad_y_offset)
+        self.BKIP = CPW(start=self.BKIB.end,
+                        end=bkip_end,
+                        width=self.squid_params.KI_pad_width,
+                        gap=0,
+                        region_id="kinInd")
+        self.BKIP.metal_region.round_corners(0, self.TCBC_round_r, self.TCBC_round_n)
+        self.primitives["BKIP"] = self.BKIP
+        self.BC_list.append(self.BKIP)
+
+        # # botttom kinetic inductance ledge
+        # self.BKIL = CPW(start=self.BKIB.end,
+        #                 end=bkip_end + DVector(0, -self.squid_params.KI_pad_y_offset + self.squid_params.KI_ledge_y_offset),
+        #                 width=self.squid_params.BC_dx[0],
+        #                 gap=0,
+        #                 region_id="photo")
+        # self.primitives["BKIL"] = self.BKIL
+
+
+    # def init_kin_ind_contact(self):
+    #     print("Kinemon init_kin_ind_contact")
+    #     # Creating a ledge in isolator across conductance cross
+    #     # TODO: this
+
+        # contact_start = self.kin_ind_meander.start + DVector(0, -self.squid_params.MC_dy)
+        # contact_end = self.kin_ind_meander.start
+        # self.BC_KI = CPW(start=contact_start, end=contact_end, width=self.squid_params.MC_dx / 2, gap=0)
+        # self.MC = CPW(start=contact_start, end=contact_end + DVector(0, self.squid_params.MC_dy / 2), width=self.squid_params.MC_dx, gap=0)
+        # # self.MC = CPW(start=contact_start, end=contact_end, width=self.squid_params.MC_dx, gap=0)
+        # self.primitives["MC"] = self.MC
+        # self.primitives["BC_KI"] = self.BC_KI
+        #
+        # meander_finish = self.kin_ind_meander.start + self.kin_ind_meander.meander_params.dr
+        # self.TC_KI = CPW(start=meander_finish, end=meander_finish + DVector(0, self.squid_params.MC_dy / 2),
+        #                  width=self.squid_params.MC_dx / 2, gap=0)
 
 
     def init_primitives(self):

@@ -4,8 +4,6 @@ import logging
 import sys
 from importlib import reload
 
-import Projects.Kinemon.KmonDesign
-from Projects.Kinemon.KmonDesign import Kinemon, KinemonParams, MeanderParams, KinIndMeander
 
 '''
 Description:
@@ -142,8 +140,11 @@ from classLib.marks import MarkBolgar
 from classLib.contactPads import ContactPad
 from classLib.helpers import fill_holes, split_polygons, extended_region
 
-import sonnetSim
+import Projects.Kinemon.KmonDesign
+reload(Projects.Kinemon.KmonDesign)
+from Projects.Kinemon.KmonDesign import Kinemon, KinemonParams, MeanderParams, KinIndMeander
 
+import sonnetSim
 reload(sonnetSim)
 from sonnetSim import SonnetLab, SonnetPort, SimulationBox
 
@@ -748,9 +749,6 @@ class DesignDmon(ChipDesign):
         """
         self.draw_chip()
 
-        print("Placing example meander")
-        ex_meander = KinIndMeander(self.example_meander, region_id="kinInd")
-        ex_meander.place(self.region_kinInd, region_id="kinInd")
         '''
             Only creating object. This is due to the drawing of xmons and resonators require
         draw xmons, then draw resonators and then draw additional xmons. This is
@@ -789,6 +787,7 @@ class DesignDmon(ChipDesign):
         self.region_kinInd.merge()
         self.extend_photo_overetching()
         self.inverse_destination(self.region_ph)
+
         self.draw_cut_marks()
         self.resolve_holes()  # convert to gds acceptable polygons (without inner holes)
         self.split_polygons_in_layers(max_pts=180)
@@ -1607,11 +1606,11 @@ class DesignDmon(ChipDesign):
         self.dc_bandage_reg += top_bandage_reg
 
         # bottom contacts
-        for i, _ in enumerate(test_jj.squid_params.bot_wire_x):
-            if test_jj.BC_list[i] is None:
+        for BC in test_jj.BC_list:
+            if BC is None:
                 continue
             bot_bandage_reg = self._get_bandage_reg(
-                center=test_jj.BC_list[i].end,
+                center=BC.end,
                 shift=shift2sq_center * squid_BT_dv_s
             )
             bandages_regs_list.append(bot_bandage_reg)
@@ -1651,10 +1650,9 @@ class DesignDmon(ChipDesign):
             self.region_ph -= recess_reg
 
             # bottom recess(es)
-            for i, _ in enumerate(squid.squid_params.bot_wire_x):
-                if squid.BC_list[i] is None:
+            for BC in squid.BC_list:
+                if BC is None:
                     continue
-                BC = squid.BC_list[i]
                 recess_reg = Region(
                     BC.metal_region.bbox()
                 ).size(-self.photo_recess_d)
@@ -2895,7 +2893,6 @@ def simulate_md_Cg(md_idx, q_idx, resolution=(5e3, 5e3)):
 
 if __name__ == "__main__":
     ''' draw and show design for manual design evaluation '''
-    reload(Projects.Kinemon.KmonDesign)
     FABRICATION.OVERETCHING = 0.0e3
     design = DesignDmon("testScript")
     design.draw()
