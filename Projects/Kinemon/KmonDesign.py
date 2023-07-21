@@ -242,32 +242,6 @@ class Kinemon(AsymSquid):
         self.primitives["BKIP"] = self.BKIP
         self.BC_list.append(self.BKIP)
 
-        # # botttom kinetic inductance ledge
-        # self.BKIL = CPW(start=self.BKIB.end,
-        #                 end=bkip_end + DVector(0, -self.squid_params.KI_pad_y_offset + self.squid_params.KI_ledge_y_offset),
-        #                 width=self.squid_params.BC_dx[0],
-        #                 gap=0,
-        #                 region_id="photo")
-        # self.primitives["BKIL"] = self.BKIL
-
-
-    # def init_kin_ind_contact(self):
-    #     print("Kinemon init_kin_ind_contact")
-    #     # Creating a ledge in isolator across conductance cross
-    #     # TODO: this
-
-        # contact_start = self.kin_ind_meander.start + DVector(0, -self.squid_params.MC_dy)
-        # contact_end = self.kin_ind_meander.start
-        # self.BC_KI = CPW(start=contact_start, end=contact_end, width=self.squid_params.MC_dx / 2, gap=0)
-        # self.MC = CPW(start=contact_start, end=contact_end + DVector(0, self.squid_params.MC_dy / 2), width=self.squid_params.MC_dx, gap=0)
-        # # self.MC = CPW(start=contact_start, end=contact_end, width=self.squid_params.MC_dx, gap=0)
-        # self.primitives["MC"] = self.MC
-        # self.primitives["BC_KI"] = self.BC_KI
-        #
-        # meander_finish = self.kin_ind_meander.start + self.kin_ind_meander.meander_params.dr
-        # self.TC_KI = CPW(start=meander_finish, end=meander_finish + DVector(0, self.squid_params.MC_dy / 2),
-        #                  width=self.squid_params.MC_dx / 2, gap=0)
-
 
     def init_primitives(self):
         super().init_primitives()
