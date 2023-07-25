@@ -4,7 +4,6 @@ import logging
 import sys
 from importlib import reload
 
-
 '''
 Description:
 This program is made to generate litography blueprints for testing of the 
@@ -103,6 +102,7 @@ Copied fromv.0.3.0.8.T3
 '''
 
 import warnings
+
 warnings.filterwarnings("ignore")
 
 from math import cos, sin, tan, atan2, pi, degrees
@@ -141,15 +141,35 @@ from classLib.contactPads import ContactPad
 from classLib.helpers import fill_holes, split_polygons, extended_region
 
 import Projects.Kinemon.KmonDesign
+
 reload(Projects.Kinemon.KmonDesign)
 from Projects.Kinemon.KmonDesign import Kinemon, KinemonParams, MeanderParams, KinIndMeander
 
 import sonnetSim
+
 reload(sonnetSim)
 from sonnetSim import SonnetLab, SonnetPort, SimulationBox
 
 FABRICATION.OVERETCHING = 0.5e3
 PROJECT_DIR = r"C:\klayout_dev\kmon-calculations\Cq_Cqr"
+
+
+class ProductionParams:
+    meander_length_list = [
+        23613.00,
+        30924.72,
+        18140.92,
+        11783.04,
+        27154.27,
+        20016.25,
+        35802.65,
+        18706.04,
+    ]
+
+    cross_width_y_list = np.array(
+        [1e3 * x for x in [11.5, 16, 16, 16, 16, 32, 56, 56]]
+    )
+
 
 class DefaultParams:
     meander_params_dict = {
@@ -160,14 +180,22 @@ class DefaultParams:
         'line_gap': 1.8e3
     }
     kinemon_params_dict = {
-
+        'area_ratio': 1 / 2,
+        'MC_dy': None,
+        'MC_dx': None,
+        'KI_bridge_width': 1e3,
+        'KI_bridge_height': 4e3,
+        'KI_pad_y_offset': 0.2e3,
+        'KI_pad_width': 3e3,
+        'KI_ledge_y_offset': 0.3e3,
+        'KI_JJ_ledge_height': 6.95e3,
+        'KI_JJ_ledge_width': 2e3,
     }
-
 
 
 class DPathCPWStraight(ComplexBase):
     def __init__(self, points, cpw_pars_list, trans_in=None,
-             region_id="default"):
+                 region_id="default"):
         self.points = points
         self.cpw_pars_list = cpw_pars_list
         super().__init__(self.points[0], trans_in, region_id=region_id)
@@ -176,10 +204,10 @@ class DPathCPWStraight(ComplexBase):
         new_pts = [(pt - self.points[0]) for pt in self.points]
         for i, (p1, p2) in enumerate(zip(new_pts, new_pts[1:])):
             dr = p2 - p1
-            dr_s = dr/dr.abs()
+            dr_s = dr / dr.abs()
             dr_n = DPoint(-dr_s.y, dr_s.x)
-            if (i+1) < len(self.cpw_pars_list):
-                p2_new = p2 + dr_s*(self.cpw_pars_list[i + 1].width/2 - 1)
+            if (i + 1) < len(self.cpw_pars_list):
+                p2_new = p2 + dr_s * (self.cpw_pars_list[i + 1].width / 2 - 1)
             else:
                 p2_new = p2
             cpw = CPW(
@@ -207,7 +235,7 @@ class RFSquidParams(AsymSquidParams):
         self.line_gap = line_gap
         # signed shift of the middle meanders
         self.add_dx_mid = add_dx_mid
-        self.jj_kinInd_recess_d=jj_kinInd_recess_d
+        self.jj_kinInd_recess_d = jj_kinInd_recess_d
 
         self.line_length = None  # will be calculated later
 
@@ -256,7 +284,7 @@ class Fluxonium(AsymSquid):
         )
         # shrink rectangular regoin and move it in proper direction
         tmp_reg = self.BC_list[1].metal_region.sized(
-            -1, -self.TCBC_round_r-1, 0
+            -1, -self.TCBC_round_r - 1, 0
         )
         tmp_reg.size(1, 1, 0)
         tmp_reg.transform(Trans(Vector(0, self.TCBC_round_r)))
@@ -281,8 +309,8 @@ class Fluxonium(AsymSquid):
         )
 
         # shrink rectangular regoin and move it in proper direction
-        tmp_reg = self.TC_KI.metal_region.sized(-1, -self.TCBC_round_r-1, 0)
-        tmp_reg.size(1,1,0)
+        tmp_reg = self.TC_KI.metal_region.sized(-1, -self.TCBC_round_r - 1, 0)
+        tmp_reg.size(1, 1, 0)
         tmp_reg.transform(Trans(Vector(0, -self.TCBC_round_r)))
         # round courners
         self.TC_KI.metal_region.round_corners(0, self.TCBC_round_r, 50)
@@ -324,12 +352,12 @@ class Fluxonium(AsymSquid):
         self.n_periods = int(self.n_periods)
         self.dx_step = (self.dx) / (self.n_periods + 1)
         self.dy_step = self.dy / (2 * self.n_periods + 1)  # >= `line_gap`
-        y_squares_n = self.dy/self.squid_params.line_width_dy
+        y_squares_n = self.dy / self.squid_params.line_width_dy
         if y_squares_n > self.squid_params.line_squares_n:
             print("error, to little squares for fixed transmon height.")
         self.squid_params.line_length = self.dy + (
-            self.squid_params.line_squares_n -
-            y_squares_n ) * self.squid_params.line_width_dx
+                self.squid_params.line_squares_n -
+                y_squares_n) * self.squid_params.line_width_dx
         # due to curved turns, line will be shorter by
         # the following amount:
         curvature_correction = \
@@ -374,7 +402,7 @@ class Fluxonium(AsymSquid):
             width=self.squid_params.line_width_dy, gap=0  # width=180, gap=0
         )
         cpw_params_list = [cpw_pars1, cpw_pars2, cpw_pars1] + [
-            cpw_pars2, cpw_pars1, cpw_pars2, cpw_pars1]*self.n_periods
+            cpw_pars2, cpw_pars1, cpw_pars2, cpw_pars1] * self.n_periods
         self.line = DPathCPWStraight(
             points=line_pts,
             cpw_pars_list=cpw_params_list,
@@ -394,7 +422,7 @@ class Fluxonium(AsymSquid):
             )
         self.TC_KI.empty_regions["default"] = \
             Region(self.TC_KI.metal_region.bbox()).sized(
-                -self.squid_params.jj_kinInd_recess_d/3
+                -self.squid_params.jj_kinInd_recess_d / 3
             )
 
 
@@ -540,9 +568,7 @@ class DesignDmon(ChipDesign):
             [1e3 * x for x in
              [115.0, 225.0, 211.0, 154.0, 154.0, 258.0, 267.0, 267.0]]
         )
-        self.cross_width_y_list = np.array(
-            [1e3 * x for x in [16, 16, 16, 16, 16, 32, 56, 56]]
-        )
+        self.cross_width_y_list = ProductionParams.cross_width_y_list
         self.cross_gnd_gap_y_list = np.array(
             [1e3 * x for x in [60] * self.NQUBITS]
         )
@@ -591,7 +617,7 @@ class DesignDmon(ChipDesign):
         # fork at the end of resonator parameters
         self.fork_x_span_list = self.cross_width_y_list + + 2 * \
                                 (
-                                            self.xmon_fork_gnd_gap + self.fork_metal_width_list)
+                                        self.xmon_fork_gnd_gap + self.fork_metal_width_list)
         # resonator-fork parameters
         # from simulation of g_qr
         self.fork_y_span_list = np.array(
@@ -659,30 +685,30 @@ class DesignDmon(ChipDesign):
                 SQRTJJ_dx=jj_dx
             )
             dx = pars_i.SQB_dx / 2
-            if i < 6:
-                pars_i.bot_wire_x = [-dx, dx]
-                pars_i.BC_dx = [pars_i.BC_dx[0]]*2
-                pars_i.BCW_dx = [pars_i.BCW_dx[0]]*2
-            else:
-                dx = 35e3 / 2  # HARDCODED BY DARIA
-                pars_i = AsymSquidParams(
-                    band_ph_tol=1e3,
-                    squid_dx=2*dx,
-                    squid_dy=13e3,
-                    TC_dx=pars_i.TC_dx,
-                    TC_dy=7e3,
-                    TCW_dy=0,
-                    BCW_dy=0e3,
-                    BC_dy=7e3,
-                    BC_dx=pars_i.BC_dx,
-                    SQLTJJ_dx=jj_dx,
-                    SQRTJJ_dx=jj_dx,
-                    SQRBJJ_dy=jj_dy,
-                    SQLBJJ_dy=jj_dy
-                )
-                pars_i.bot_wire_x = [-dx, dx]
-                pars_i.BC_dx = [pars_i.BC_dx[0]] * 2
-                pars_i.BCW_dx = [pars_i.BCW_dx[0]] * 2
+            # if i < 6:
+            #     pars_i.bot_wire_x = [-dx, dx]
+            #     pars_i.BC_dx = [pars_i.BC_dx[0]] * 2
+            #     pars_i.BCW_dx = [pars_i.BCW_dx[0]] * 2
+            # else:
+            dx = 35e3 / 2  # HARDCODED BY DARIA
+            pars_i = AsymSquidParams(
+                band_ph_tol=1e3,
+                squid_dx=2 * dx,
+                squid_dy=13e3,
+                TC_dx=pars_i.TC_dx,
+                TC_dy=7e3,
+                TCW_dy=0,
+                BCW_dy=0e3,
+                BC_dy=7e3,
+                BC_dx=pars_i.BC_dx,
+                SQLTJJ_dx=jj_dx,
+                SQRTJJ_dx=jj_dx,
+                SQRBJJ_dy=jj_dy,
+                SQLBJJ_dy=jj_dy
+            )
+            pars_i.bot_wire_x = [-dx, dx]
+            pars_i.BC_dx = [pars_i.BC_dx[0]] * 2
+            pars_i.BCW_dx = [pars_i.BCW_dx[0]] * 2
             self.squid_pars.append(
                 RFSquidParams(
                     asym_pars=pars_i,
@@ -695,7 +721,8 @@ class DesignDmon(ChipDesign):
             )
         ''' el-dc concacts attributes SECTION START '''
         # microwave and flux drive lines parameters
-        self.ctr_lines_turn_radius = 40e3
+        # self.ctr_lines_turn_radius = 40e3
+        self.ctr_lines_turn_radius = 30e3
         self.cont_lines_y_ref: float = 300e3  # nm
 
         # bandages
@@ -740,8 +767,10 @@ class DesignDmon(ChipDesign):
         # marks
         self.marks: List[MarkBolgar] = []
 
-        self.example_meander = MeanderParams(**DefaultParams.meander_params_dict, line_length=120e3)
-        self.meander_params = [self.example_meander] * 8
+        # self.example_meander = MeanderParams(**DefaultParams.meander_params_dict, line_length=33.3e3)
+        # self.meander_params = [self.example_meander] * 8
+        self.meander_params = [MeanderParams(**DefaultParams.meander_params_dict,
+                                             line_length=length) for length in ProductionParams.meander_length_list]
         ### ADDITIONAL VARIABLES SECTION END ###
 
     def draw(self):
@@ -794,7 +823,7 @@ class DesignDmon(ChipDesign):
         # holes from
         # contact pads
         for i, contact_pad in enumerate(self.contact_pads):
-                contact_pad.place(self.region_ph)
+            contact_pad.place(self.region_ph)
         self.region_ph.merge()
         self.region_el.merge()
         self.region_kinInd.merge()
@@ -1085,31 +1114,19 @@ class DesignDmon(ChipDesign):
                 squid_center = (xmon_cross.cpw_bempt.end +
                                 xmon_cross.cpw_bempt.start) / 2
                 trans = DTrans.R0
-            if res_idx < 6:
-                squid = Fluxonium(
-                    squid_center + m * DVector(
-                        0,
-                        -self.squid_vertical_shift_list[res_idx]
-                    ),
-                    squid_pars,
-                    trans_in=trans
-                )
-                squid.place(self.region_el, region_id="default")
-                squid.place(self.region_el, region_id="default_empty")
-                squid.place(self.region_kinInd, region_id="kinInd")
-            elif res_idx >= 6:
-                kmon_params = KinemonParams(squid_pars, meander_pars)
-                squid = Kinemon(
-                    squid_center + m * DVector(
-                        0,
-                        -self.squid_vertical_shift_list[res_idx]
-                    ),
-                    kmon_params,
-                    trans_in=trans
-                )
-                squid.place(self.region_el, region_id="default")
-                squid.place(self.region_el, region_id="default_empty")
-                squid.place(self.region_kinInd, region_id="kinInd")
+
+            kmon_params = KinemonParams(squid_pars, meander_pars)
+            squid = Kinemon(
+                squid_center + m * DVector(
+                    0,
+                    -self.squid_vertical_shift_list[res_idx]
+                ),
+                kmon_params,
+                trans_in=trans
+            )
+            squid.place(self.region_el, region_id="default")
+            squid.place(self.region_el, region_id="default_empty")
+            squid.place(self.region_kinInd, region_id="kinInd")
             self.squids.append(squid)
 
     def draw_microwave_drvie_lines(self):
@@ -1202,10 +1219,10 @@ class DesignDmon(ChipDesign):
         self.flux_lines_x_shifts: List[float] = []
         for i, squid_pars in enumerate(self.squid_pars):
             flux_line_x_shift = \
-            -squid_pars.squid_dx / 2 - squid_pars.SQLBT_dx / 2 - \
-            self.z_fl2.width / 2 + sum(squid_pars.BC_dx) / (2*len(squid_pars.BC_dx)) + \
-            squid_pars.band_ph_tol
-            if i%2 == 0:
+                -squid_pars.squid_dx / 2 - squid_pars.SQLBT_dx / 2 - \
+                self.z_fl2.width / 2 + sum(squid_pars.BC_dx) / (2 * len(squid_pars.BC_dx)) + \
+                squid_pars.band_ph_tol
+            if i % 2 == 0:
                 flux_line_x_shift *= -1
 
             self.flux_lines_x_shifts.append(flux_line_x_shift)
@@ -1367,9 +1384,9 @@ class DesignDmon(ChipDesign):
                           DPoint(2.2e6, 3.2e6)]
         self.test_squids_pads = []
         for struct_center, \
-            squid_par_idx, \
-            Icrit_JJ, \
-            EL_kin_ind in \
+                squid_par_idx, \
+                Icrit_JJ, \
+                EL_kin_ind in \
                 zip(
                     struct_centers,
                     squid_par_idxs,
@@ -1569,7 +1586,7 @@ class DesignDmon(ChipDesign):
                 etc3.place(self.region_kinInd)
                 self.region_ph -= etc3.metal_region.sized(20e3)
 
-                p1 = squid.TC_KI.end + DPoint(0, 5/4*c_cpw.b)
+                p1 = squid.TC_KI.end + DPoint(0, 5 / 4 * c_cpw.b)
                 p2 = DPoint(etc3.center().x, p1.y)
                 etc4 = CPW(
                     start=p1, end=p2,
@@ -1577,7 +1594,7 @@ class DesignDmon(ChipDesign):
                 )
                 etc4.place(self.region_kinInd)
                 cut_reg = etc4.metal_region.dup()
-                cut_reg.transform(Trans(Vector(1e3,0))).size(self.photo_recess_d)
+                cut_reg.transform(Trans(Vector(1e3, 0))).size(self.photo_recess_d)
                 self.region_ph -= cut_reg
                 self.region_el -= cut_reg
 
@@ -1660,7 +1677,7 @@ class DesignDmon(ChipDesign):
             recess_reg = Region(
                 squid.TC.metal_region.bbox()
             ).size(-self.photo_recess_d)
-            if i in [6,7]:
+            if i in [6, 7]:
                 recess_reg.transform(Trans(Vector(13.061e3, 0)))
             self.region_ph -= recess_reg
 
@@ -2313,8 +2330,8 @@ def simulate_Cqr(resolution=(4e3, 4e3), mode="Cq", pts=3, par_d=10e3, output_fna
                 dl_list, range(8)
             )
     ):
-        # if res_idx != 0:
-        #     continue
+        if res_idx != 0:
+            continue
         ### DRAWING SECTION START ###
         design = DesignDmon("testScript")
         # adjusting `self.fork_y_span_list` for C_qr
@@ -2325,10 +2342,10 @@ def simulate_Cqr(resolution=(4e3, 4e3), mode="Cq", pts=3, par_d=10e3, output_fna
             save_fname = "Cqr_Cqr_results.csv"
         elif mode == "Cq":
             # adjusting `cross_len_x` to gain proper E_C
-            # design.cross_width_y_list += dl
+            design.cross_width_y_list += dl
             # design.cross_width_x_list += dl
             # design.cross_len_x_list += dl
-            design.cross_len_y_list += dl
+            # design.cross_len_y_list += dl
             save_fname = "Cqr_Cq_results.csv"
 
         # exclude coils from simulation (sometimes port is placed onto coil (TODO: fix)
@@ -2354,9 +2371,9 @@ def simulate_Cqr(resolution=(4e3, 4e3), mode="Cq", pts=3, par_d=10e3, output_fna
 
         xc_bbx = xmonCross.metal_region.bbox()
         box_side_l = max(xc_bbx.height(), xc_bbx.width())
-        dv = DVector(box_side_l, box_side_l)
+        dv = 2 * DVector(box_side_l, box_side_l)
 
-        crop_box = pya.Box().from_dbox(pya.Box(
+        crop_box = pya.Box().from_dbox(pya.DBox(
             xmonCross.center + dv,
             xmonCross.center + (-1) * dv
         ))
@@ -2531,8 +2548,8 @@ def simulate_Cqq(q1_idx, q2_idx, resolution=(5e3, 5e3)):
         res1, res2 = design.resonators[q1_idx], design.resonators[q2_idx]
         cross1, cross2 = design.xmons[q1_idx], design.xmons[q2_idx]
         cross_corrected1, cross_corrected2 = design.xmons_corrected[
-                                                 q1_idx], \
-                                             design.xmons_corrected[q2_idx]
+            q1_idx], \
+            design.xmons_corrected[q2_idx]
         design.draw_chip()
         cross1.place(design.region_ph)
         cross2.place(design.region_ph)
@@ -2907,11 +2924,11 @@ def simulate_md_Cg(md_idx, q_idx, resolution=(5e3, 5e3)):
 
 
 if __name__ == "__main__":
-    ''' draw and show design for manual design evaluation '''
-    FABRICATION.OVERETCHING = 0.0e3
-    design = DesignDmon("testScript")
-    design.draw()
-    design.show()
+    # ''' draw and show design for manual design evaluation '''
+    # FABRICATION.OVERETCHING = 0.0e3
+    # design = DesignDmon("testScript")
+    # design.draw()
+    # design.show()
     #
     # design.save_as_gds2(
     #     os.path.join(
@@ -2932,7 +2949,7 @@ if __name__ == "__main__":
     # )
     ''' C_qr sim '''
     # simulate_Cqr(resolution=(3e3, 3e3), mode="Cq", pts=3, par_d=10e3)
-    # simulate_Cqr(resolution=(1e3, 1e3), mode="Cq", pts=3, par_d=20e3)
+    simulate_Cqr(resolution=(4e3, 4e3), mode="Cq", pts=3, par_d=4e3)
     # simulate_Cqr(resolution=(1e3, 1e3), mode="Cqr")
 
     ''' Simulation of C_{q1,q2} in fF '''
