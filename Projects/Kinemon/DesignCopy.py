@@ -2,8 +2,11 @@ __version__ = "v.0.0.5.13.1"
 
 import logging
 import sys
+import time
 from importlib import reload
+from random import Random
 
+RANDOM = Random()
 '''
 Description:
 This program is made to generate litography blueprints for testing of the 
@@ -155,7 +158,9 @@ PROJECT_DIR = r"C:\klayout_dev\kmon-calculations\Cq_Cqr"
 
 
 class ProductionParams:
-    meander_length_list = [
+    par_d =1e3
+
+    _meander_length_list = [
         23613.00,
         30924.72,
         18140.92,
@@ -166,9 +171,26 @@ class ProductionParams:
         18706.04,
     ]
 
-    cross_width_y_list = np.array(
-        [1e3 * x for x in [11.5, 16, 16, 16, 16, 32, 56, 56]]
+    _cross_width_y_list = np.array(
+        [1e3 * x for x in [13.2, 8, 6, 36, 50, 4, 19, 3]]
     )
+
+    _cross_len_y_list = np.array(
+        [1e3 * x for x in
+         [113.0, 225.0, 211.0, 154.0, 154.0, 258.0, 267.0, 267.0]]
+    )
+
+    @staticmethod
+    def get_cross_width_y_list():
+        return np.copy(ProductionParams._cross_width_y_list)
+
+    @staticmethod
+    def get_meander_length_list():
+        return ProductionParams._meander_length_list.copy()
+
+    @staticmethod
+    def get_cross_len_y_list():
+        return np.copy(ProductionParams._cross_len_y_list)
 
 
 class DefaultParams:
@@ -191,6 +213,7 @@ class DefaultParams:
         'KI_JJ_ledge_height': 6.95e3,
         'KI_JJ_ledge_width': 2e3,
     }
+
 
 
 class DPathCPWStraight(ComplexBase):
@@ -483,6 +506,8 @@ class TestStructurePadsSquare(ComplexBase):
 class DesignDmon(ChipDesign):
     def __init__(self, cell_name):
         super().__init__(cell_name)
+        # TODO: Debug only
+        self.id = RANDOM.random()
         dc_bandage_layer_i = pya.LayerInfo(3,
                                            0)  # for DC contact deposition
         self.dc_bandage_reg = Region()
@@ -564,11 +589,8 @@ class DesignDmon(ChipDesign):
         self.cross_width_x_list = np.array(
             [1e3 * x for x in [16, 16, 16, 16, 16, 32, 56, 56]]
         )
-        self.cross_len_y_list = np.array(
-            [1e3 * x for x in
-             [115.0, 225.0, 211.0, 154.0, 154.0, 258.0, 267.0, 267.0]]
-        )
-        self.cross_width_y_list = ProductionParams.cross_width_y_list
+        self.cross_len_y_list = ProductionParams.get_cross_len_y_list()
+        self.cross_width_y_list = ProductionParams.get_cross_width_y_list()
         self.cross_gnd_gap_y_list = np.array(
             [1e3 * x for x in [60] * self.NQUBITS]
         )
@@ -770,7 +792,7 @@ class DesignDmon(ChipDesign):
         # self.example_meander = MeanderParams(**DefaultParams.meander_params_dict, line_length=33.3e3)
         # self.meander_params = [self.example_meander] * 8
         self.meander_params = [MeanderParams(**DefaultParams.meander_params_dict,
-                                             line_length=length) for length in ProductionParams.meander_length_list]
+                                             line_length=length) for length in ProductionParams.get_meander_length_list()]
         ### ADDITIONAL VARIABLES SECTION END ###
 
     def draw(self):
@@ -883,7 +905,7 @@ class DesignDmon(ChipDesign):
         -------
         None
         """
-        self.draw_chip()
+        self.draw_chip(draw_pads=False)
         '''
             Only creating object. This is due to the drawing of xmons and resonators require
         draw xmons, then draw resonators and then draw additional xmons. This is
@@ -912,9 +934,12 @@ class DesignDmon(ChipDesign):
         self.cell.shapes(self.layer_kinInd).insert(self.region_kinInd)
         self.lv.zoom_fit()
 
-    def draw_chip(self):
+    def draw_chip(self, draw_pads=True):
         self.region_bridges2.insert(self.chip_box)
         self.region_ph.insert(self.chip_box)
+
+        if not draw_pads:
+            return
 
         for i, contact_pad in enumerate(self.contact_pads):
             contact_pad.place(self.region_ph)
@@ -2317,6 +2342,9 @@ def simulate_Cqr(resolution=(4e3, 4e3), mode="Cq", pts=3, par_d=10e3, output_fna
     # TODO: 1. make 2d geometry parameters mesh, for simultaneous finding of C_qr and C_q
     #  2. make 3d geometry optimization inside kLayout for simultaneous finding of C_qr, C_q and C_qq
 
+    simulation_id = int(10 * time.time())
+    ALMOST_ZERO = 1.5e3
+
     resolution_dx = resolution[0]
     resolution_dy = resolution[1]
     # if linspace is requested with single point it will return
@@ -2330,8 +2358,12 @@ def simulate_Cqr(resolution=(4e3, 4e3), mode="Cq", pts=3, par_d=10e3, output_fna
                 dl_list, range(8)
             )
     ):
-        if res_idx != 0:
+        # if res_idx != 0:
+        #     continue
+        if res_idx < 4:
             continue
+
+        print(f"Calculation for dl={dl}")
         ### DRAWING SECTION START ###
         design = DesignDmon("testScript")
         # adjusting `self.fork_y_span_list` for C_qr
@@ -2343,10 +2375,16 @@ def simulate_Cqr(resolution=(4e3, 4e3), mode="Cq", pts=3, par_d=10e3, output_fna
         elif mode == "Cq":
             # adjusting `cross_len_x` to gain proper E_C
             design.cross_width_y_list += dl
+            if design.cross_width_y_list[res_idx] < ALMOST_ZERO:
+                print("Value is negative: ", design.cross_width_y_list)
+                design.cross_width_y_list = np.ones_like(design.cross_width_y_list) * ALMOST_ZERO
             # design.cross_width_x_list += dl
             # design.cross_len_x_list += dl
             # design.cross_len_y_list += dl
             save_fname = "Cqr_Cq_results.csv"
+
+        print(f"Simulation id: {simulation_id}")
+        print(f"idx = {res_idx}, par val = {design.cross_width_y_list[res_idx]}")
 
         # exclude coils from simulation (sometimes port is placed onto coil (TODO: fix)
         design.N_coils = [0] * design.NQUBITS
@@ -2503,7 +2541,7 @@ def simulate_Cqr(resolution=(4e3, 4e3), mode="Cq", pts=3, par_d=10e3, output_fna
                 writer.writerow(
                     [res_idx,
                      *list(design.get_geometry_parameters().values()), C12,
-                     C1]
+                     C1, simulation_id]
                 )
         else:
             # create file, add header, append data
@@ -2513,13 +2551,12 @@ def simulate_Cqr(resolution=(4e3, 4e3), mode="Cq", pts=3, par_d=10e3, output_fna
                 writer.writerow(
                     ["res_idx",
                      *list(design.get_geometry_parameters().keys()),
-                     "C12, fF", "C1, fF"])
+                     "C12, fF", "C1, fF", "simulation_id"])
                 writer.writerow(
                     [res_idx,
                      *list(design.get_geometry_parameters().values()), C12,
-                     C1]
+                     C1, simulation_id]
                 )
-
         ### SAVING REUSLTS SECTION END ###
 
 
@@ -2949,7 +2986,9 @@ if __name__ == "__main__":
     # )
     ''' C_qr sim '''
     # simulate_Cqr(resolution=(3e3, 3e3), mode="Cq", pts=3, par_d=10e3)
-    simulate_Cqr(resolution=(4e3, 4e3), mode="Cq", pts=3, par_d=4e3)
+    import ctypes  # An included library with Python install.
+    simulate_Cqr(resolution=(4e3, 4e3), mode="Cq", pts=3, par_d=ProductionParams.par_d)
+    ctypes.windll.user32.MessageBoxW(0, "Simulation completed", "KLayout simulator", 0)
     # simulate_Cqr(resolution=(1e3, 1e3), mode="Cqr")
 
     ''' Simulation of C_{q1,q2} in fF '''

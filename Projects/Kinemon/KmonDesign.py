@@ -119,6 +119,7 @@ class KinIndMeander(ElementBase):
         return DPolygon(points)
 
 
+
 class KinemonParams(RFSquidParams):
     def __init__(self, rf_sq_params: RFSquidParams, meander_params: MeanderParams, area_ratio=1 / 2,
                  MC_dy=None,
@@ -273,6 +274,14 @@ class Kinemon(AsymSquid):
         super().init_primitives()
 
         self.init_kin_ind()
+
+    # TODO: This method
+    def calc_effective_length(self):
+        """
+        Calculates the effective length of meander with respect to inductance of bridges
+        """
+        pass
+
 
 class DesignKinemon(DesignDmon):
     def __init__(self, cell_name="testScript"):
