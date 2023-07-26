@@ -158,7 +158,7 @@ PROJECT_DIR = r"C:\klayout_dev\kmon-calculations\Cq_Cqr"
 
 
 class ProductionParams:
-    par_d =1e3
+    par_d =7e3
 
     _meander_length_list = [
         23613.00,
@@ -177,7 +177,18 @@ class ProductionParams:
 
     _cross_len_y_list = np.array(
         [1e3 * x for x in
-         [113.0, 225.0, 211.0, 154.0, 154.0, 258.0, 267.0, 267.0]]
+         [112.0, 205.0, 211.0, 154.0, 154.0, 258.0, 267.0, 267.0]]
+    )
+
+    _fork_y_span_list = np.array(
+        [
+            x * 1e3 for x in
+            [70, 31.5, 13.7, 14.0, 14.0, 71.2, 75.3, 76.2]
+        ]
+    )
+
+    _fork_metal_width_list = np.array(
+        [1e3 * x for x in ([10] * 3 + [6] * 2 + [10] * 3)]
     )
 
     @staticmethod
@@ -191,6 +202,14 @@ class ProductionParams:
     @staticmethod
     def get_cross_len_y_list():
         return np.copy(ProductionParams._cross_len_y_list)
+
+    @staticmethod
+    def get_fork_y_span_list():
+        return np.copy(ProductionParams._fork_y_span_list)
+
+    @staticmethod
+    def get_fork_metal_width_list():
+        return np.copy(ProductionParams._fork_metal_width_list)
 
 
 class DefaultParams:
@@ -631,9 +650,7 @@ class DesignDmon(ChipDesign):
         self.Z_res = CPWParameters(10e3, 6e3)
         self.to_line_list = [45e3] * len(self.L1_list)
         # fork at the end of resonator parameters
-        self.fork_metal_width_list = np.array(
-            [1e3 * x for x in ([10] * 3 + [6] * 2 + [10] * 3)]
-        )
+        self.fork_metal_width_list = ProductionParams.get_fork_metal_width_list()
         self.fork_gnd_gap = 10e3
         self.xmon_fork_gnd_gap = 10e3
         # fork at the end of resonator parameters
@@ -642,12 +659,8 @@ class DesignDmon(ChipDesign):
                                         self.xmon_fork_gnd_gap + self.fork_metal_width_list)
         # resonator-fork parameters
         # from simulation of g_qr
-        self.fork_y_span_list = np.array(
-            [
-                x * 1e3 for x in
-                [53.6, 31.5, 13.7, 14.0, 14.0, 71.2, 75.3, 76.2]
-            ]
-        )
+        self.fork_y_span_list = ProductionParams.get_fork_y_span_list()
+
         self.worm_x_list = np.array(
             [
                 x * 1e6 for x in
@@ -2360,7 +2373,7 @@ def simulate_Cqr(resolution=(4e3, 4e3), mode="Cq", pts=3, par_d=10e3, output_fna
     ):
         # if res_idx != 0:
         #     continue
-        if res_idx < 4:
+        if res_idx != 0:
             continue
 
         print(f"Calculation for dl={dl}")
@@ -2368,23 +2381,28 @@ def simulate_Cqr(resolution=(4e3, 4e3), mode="Cq", pts=3, par_d=10e3, output_fna
         design = DesignDmon("testScript")
         # adjusting `self.fork_y_span_list` for C_qr
         if mode == "Cqr":
-            design.fork_y_span_list += dl
-            # design.fork_metal_width_list += dl
+            # design.fork_y_span_list += dl
+
+            design.fork_metal_width_list += dl
+            if design.fork_metal_width_list[res_idx] < ALMOST_ZERO:
+                print("Value is negative: ", design.fork_metal_width_list)
+                design.fork_metal_width_list = np.ones_like(design.fork_metal_width_list) * ALMOST_ZERO
             # design.fork_x_span_list += 2*dl
             save_fname = "Cqr_Cqr_results.csv"
         elif mode == "Cq":
             # adjusting `cross_len_x` to gain proper E_C
-            design.cross_width_y_list += dl
-            if design.cross_width_y_list[res_idx] < ALMOST_ZERO:
-                print("Value is negative: ", design.cross_width_y_list)
-                design.cross_width_y_list = np.ones_like(design.cross_width_y_list) * ALMOST_ZERO
+            # design.cross_width_y_list += dl
             # design.cross_width_x_list += dl
             # design.cross_len_x_list += dl
-            # design.cross_len_y_list += dl
+            design.cross_len_y_list += dl
+
+            if design.cross_len_y_list[res_idx] < ALMOST_ZERO:
+                print("Value is negative: ", design.cross_len_y_list)
+                design.cross_len_y_list = np.ones_like(design.cross_len_y_list) * ALMOST_ZERO
+
             save_fname = "Cqr_Cq_results.csv"
 
-        print(f"Simulation id: {simulation_id}")
-        print(f"idx = {res_idx}, par val = {design.cross_width_y_list[res_idx]}")
+        print(f"idx = {res_idx}, par val = {design.fork_metal_width_list[res_idx]}")
 
         # exclude coils from simulation (sometimes port is placed onto coil (TODO: fix)
         design.N_coils = [0] * design.NQUBITS
@@ -2986,9 +3004,9 @@ if __name__ == "__main__":
     # )
     ''' C_qr sim '''
     # simulate_Cqr(resolution=(3e3, 3e3), mode="Cq", pts=3, par_d=10e3)
-    import ctypes  # An included library with Python install.
-    simulate_Cqr(resolution=(4e3, 4e3), mode="Cq", pts=3, par_d=ProductionParams.par_d)
-    ctypes.windll.user32.MessageBoxW(0, "Simulation completed", "KLayout simulator", 0)
+    # import ctypes  # An included library with Python install.
+    simulate_Cqr(resolution=(4e3, 4e3), mode="Cqr", pts=3, par_d=ProductionParams.par_d)
+    # ctypes.windll.user32.MessageBoxW(0, "Simulation completed", "KLayout simulator", 0)
     # simulate_Cqr(resolution=(1e3, 1e3), mode="Cqr")
 
     ''' Simulation of C_{q1,q2} in fF '''
