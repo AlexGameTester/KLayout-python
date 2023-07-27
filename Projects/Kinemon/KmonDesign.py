@@ -37,20 +37,19 @@ class MeanderParams:
 
 
 class KinIndMeander(ElementBase):
-    # TODO: Возможно, нужно будет задавать trans_in, чтобы правильно распологать меандр относительно других элементов
     def __init__(self, meander_params: MeanderParams, trans_in=None, region_id="default"):
         self.meander_params = meander_params
         self.start = None
         self.end = None
-        super().__init__(DPoint(0,0), trans_in=trans_in, region_id=region_id)
-
+        super().__init__(DPoint(0, 0), trans_in=trans_in, region_id=region_id)
 
     def init_regions(self):
         self.dx = self.meander_params.dr.x
-        self.dy = self.meander_params.dr.y 
+        self.dy = self.meander_params.dr.y
 
         if abs(self.dy) < self.meander_params.line_gap:
-            raise ValueError(f"Meander line gap must be less than its total height dy={abs(self.dy)} but line_gap={self.meander_params.line_gap} was given")
+            raise ValueError(
+                f"Meander line gap must be less than its total height dy={abs(self.dy)} but line_gap={self.meander_params.line_gap} was given")
 
         self.n_periods = (self.dy - self.meander_params.line_gap) // \
                          (2 * self.meander_params.line_gap)
@@ -60,7 +59,7 @@ class KinIndMeander(ElementBase):
         self.dy_step = self.dy / (2 * self.n_periods + 1)  # >= `line_gap`
 
         self.s = (self.meander_params.line_length - self.dy + self.dx - 2 * self.meander_params.add_dx_mid) / (
-                    self.n_periods + 1) / 2
+                self.n_periods + 1) / 2
 
         poly = self.construct_poly()
         self.metal_region.insert(poly)
@@ -119,7 +118,6 @@ class KinIndMeander(ElementBase):
         return DPolygon(points)
 
 
-
 class KinemonParams(RFSquidParams):
     def __init__(self, rf_sq_params: RFSquidParams, meander_params: MeanderParams, area_ratio=1 / 2,
                  MC_dy=None,
@@ -174,23 +172,29 @@ class Kinemon(AsymSquid):
                            squid_params.line_width_dy)
         self.TCBC_round_r = 500  # nm
         self.TCBC_round_n = 50
-        self.JJ_wire_width_offset = 0.3e3
+        self.JJ_wire_width_offset = 1e3
         # declare for proper code completion
         self.kin_ind_meander: KinIndMeander = None
         self.squid_params: KinemonParams = None
 
-
         super().__init__(origin=origin, params=squid_params,
                          trans_in=trans_in)
-
 
     def init_regions(self):
         print("Kinemon init_regions")
         if "photo" not in self.empty_regions:
             self.empty_regions["photo"] = Region()
 
-
     def init_kin_ind(self):
+        eff_length = self.calc_effective_length()
+        if eff_length < 0:
+            raise ValueError(
+                "Can't draw meander with given length and bridge parameters: resulting effective length is less than zero")
+
+        print(
+            f"Difference between effective and given length is {self.squid_params.meander_params.line_length - eff_length:.4f} um")
+        self.squid_params.meander_params.line_length = eff_length
+
         # Making meander
         assert len(self.BC_list) == 2
         self.BC_list.sort(key=lambda bc: bc.start.x)
@@ -204,9 +208,7 @@ class Kinemon(AsymSquid):
 
         r1 = tc - left_bc
         r2 = tc - right_bc
-        print(f'r1 = {r1}, r2 = {r2}')
         r0 = (r1 + r2) / 2 + DVector(0, -2 * self.squid_params.KI_bridge_height)
-        # r0 = DVector(10e3, 10e3)
 
         start = tc - r0 + DVector(0, -self.squid_params.KI_bridge_height)
         end = start + r0
@@ -220,16 +222,18 @@ class Kinemon(AsymSquid):
 
         # Making meander contacts
         # top kinetic inductance bridge
-        self.TKIB = CPW(start=self.kin_ind_meander.end + DVector(0, - self.squid_params.meander_params.line_width_dy / 2),
-                        end=self.kin_ind_meander.end + DVector(0, self.squid_params.KI_bridge_height),
-                        width=self.squid_params.KI_bridge_width, gap=0,
-                        region_id="kinInd")
+        self.TKIB = CPW(
+            start=self.kin_ind_meander.end + DVector(0, - self.squid_params.meander_params.line_width_dy / 2),
+            end=self.kin_ind_meander.end + DVector(0, self.squid_params.KI_bridge_height),
+            width=self.squid_params.KI_bridge_width, gap=0,
+            region_id="kinInd")
         self.primitives["TKIB"] = self.TKIB
 
-        self.BKIB = CPW(start=self.kin_ind_meander.start + DVector(0, + self.squid_params.meander_params.line_width_dy / 2),
-                        end=self.kin_ind_meander.start + DVector(0, -self.squid_params.KI_bridge_height),
-                        width=self.squid_params.KI_bridge_width, gap=0,
-                        region_id="kinInd")
+        self.BKIB = CPW(
+            start=self.kin_ind_meander.start + DVector(0, + self.squid_params.meander_params.line_width_dy / 2),
+            end=self.kin_ind_meander.start + DVector(0, -self.squid_params.KI_bridge_height),
+            width=self.squid_params.KI_bridge_width, gap=0,
+            region_id="kinInd")
         self.primitives["BKIB"] = self.BKIB
 
         # top kinetic inductance pad
@@ -241,7 +245,8 @@ class Kinemon(AsymSquid):
         self.TKIP.metal_region.round_corners(0, self.TCBC_round_r, self.TCBC_round_n)
         self.primitives["TKIP"] = self.TKIP
 
-        bkip_end = DVector((self.BC_list[0].start.x + self.BC_list[1].start.x) / 2, self.BC_list[0].end.y + self.squid_params.KI_pad_y_offset)
+        bkip_end = DVector((self.BC_list[0].start.x + self.BC_list[1].start.x) / 2,
+                           self.BC_list[0].end.y + self.squid_params.KI_pad_y_offset)
         self.BKIP = CPW(start=self.BKIB.end,
                         end=bkip_end,
                         width=self.squid_params.KI_pad_width,
@@ -250,7 +255,6 @@ class Kinemon(AsymSquid):
         self.BKIP.metal_region.round_corners(0, self.TCBC_round_r, self.TCBC_round_n)
         self.primitives["BKIP"] = self.BKIP
         self.BC_list.append(self.BKIP)
-
 
         # josephson junction contact kinetic inductance ledge
         # Offset is required as contact bridge actually ends higher than JJ contact pad
@@ -269,7 +273,6 @@ class Kinemon(AsymSquid):
         # self.TC.empty_regions["default"] = (recess_region)
         self.SQT.empty_regions["default"] = recess_region
 
-
     def init_primitives(self):
         super().init_primitives()
 
@@ -280,7 +283,13 @@ class Kinemon(AsymSquid):
         """
         Calculates the effective length of meander with respect to inductance of bridges
         """
-        pass
+        w_m = self.squid_params.meander_params.line_width_dy
+        w_b = self.squid_params.KI_bridge_width
+        l_meander = self.squid_params.meander_params.line_length
+        l_bridge = self.squid_params.KI_bridge_height
+
+        l_eff = l_meander - w_m / w_b * (l_bridge + w_m) + 2 * w_b
+        return l_eff
 
 
 class DesignKinemon(DesignDmon):
@@ -289,8 +298,6 @@ class DesignKinemon(DesignDmon):
 
     def draw(self):
         self.draw_chip()
-
-
 
     def draw_kin_ind(self):
         pass

@@ -1,3 +1,4 @@
+# <editor-fold desc="Imports and initialization of variables">
 __version__ = "v.0.0.5.13.1"
 
 import logging
@@ -155,10 +156,16 @@ from sonnetSim import SonnetLab, SonnetPort, SimulationBox
 
 FABRICATION.OVERETCHING = 0.5e3
 PROJECT_DIR = r"C:\klayout_dev\kmon-calculations\Cq_Cqr"
+# </editor-fold>
 
 
 class ProductionParams:
-    par_d =7e3
+    start_mode = 1
+    par_d = 6e3
+
+    _xmon_fork_gnd_gap = 5e3
+
+    _fork_gnd_gap = 10e3
 
     _meander_length_list = [
         23613.00,
@@ -177,19 +184,59 @@ class ProductionParams:
 
     _cross_len_y_list = np.array(
         [1e3 * x for x in
-         [112.0, 205.0, 211.0, 154.0, 154.0, 258.0, 267.0, 267.0]]
+         [360, 205.0, 211.0, 154.0, 154.0, 258.0, 267.0, 267.0]]
     )
 
     _fork_y_span_list = np.array(
         [
             x * 1e3 for x in
-            [70, 31.5, 13.7, 14.0, 14.0, 71.2, 75.3, 76.2]
+            [327, 31.5, 13.7, 14.0, 14.0, 71.2, 75.3, 76.2]
         ]
     )
 
     _fork_metal_width_list = np.array(
         [1e3 * x for x in ([10] * 3 + [6] * 2 + [10] * 3)]
     )
+
+    _cross_len_x_list = np.array(
+        [1e3 * x for x in [129.905, 65.602, 35.098, 0, 0, 196.603,
+                           233.873, 233.415]]
+    )
+
+    _big_jj_dx_list = np.array([120] * 8)
+
+    _big_jj_dy_list = np.array([
+        287.65,
+        168.00,
+        236.45,
+        311.81,
+        264.64,
+        377.67,
+        170.30,
+        292.83,
+    ])
+
+    _small_jj_dx_list = np.array([
+        114.85,
+        114.85,
+        114.85,
+        114.85,
+        119.66,
+        141.90,
+        119.66,
+        119.66,
+    ])
+
+    _small_jj_dy_list = np.array([
+        104.85,
+        104.85,
+        104.85,
+        104.85,
+        109.66,
+        131.90,
+        109.66,
+        109.66,
+    ])
 
     @staticmethod
     def get_cross_width_y_list():
@@ -210,6 +257,34 @@ class ProductionParams:
     @staticmethod
     def get_fork_metal_width_list():
         return np.copy(ProductionParams._fork_metal_width_list)
+
+    @staticmethod
+    def get_cross_len_x_list():
+        return np.copy(ProductionParams._cross_len_x_list)
+
+    @staticmethod
+    def get_xmon_fork_gnd_gap():
+        return ProductionParams._xmon_fork_gnd_gap
+
+    @staticmethod
+    def get_big_jj_dx_list():
+        return np.copy(ProductionParams._big_jj_dx_list)
+
+    @staticmethod
+    def get_big_jj_dy_list():
+        return np.copy(ProductionParams._big_jj_dy_list)
+
+    @staticmethod
+    def get_small_jj_dx_list():
+        return np.copy(ProductionParams._small_jj_dx_list)
+
+    @staticmethod
+    def get_small_jj_dy_list():
+        return np.copy(ProductionParams._small_jj_dy_list)
+
+    @staticmethod
+    def get_fork_gnd_gap():
+        return ProductionParams._fork_gnd_gap
 
 
 class DefaultParams:
@@ -601,10 +676,8 @@ class DesignDmon(ChipDesign):
         self.xmons: list[XmonCross] = []
         self.xmons_corrected: list[XmonCross] = []
 
-        self.cross_len_x_list = np.array(
-            [1e3 * x for x in [129.905, 65.602, 35.098, 0, 0, 196.603,
-                               233.873, 233.415]]
-        )
+        self.cross_len_x_list = ProductionParams.get_cross_len_x_list()
+
         self.cross_width_x_list = np.array(
             [1e3 * x for x in [16, 16, 16, 16, 16, 32, 56, 56]]
         )
@@ -651,8 +724,9 @@ class DesignDmon(ChipDesign):
         self.to_line_list = [45e3] * len(self.L1_list)
         # fork at the end of resonator parameters
         self.fork_metal_width_list = ProductionParams.get_fork_metal_width_list()
-        self.fork_gnd_gap = 10e3
-        self.xmon_fork_gnd_gap = 10e3
+        self.fork_gnd_gap = ProductionParams.get_fork_gnd_gap()
+        # TODO: Changing here
+        self.xmon_fork_gnd_gap = ProductionParams.get_xmon_fork_gnd_gap()
         # fork at the end of resonator parameters
         self.fork_x_span_list = self.cross_width_y_list + + 2 * \
                                 (
@@ -696,50 +770,49 @@ class DesignDmon(ChipDesign):
         # bandage
         self.photo_recess_d = 0.75e3
         self.jj_kinInd_recess_d = 1.4e3
-        for i, (jj_dy, jj_dx, kin_ind_squares_n) in enumerate(
-                zip(
-                    self.jj_dy_list,
-                    self.jj_dx_list,
-                    self.kinInd_squaresN_list
-                )
+        # for i, (jj_dy, jj_dx, kin_ind_squares_n) in enumerate(
+        #         zip(
+        #             self.jj_dy_list,
+        #             self.jj_dx_list,
+        #             self.kinInd_squaresN_list
+        #         )
+        for i, (big_jj_dx, big_jj_dy, small_jj_dx, small_jj_dy) in enumerate(
+            zip(ProductionParams.get_big_jj_dx_list(),
+                ProductionParams.get_big_jj_dy_list(),
+                ProductionParams.get_small_jj_dx_list(),
+                ProductionParams.get_small_jj_dy_list())
         ):
-            pars_i = AsymSquidParams(
-                band_ph_tol=1e3,
-                squid_dx=11.2e3,
-                squid_dy=14.5e3,
-                TC_dx=2.5e3 * np.sqrt(2) + 1e3,
-                TC_dy=5e3 * np.sqrt(2) / 2 + 2e3,
-                TCW_dy=0,
-                BCW_dy=1.5e3,
-                BC_dy=5e3 * np.sqrt(2) / 2 + 1e3,
-                BC_dx=[2.5e3 * np.sqrt(2) + 1e3],
-                SQLBJJ_dy=jj_dy,
-                SQLTJJ_dx=jj_dx,
-                # eliminate junction on the rhs
-                SQRBJJ_dy=jj_dy,
-                SQRTJJ_dx=jj_dx
-            )
-            dx = pars_i.SQB_dx / 2
-            # if i < 6:
-            #     pars_i.bot_wire_x = [-dx, dx]
-            #     pars_i.BC_dx = [pars_i.BC_dx[0]] * 2
-            #     pars_i.BCW_dx = [pars_i.BCW_dx[0]] * 2
-            # else:
+            # pars_i = AsymSquidParams(
+            #     band_ph_tol=1e3,
+            #     squid_dx=11.2e3,
+            #     squid_dy=14.5e3,
+            #     TC_dx=2.5e3 * np.sqrt(2) + 1e3,
+            #     TC_dy=5e3 * np.sqrt(2) / 2 + 2e3,
+            #     TCW_dy=0,
+            #     BCW_dy=1.5e3,
+            #     BC_dy=5e3 * np.sqrt(2) / 2 + 1e3,
+            #     BC_dx=[2.5e3 * np.sqrt(2) + 1e3],
+            #     SQLBJJ_dy=big_jj_dy,
+            #     SQLTJJ_dx=big_jj_dx,
+            #     # eliminate junction on the rhs
+            #     SQRBJJ_dy=small_jj_dy,
+            #     SQRTJJ_dx=small_jj_dx
+            # )
             dx = 35e3 / 2  # HARDCODED BY DARIA
             pars_i = AsymSquidParams(
                 band_ph_tol=1e3,
                 squid_dx=2 * dx,
                 squid_dy=13e3,
-                TC_dx=pars_i.TC_dx,
+                TC_dx=2.5e3 * np.sqrt(2) + 1e3,
                 TC_dy=7e3,
                 TCW_dy=0,
                 BCW_dy=0e3,
                 BC_dy=7e3,
-                BC_dx=pars_i.BC_dx,
-                SQLTJJ_dx=jj_dx,
-                SQRTJJ_dx=jj_dx,
-                SQRBJJ_dy=jj_dy,
-                SQLBJJ_dy=jj_dy
+                BC_dx=[2.5e3 * np.sqrt(2) + 1e3],
+                SQLTJJ_dx=big_jj_dx,
+                SQLBJJ_dy=big_jj_dy,
+                SQRTJJ_dx=small_jj_dx,
+                SQRBJJ_dy=small_jj_dy
             )
             pars_i.bot_wire_x = [-dx, dx]
             pars_i.BC_dx = [pars_i.BC_dx[0]] * 2
@@ -749,7 +822,7 @@ class DesignDmon(ChipDesign):
                     asym_pars=pars_i,
                     line_width_dx=self.kinInd_width_dx,
                     line_width_dy=self.kinInd_width_dy,
-                    line_squares_n=kin_ind_squares_n,
+                    line_squares_n=100, # Unused. Keep for compatibility
                     # same as for photo_jj recess distance
                     jj_kinInd_recess_d=self.jj_kinInd_recess_d
                 )
@@ -2358,6 +2431,7 @@ def simulate_Cqr(resolution=(4e3, 4e3), mode="Cq", pts=3, par_d=10e3, output_fna
     simulation_id = int(10 * time.time())
     ALMOST_ZERO = 1.5e3
 
+
     resolution_dx = resolution[0]
     resolution_dy = resolution[1]
     # if linspace is requested with single point it will return
@@ -2378,15 +2452,17 @@ def simulate_Cqr(resolution=(4e3, 4e3), mode="Cq", pts=3, par_d=10e3, output_fna
 
         print(f"Calculation for dl={dl}")
         ### DRAWING SECTION START ###
+
         design = DesignDmon("testScript")
         # adjusting `self.fork_y_span_list` for C_qr
         if mode == "Cqr":
             # design.fork_y_span_list += dl
+            design.fork_y_span_list += dl
 
-            design.fork_metal_width_list += dl
-            if design.fork_metal_width_list[res_idx] < ALMOST_ZERO:
-                print("Value is negative: ", design.fork_metal_width_list)
-                design.fork_metal_width_list = np.ones_like(design.fork_metal_width_list) * ALMOST_ZERO
+            if design.fork_y_span_list[res_idx] < ALMOST_ZERO:
+                print("Value is negative: ", design.fork_y_span_list)
+                design.fork_y_span_list = np.ones_like(design.fork_y_span_list) * ALMOST_ZERO
+
             # design.fork_x_span_list += 2*dl
             save_fname = "Cqr_Cqr_results.csv"
         elif mode == "Cq":
@@ -2394,15 +2470,10 @@ def simulate_Cqr(resolution=(4e3, 4e3), mode="Cq", pts=3, par_d=10e3, output_fna
             # design.cross_width_y_list += dl
             # design.cross_width_x_list += dl
             # design.cross_len_x_list += dl
-            design.cross_len_y_list += dl
-
-            if design.cross_len_y_list[res_idx] < ALMOST_ZERO:
-                print("Value is negative: ", design.cross_len_y_list)
-                design.cross_len_y_list = np.ones_like(design.cross_len_y_list) * ALMOST_ZERO
 
             save_fname = "Cqr_Cq_results.csv"
 
-        print(f"idx = {res_idx}, par val = {design.fork_metal_width_list[res_idx]}")
+        print(f"idx = {res_idx}, par val = {design.fork_y_span_list[res_idx]}")
 
         # exclude coils from simulation (sometimes port is placed onto coil (TODO: fix)
         design.N_coils = [0] * design.NQUBITS
@@ -2427,7 +2498,7 @@ def simulate_Cqr(resolution=(4e3, 4e3), mode="Cq", pts=3, par_d=10e3, output_fna
 
         xc_bbx = xmonCross.metal_region.bbox()
         box_side_l = max(xc_bbx.height(), xc_bbx.width())
-        dv = 2 * DVector(box_side_l, box_side_l)
+        dv = 1.2 * DVector(box_side_l, box_side_l)
 
         crop_box = pya.Box().from_dbox(pya.DBox(
             xmonCross.center + dv,
@@ -2980,10 +3051,13 @@ def simulate_md_Cg(md_idx, q_idx, resolution=(5e3, 5e3)):
 
 if __name__ == "__main__":
     # ''' draw and show design for manual design evaluation '''
-    # FABRICATION.OVERETCHING = 0.0e3
-    # design = DesignDmon("testScript")
-    # design.draw()
-    # design.show()
+    start_mode = ProductionParams.start_mode
+    if start_mode == 0:
+        print("Drawing mode")
+        FABRICATION.OVERETCHING = 0.0e3
+        design = DesignDmon("testScript")
+        design.draw()
+        design.show()
     #
     # design.save_as_gds2(
     #     os.path.join(
@@ -3002,10 +3076,12 @@ if __name__ == "__main__":
     #         "Dmon_" + __version__ + "_overetching_0um5.gds"
     #     )
     # )
-    ''' C_qr sim '''
+    # ''' C_qr sim '''
+    elif start_mode == 1:
+        print("Simulation mode")
     # simulate_Cqr(resolution=(3e3, 3e3), mode="Cq", pts=3, par_d=10e3)
     # import ctypes  # An included library with Python install.
-    simulate_Cqr(resolution=(4e3, 4e3), mode="Cqr", pts=3, par_d=ProductionParams.par_d)
+        simulate_Cqr(resolution=(4e3, 4e3), mode="Cqr", pts=3, par_d=ProductionParams.par_d)
     # ctypes.windll.user32.MessageBoxW(0, "Simulation completed", "KLayout simulator", 0)
     # simulate_Cqr(resolution=(1e3, 1e3), mode="Cqr")
 
