@@ -161,11 +161,13 @@ PROJECT_DIR = r"C:\klayout_dev\kmon-calculations\Cq_Cqr"
 
 class ProductionParams:
     start_mode = 1
-    par_d = 6e3
+    par_d = 20e3
+
+    _cross_gnd_gap_x = 20e3
 
     _xmon_fork_gnd_gap = 5e3
 
-    _fork_gnd_gap = 10e3
+    _fork_gnd_gap = 20e3
 
     _meander_length_list = [
         23613.00,
@@ -178,19 +180,23 @@ class ProductionParams:
         18706.04,
     ]
 
+    _cross_gnd_gap_y_list = np.array(
+        [1e3 * x for x in [10] * 8]
+    )
+
     _cross_width_y_list = np.array(
-        [1e3 * x for x in [13.2, 8, 6, 36, 50, 4, 19, 3]]
+        [1e3 * x for x in [4, 8, 6, 36, 50, 4, 19, 3]]
     )
 
     _cross_len_y_list = np.array(
         [1e3 * x for x in
-         [360, 205.0, 211.0, 154.0, 154.0, 258.0, 267.0, 267.0]]
+         [305, 205.0, 211.0, 154.0, 154.0, 258.0, 267.0, 267.0]]
     )
 
     _fork_y_span_list = np.array(
         [
             x * 1e3 for x in
-            [327, 31.5, 13.7, 14.0, 14.0, 71.2, 75.3, 76.2]
+            [328, 31.5, 13.7, 14.0, 14.0, 71.2, 75.3, 76.2]
         ]
     )
 
@@ -199,7 +205,7 @@ class ProductionParams:
     )
 
     _cross_len_x_list = np.array(
-        [1e3 * x for x in [129.905, 65.602, 35.098, 0, 0, 196.603,
+        [1e3 * x for x in [20, 65.602, 35.098, 0, 0, 196.603,
                            233.873, 233.415]]
     )
 
@@ -238,6 +244,7 @@ class ProductionParams:
         109.66,
     ])
 
+    # <editor-fold desc="getters">
     @staticmethod
     def get_cross_width_y_list():
         return np.copy(ProductionParams._cross_width_y_list)
@@ -286,6 +293,15 @@ class ProductionParams:
     def get_fork_gnd_gap():
         return ProductionParams._fork_gnd_gap
 
+    @staticmethod
+    def get_cross_gnd_gap_x():
+        return ProductionParams._cross_gnd_gap_x
+
+    @staticmethod
+    def get_cross_gnd_gap_y_list():
+        return np.copy(ProductionParams._cross_gnd_gap_y_list)
+    # </editor-fold>
+
 
 class DefaultParams:
     meander_params_dict = {
@@ -307,7 +323,6 @@ class DefaultParams:
         'KI_JJ_ledge_height': 6.95e3,
         'KI_JJ_ledge_width': 2e3,
     }
-
 
 
 class DPathCPWStraight(ComplexBase):
@@ -601,7 +616,7 @@ class DesignDmon(ChipDesign):
     def __init__(self, cell_name):
         super().__init__(cell_name)
         # TODO: Debug only
-        self.id = RANDOM.random()
+        # self.id = RANDOM.random()
         dc_bandage_layer_i = pya.LayerInfo(3,
                                            0)  # for DC contact deposition
         self.dc_bandage_reg = Region()
@@ -683,10 +698,9 @@ class DesignDmon(ChipDesign):
         )
         self.cross_len_y_list = ProductionParams.get_cross_len_y_list()
         self.cross_width_y_list = ProductionParams.get_cross_width_y_list()
-        self.cross_gnd_gap_y_list = np.array(
-            [1e3 * x for x in [60] * self.NQUBITS]
-        )
-        self.cross_gnd_gap_x = 60e3
+        self.cross_gnd_gap_y_list = ProductionParams.get_cross_gnd_gap_y_list()
+        # self.cross_gnd_gap_x = 60e3
+        self.cross_gnd_gap_x = ProductionParams.get_cross_gnd_gap_x()
         self.cross_gnd_gap_face_y = 20e3
 
         # resonators objects and parameters
@@ -725,7 +739,6 @@ class DesignDmon(ChipDesign):
         # fork at the end of resonator parameters
         self.fork_metal_width_list = ProductionParams.get_fork_metal_width_list()
         self.fork_gnd_gap = ProductionParams.get_fork_gnd_gap()
-        # TODO: Changing here
         self.xmon_fork_gnd_gap = ProductionParams.get_xmon_fork_gnd_gap()
         # fork at the end of resonator parameters
         self.fork_x_span_list = self.cross_width_y_list + + 2 * \
@@ -2429,6 +2442,7 @@ def simulate_Cqr(resolution=(4e3, 4e3), mode="Cq", pts=3, par_d=10e3, output_fna
     #  2. make 3d geometry optimization inside kLayout for simultaneous finding of C_qr, C_q and C_qq
 
     simulation_id = int(10 * time.time())
+    print(f"Simulation id: {simulation_id}")
     ALMOST_ZERO = 1.5e3
 
 
@@ -2469,11 +2483,16 @@ def simulate_Cqr(resolution=(4e3, 4e3), mode="Cq", pts=3, par_d=10e3, output_fna
             # adjusting `cross_len_x` to gain proper E_C
             # design.cross_width_y_list += dl
             # design.cross_width_x_list += dl
-            # design.cross_len_x_list += dl
+            design.fork_gnd_gap += dl
+
+            if design.fork_gnd_gap < ALMOST_ZERO:
+                print("Value is negative: ", design.fork_gnd_gap)
+                # design.fork_gnd_gap = np.ones_like(design.fork_gnd_gap) * ALMOST_ZERO
+                design.fork_gnd_gap = ALMOST_ZERO
 
             save_fname = "Cqr_Cq_results.csv"
 
-        print(f"idx = {res_idx}, par val = {design.fork_y_span_list[res_idx]}")
+        print(f"idx = {res_idx}, par val = {design.fork_gnd_gap}")
 
         # exclude coils from simulation (sometimes port is placed onto coil (TODO: fix)
         design.N_coils = [0] * design.NQUBITS
@@ -3081,7 +3100,7 @@ if __name__ == "__main__":
         print("Simulation mode")
     # simulate_Cqr(resolution=(3e3, 3e3), mode="Cq", pts=3, par_d=10e3)
     # import ctypes  # An included library with Python install.
-        simulate_Cqr(resolution=(4e3, 4e3), mode="Cqr", pts=3, par_d=ProductionParams.par_d)
+        simulate_Cqr(resolution=(4e3, 4e3), mode="Cq", pts=3, par_d=ProductionParams.par_d)
     # ctypes.windll.user32.MessageBoxW(0, "Simulation completed", "KLayout simulator", 0)
     # simulate_Cqr(resolution=(1e3, 1e3), mode="Cqr")
 
