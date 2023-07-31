@@ -160,14 +160,16 @@ PROJECT_DIR = r"C:\klayout_dev\kmon-calculations\Cq_Cqr"
 
 
 class ProductionParams:
-    start_mode = 1
-    par_d = 20e3
+    start_mode = 0
+    par_d = 2e3
 
-    _cross_gnd_gap_x = 20e3
+    # 10
+    _cross_gnd_gap_x = 10e3
 
     _xmon_fork_gnd_gap = 5e3
 
-    _fork_gnd_gap = 20e3
+    # 10
+    _fork_gnd_gap = 250e3
 
     _meander_length_list = [
         23613.00,
@@ -181,27 +183,31 @@ class ProductionParams:
     ]
 
     _cross_gnd_gap_y_list = np.array(
-        [1e3 * x for x in [10] * 8]
+        # 10
+        [1e3 * x for x in [100] * 8]
     )
 
     _cross_width_y_list = np.array(
-        [1e3 * x for x in [4, 8, 6, 36, 50, 4, 19, 3]]
+        # 4
+        [1e3 * x for x in [15.5, 8, 6, 36, 50, 4, 19, 3]]
     )
 
     _cross_len_y_list = np.array(
+        # 289
         [1e3 * x for x in
-         [305, 205.0, 211.0, 154.0, 154.0, 258.0, 267.0, 267.0]]
+         [270, 205.0, 211.0, 154.0, 154.0, 258.0, 267.0, 267.0]]
     )
 
     _fork_y_span_list = np.array(
         [
+            # 300
             x * 1e3 for x in
-            [328, 31.5, 13.7, 14.0, 14.0, 71.2, 75.3, 76.2]
+            [320, 31.5, 13.7, 14.0, 14.0, 71.2, 75.3, 76.2]
         ]
     )
 
     _fork_metal_width_list = np.array(
-        [1e3 * x for x in ([10] * 3 + [6] * 2 + [10] * 3)]
+        [1e3 * x for x in ([9.5] * 3 + [6] * 2 + [10] * 3)]
     )
 
     _cross_len_x_list = np.array(
@@ -699,7 +705,6 @@ class DesignDmon(ChipDesign):
         self.cross_len_y_list = ProductionParams.get_cross_len_y_list()
         self.cross_width_y_list = ProductionParams.get_cross_width_y_list()
         self.cross_gnd_gap_y_list = ProductionParams.get_cross_gnd_gap_y_list()
-        # self.cross_gnd_gap_x = 60e3
         self.cross_gnd_gap_x = ProductionParams.get_cross_gnd_gap_x()
         self.cross_gnd_gap_face_y = 20e3
 
@@ -2483,16 +2488,21 @@ def simulate_Cqr(resolution=(4e3, 4e3), mode="Cq", pts=3, par_d=10e3, output_fna
             # adjusting `cross_len_x` to gain proper E_C
             # design.cross_width_y_list += dl
             # design.cross_width_x_list += dl
-            design.fork_gnd_gap += dl
+            # design.fork_gnd_gap += dl
+            # design.cross_gnd_gap_x = design.fork_gnd_gap # TODO: Maybe we shouldn't change both of them
+            design.cross_width_y_list += dl
 
-            if design.fork_gnd_gap < ALMOST_ZERO:
-                print("Value is negative: ", design.fork_gnd_gap)
-                # design.fork_gnd_gap = np.ones_like(design.fork_gnd_gap) * ALMOST_ZERO
-                design.fork_gnd_gap = ALMOST_ZERO
+
+            if design.cross_width_y_list[res_idx] < ALMOST_ZERO:
+                print("Value is negative: ", design.cross_width_y_list)
+                design.cross_width_y_list = np.ones_like(design.cross_width_y_list) * ALMOST_ZERO
+                # design.cross_width_y_list = ALMOST_ZERO
 
             save_fname = "Cqr_Cq_results.csv"
+        else:
+            raise ValueError(f"Unknown mode: {mode}")
 
-        print(f"idx = {res_idx}, par val = {design.fork_gnd_gap}")
+        print(f"idx = {res_idx}, par val = {design.cross_width_y_list[res_idx]}")
 
         # exclude coils from simulation (sometimes port is placed onto coil (TODO: fix)
         design.N_coils = [0] * design.NQUBITS
@@ -3100,7 +3110,7 @@ if __name__ == "__main__":
         print("Simulation mode")
     # simulate_Cqr(resolution=(3e3, 3e3), mode="Cq", pts=3, par_d=10e3)
     # import ctypes  # An included library with Python install.
-        simulate_Cqr(resolution=(4e3, 4e3), mode="Cq", pts=3, par_d=ProductionParams.par_d)
+        simulate_Cqr(resolution=(1e3, 3e3), mode="Cq", pts=3, par_d=ProductionParams.par_d)
     # ctypes.windll.user32.MessageBoxW(0, "Simulation completed", "KLayout simulator", 0)
     # simulate_Cqr(resolution=(1e3, 1e3), mode="Cqr")
 
