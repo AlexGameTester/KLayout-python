@@ -3,6 +3,7 @@ from importlib import reload
 # Once for `import classLib`
 # the second time for `reload(classLib)`
 
+# reload modules in their particular consequtive order
 import classLib._PROG_SETTINGS
 reload(classLib._PROG_SETTINGS)
 from classLib import _PROG_SETTINGS
@@ -10,14 +11,6 @@ from classLib import _PROG_SETTINGS
 import classLib.baseClasses
 reload(classLib.baseClasses)
 from classLib import baseClasses
-
-import classLib.airbridge
-reload(classLib.airbridge)
-from classLib import airbridge
-
-import classLib.bridgedCoplanars
-reload(classLib.bridgedCoplanars)
-from classLib import bridgedCoplanars
 
 import classLib.coplanars
 reload(classLib.coplanars)

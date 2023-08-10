@@ -1116,13 +1116,27 @@ class Bridge1(ElementBase):
     gnd2gnd_dy = 70e3
 
     def __init__(
-        self, center, gnd_touch_dx=20e3, gnd2gnd_dy=70e3,
+        self, center, gnd_touch_dx=20e3, gnd2gnd_dy=70e3, support_type: str = "no_support",
         trans_in=None
     ):
+        """
+
+        Parameters
+        ----------
+        center
+        gnd_touch_dx
+        gnd2gnd_dy
+        support_type: str
+            "concave" - bridge surface needs signle stripline at the middle
+            "convex" - bridge surface needs two stiplines at sides
+            "no_support" - bridge surface remains as is
+        trans_in
+        """
         self.center = center
         self.gnd_touch_dx = gnd_touch_dx
         self.angle = 0
         self.gnd2gnd_dy = gnd2gnd_dy
+        self.support_type = support_type
         super().__init__(center, trans_in)
 
         self._geometry_parameters = OrderedDict(
@@ -1136,10 +1150,13 @@ class Bridge1(ElementBase):
         self.metal_regions[
             "bridges_1"] = Region()  # region with ground contacts
         self.empty_regions["bridges_1"] = Region()  # remains empty
-
         self.metal_regions["bridges_2"] = Region()  # remains empty
         self.empty_regions[
             "bridges_2"] = Region()  # region with erased bridge area
+        self.metal_regions["bridges_3"] = Region()  # region with additional litography polygons
+        # implemented to addd robustness for long bridges (~> 120 um).
+        self.empty_regions[
+            "bridges_3"] = Region()  # remains empty
 
         center = DPoint(0, 0)
         self.connections = [center]
@@ -1188,7 +1205,7 @@ class Bridge1(ElementBase):
         p3 = bot_gnd_touch_box.p1 + DPoint(0, bot_gnd_touch_box.height()) + \
              DPoint(-(20e3 - self.gnd_touch_dx) / 2, self.transition_len)
         bl_pts_list = [p1, p2, p3]  # bl stands for bottom-left
-        ''' exploiting symmetry of reflection at x and y axes. '''
+        ''' exploiting symmetry of reflection at x and y axes for etching shape '''
         # reflecting at x-axis
         tl_pts_list = list(
             map(
@@ -1219,6 +1236,38 @@ class Bridge1(ElementBase):
             SimplePolygon.from_dpoly(empty_polygon)
         )
 
+        # geometry region for 3-rd litography layer
+        if self.support_type == "concave":
+            # line at the middle of metal contact boxes
+            # line width = 3 um, clearance from contact box edges is 10 um (along bridge length)
+            self.metal_regions["bridges_3"].insert(
+                pya.Box().from_dbox(
+                    pya.DBox(
+                        top_gnd_touch_box.center() + DVector(-3e3/2, -self.gnd_touch_dy/2 - 10e3),
+                        bot_gnd_touch_box.center() + DVector(3e3/2, self.gnd_touch_dy/2 + 10e3)
+                    )
+                )
+            )
+        elif self.support_type == "convex":
+            # 2 lines at the sides of a bridge (outside of the bridge)
+            # bridge hull clearance = 1 um, clearance from contact box edges
+            # is 30 um (along brdige length)
+            center_left = DPoint(-self.bridge_width/2, 0) + DVector(-(1e3 + 3e3/2), 0)
+            p1_y = bot_gnd_touch_box.p2.y + 30e3
+            p2_y = top_gnd_touch_box.p1.y - 30e3
+            box1 = pya.Box().from_dbox(
+                pya.DBox(
+                    DPoint((center_left - DVector(3e3/2, 0)).x, p1_y),
+                    DPoint((center_left + DVector(3e3/2, 0)).x, p2_y)
+                )
+            )
+            box2 = Trans.M90 * box1  # reflected along y-axis
+            self.metal_regions["bridges_3"].insert(box1)
+            self.metal_regions["bridges_3"].insert(box2)
+        elif self.support_type == "no_support":
+            # no additional structures have to be drawn
+            pass
+
     def _refresh_named_connections(self):
         self.center = self.connections[0]
 
@@ -1228,11 +1277,14 @@ class Bridge1(ElementBase):
     @staticmethod
     def bridgify_CPW(
         cpw: Union[CPW, CPWArc, DPathCPW], bridges_step: float,
-        dest: Region = None,
         gnd2gnd_dy=70e3,
+        dest: Region = None,
+        dest2: Region = None,
+        dest3: Region = None,
         bridge_layer1=-1,
         bridge_layer2=-1,
-        dest2: Region = None,
+        bridge_layer3=-1,
+        support_type: str = "no_support",
         avoid_points: List[DPoint] = None,
         avoid_distances: List[float] = None
     ):
@@ -1246,18 +1298,28 @@ class Bridge1(ElementBase):
 
         Parameters
         ----------
-        gnd2gnd_dy
-        dest2
         cpw : Union[CPW, CPWArc, DPathCPW]
             instance of coplanar class to be bridged during fabrication
         bridges_step : float
             distance between centers of bridges in nm
+        gnd2gnd_dy : float
+            70 um is default between centers of the metal contact boxes
         dest : Region
             cell to place bridge polygons at
+        dest2 : Region
+            2nd litography layer
+        dest3 : Region
+            3rd litography layer
         bridge_layer1 : int
             index of the layer in the `cell` with ground touching polygons
         bridge_layer2 : int
             index of the layer in the `cell` with empty polygons
+        bridge_layer3: int
+            index of the layer in the `cell` with curvature polygons
+        support_type: str
+            "concave" - bridge surface needs signle stripline at the middle
+            "convex" - bridge surface needs two stiplines at sides
+            "no_support" - bridge surface remains as is
         avoid_points : list[Union[DPoint,Point,Vector, DVector]]
             list points that you wish to keep bridges away
         avoid_distances : Union[list[float], float]
@@ -1267,20 +1329,24 @@ class Bridge1(ElementBase):
         -------
         None
         """
-        bridge_tmp = Bridge1(DPoint(0, 0), gnd2gnd_dy=gnd2gnd_dy)
+        bridge_tmp = Bridge1(DPoint(0, 0), gnd2gnd_dy=gnd2gnd_dy, support_type=support_type)
         bridge_tmp.__bridgify_CPW(
             cpw=cpw, bridges_step=bridges_step,
             dest=dest, bridge_layer1=bridge_layer1,
             dest2=dest2, bridge_layer2=bridge_layer2,
+            dest3=dest3, bridge_layer3=bridge_layer3,
+            support_type=support_type,
             gnd2gnd_dy=gnd2gnd_dy,
             avoid_points=avoid_points,
-            avoid_distances=avoid_distances
+            avoid_distances=avoid_distances,
         )
 
     def __bridgify_CPW(
         self, cpw, bridges_step,
         dest: Region = None, bridge_layer1=-1,
         dest2: Region = None, bridge_layer2=-1,
+        dest3: Region = None, bridge_layer3=-1,
+        support_type:str = "no_support",
         gnd2gnd_dy=70e3,
         avoid_points: List[DPoint] = None, avoid_distances: List[float] = None
     ):
@@ -1298,10 +1364,20 @@ class Bridge1(ElementBase):
             distance between centers of bridges in nm
         dest : Region
             region to place bridge polygons at
-        bridge_layer1 : int
+       dest2 : Region
+            2nd litography layer
+        dest3 : Region
+            3rd litography layer
+       bridge_layer1 : int
             index of the layer in the `cell` with ground touching polygons
         bridge_layer2 : int
             index of the layer in the `cell` with empty polygons
+        bridge_layer3: int
+            index of the layer in the `cell` with curvature polygons
+        support_type: str
+            "concave" - bridge surface needs signle stripline at the middle
+            "convex" - bridge surface needs two stiplines at sides
+            "no_support" - bridge surface remains as is
         avoid_points : list[Union[DPoint,Point,Vector, DVector]]
             list points that you wish to keep bridges away
         avoid_distances : Union[list[float]]
@@ -1332,7 +1408,7 @@ class Bridge1(ElementBase):
             cpw_dir_unit_vector = cpw.dr / cpw.dr.abs()
 
             # bridge with some initial dimensions
-            tmp_bridge = Bridge1(DPoint(0, 0), gnd2gnd_dy=gnd2gnd_dy)
+            tmp_bridge = Bridge1(DPoint(0, 0), gnd2gnd_dy=gnd2gnd_dy, support_type=support_type)
             bridge_width = tmp_bridge.gnd_touch_dx + 2 * tmp_bridge.surround_gap
 
             # number of additional bridges on either side of center
@@ -1364,6 +1440,7 @@ class Bridge1(ElementBase):
                 bridges.append(
                     Bridge1(
                         center, gnd2gnd_dy=gnd2gnd_dy,
+                        support_type=support_type,
                         trans_in=DCplxTrans(
                             1, alpha / pi * 180, False, 0,
                             0
@@ -1371,20 +1448,11 @@ class Bridge1(ElementBase):
                     )
                 )
             for bridge in bridges:
-                bridge.place(
-                    dest=dest, layer_i=bridge_layer1,
-                    region_id="bridges_1"
-                )
+                bridge.place(dest=dest, layer_i=bridge_layer1, region_id="bridges_1")
                 if dest2 is not None:
-                    bridge.place(
-                        dest=dest2, layer_i=bridge_layer2,
-                        region_id="bridges_2"
-                    )
-                else:
-                    bridge.place(
-                        dest=dest, layer_i=bridge_layer2,
-                        region_id="bridges_2"
-                    )
+                    bridge.place(dest=dest2, layer_i=bridge_layer2, region_id="bridges_2")
+                if dest3 is not None:
+                    bridge.place(dest=dest3, layer_i=bridge_layer3, region_id="bridges_3")
         elif cpw.__class__.__name__ == "CPWArc":
             # only 1 bridge is placed, in the middle of an arc
 
@@ -1398,30 +1466,27 @@ class Bridge1(ElementBase):
             alpha = np.arctan2(v_arc_mid_tangent.y, v_arc_mid_tangent.x)
             bridge = Bridge1(
                 center=arc_mid, gnd2gnd_dy=gnd2gnd_dy,
+                support_type=support_type,
                 trans_in=DCplxTrans(1, alpha / pi * 180, False, 0, 0)
             )
-            bridge.place(
-                dest=dest, layer_i=bridge_layer1,
-                region_id="bridges_1"
-            )
+
+            bridge.place(dest=dest, layer_i=bridge_layer1, region_id="bridges_1")
             if dest2 is not None:
-                bridge.place(
-                    dest=dest2, layer_i=bridge_layer2,
-                    region_id="bridges_2"
-                )
-            else:
-                bridge.place(
-                    dest=dest, layer_i=bridge_layer2,
-                    region_id="bridges_2"
-                )
+                bridge.place(dest=dest2, layer_i=bridge_layer2, region_id="bridges_2")
+            if dest3 is not None:
+                bridge.place(dest=dest3, layer_i=bridge_layer3, region_id="bridges_3")
         elif cpw.__class__.__name__ in ["CPWRLPath", "Coil_type_1", "DPathCPW"]:
             # compound types
             for name, primitive in cpw.primitives.items():
                 if primitive.__class__.__name__ == "CPW":
                     Bridge1.bridgify_CPW(
-                        cpw=primitive, bridges_step=bridges_step, dest=dest,
-                        bridge_layer1=bridge_layer1, gnd2gnd_dy=gnd2gnd_dy,
-                        bridge_layer2=bridge_layer2, dest2=dest2, avoid_points=avoid_points,
+                        cpw=primitive, bridges_step=bridges_step,
+                        gnd2gnd_dy=gnd2gnd_dy,
+                        dest=dest, dest2=dest2, dest3=dest3,
+                        bridge_layer1=bridge_layer1,
+                        bridge_layer2=bridge_layer2, bridge_layer3=bridge_layer3,
+                        support_type=support_type,
+                        avoid_points=avoid_points,
                         avoid_distances=avoid_distances
                     )
         else:
@@ -1456,6 +1521,7 @@ class Intersection:
     @staticmethod
     def resolve_cpw_cpw_intersection(
         cpw1: CPW, cpw2: CPW, cpw_reg: Region, bridge_reg1: Region, bridge_reg2: Region,
+        bridge_reg3: Region, support_type: str="no_support",
         clearance_mul=1
     ):
         """
@@ -1528,26 +1594,32 @@ class Intersection:
         bridge1 = Bridge1(
             center=intersection,
             gnd2gnd_dy=ground_filling_cpw1.dr.abs() + 2 * cpw1.gap + cpw1.gap,
+            support_type=support_type,
             trans_in=DCplxTrans(1, -90 + 180 * np.arctan2(s1.y, s1.x) / np.pi, False, 0, 0)
         )
         bridge1.place(bridge_reg1, region_id="bridges_1")
         bridge1.place(bridge_reg2, region_id="bridges_2")
+        bridge1.place(bridge_reg3, region_id="bridges_3")
 
         # sideways bridges, shifted along cpw2 (unit vector `s2`)
         bridge2 = Bridge1(
             center=intersection + cpw1.b * s2,
             gnd2gnd_dy=ground_filling_cpw1.dr.abs() + 2 * cpw1.gap + cpw1.gap,
+            support_type=support_type,
             trans_in=DCplxTrans(1, -90 + 180 * np.arctan2(s1.y, s1.x) / np.pi, False, 0, 0)
         )
         bridge2.place(bridge_reg1, region_id="bridges_1")
         bridge2.place(bridge_reg2, region_id="bridges_2")
+        bridge2.place(bridge_reg3, region_id="bridges_3")
 
         bridge3 = Bridge1(
             center=intersection - cpw1.b * s2,
             gnd2gnd_dy=ground_filling_cpw1.dr.abs() + 2 * cpw1.gap + cpw1.gap,
+            support_type=support_type,
             trans_in=DCplxTrans(1, -90 + 180 * np.arctan2(s1.y, s1.x) / np.pi, False, 0, 0)
         )
         bridge3.place(bridge_reg1, region_id="bridges_1")
         bridge3.place(bridge_reg2, region_id="bridges_2")
+        bridge3.place(bridge_reg3, region_id="bridges_3")
 
         return intersection

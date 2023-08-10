@@ -7,6 +7,9 @@ in ascending order to qubit idxs.
 E.g. self.resonators[1] - resonator that belongs to qubit №1 (starting from 0)
 
 Changes log
+12QStair_0.0.0.5
+    1. Add concave or convex bridge design opportunities.
+    2. Litographic signature of the sample has changed its position
 12QStair_0.0.0.4
     1. Add electron convertion rectangles for bandages.
 12QStair_0.0.0.3
@@ -104,15 +107,20 @@ class Design12QStair(ChipDesign):
         self.region_bridges2 = Region()
         self.layer_bridges2 = self.layout.layer(info_bridges2)
 
+        info_bridges2 = pya.LayerInfo(6, 0)  # bridge photo layer 3
+        self.region_bridges3 = Region()
+        self.layer_bridges3 = self.layout.layer(info_bridges2)
+        self.bridges_support_type = "concave"
+
         # layer with rectangles that will be converted to the CABL format
-        info_el_protection = pya.LayerInfo(6, 0)
+        info_el_protection = pya.LayerInfo(7, 0)
         self.region_el_protection = Region()
         self.layer_el_protection = self.layout.layer(info_el_protection)
 
         self.regions: List[Region] = [
             self.region_ph, self.region_bridges1, self.region_bridges2,
             self.region_el, self.dc_bandage_reg,
-            self.region_el_protection, self.region_cut
+            self.region_el_protection, self.region_cut, self.region_bridges3
         ]
 
         # has to call it once more to add new layers
@@ -237,7 +245,11 @@ class Design12QStair(ChipDesign):
         self.draw_bandages()
         self.draw_el_convertion_regions()
 
-        self.add_chip_marking(text_bl=DPoint(2.6e6, 1.2e6), chip_name="8Q_0.0.0.0", text_scale=200)
+        self.add_chip_marking(
+            text_bl=DPoint(9.2e6, 9.6e6),
+            chip_name="12_0.0.0.5_" + self.bridges_support_type,
+            text_scale=200
+        )
 
         self.draw_litography_alignment_marks()
         self.draw_bridges()
@@ -253,7 +265,7 @@ class Design12QStair(ChipDesign):
         self.resolve_holes()
         # convert to litograph readable format. Litograph can't handle
         # polygons with more than 200 vertices.
-        # self.split_polygons_in_layers(max_pts=180)
+        self.split_polygons_in_layers(max_pts=180)
 
         # for processes after litographies
         self.draw_cutting_marks()
@@ -264,10 +276,7 @@ class Design12QStair(ChipDesign):
     def split_polygons_in_layers(self, max_pts=200):
         # TODO: add to parent class
         self.region_ph = split_polygons(self.region_ph, max_pts)
-        self.region_bridges2 = split_polygons(
-            self.region_bridges2,
-            max_pts
-        )
+        self.region_bridges2 = split_polygons(self.region_bridges2, max_pts)
         for poly in self.region_ph:
             if poly.num_points() > max_pts:
                 print("exists photo")
@@ -1054,7 +1063,9 @@ class Design12QStair(ChipDesign):
                     cpw1, cpw2 = result
                     intersection_pt = Intersection.resolve_cpw_cpw_intersection(
                         cpw1=cpw1, cpw2=cpw2, cpw_reg=self.region_ph,
-                        bridge_reg1=self.region_bridges1, bridge_reg2=self.region_bridges2
+                        bridge_reg1=self.region_bridges1, bridge_reg2=self.region_bridges2,
+                        bridge_reg3=self.region_bridges3,
+                        support_type=self.bridges_support_type
                     )
                     self.intersection_points.append(intersection_pt)
 
@@ -1167,11 +1178,13 @@ class Design12QStair(ChipDesign):
                 bridge = Bridge1(
                     test_struct3.center + DPoint(50e3 * (i - 1), 0),
                     gnd2gnd_dy=100e3,
-                    gnd_touch_dx=20e3
+                    gnd_touch_dx=20e3,
+                    support_type=self.bridges_support_type
                 )
                 test_bridges.append(bridge)
                 bridge.place(self.region_bridges1, region_id="bridges_1")
                 bridge.place(self.region_bridges2, region_id="bridges_2")
+                bridge.place(self.region_bridges3, region_id="bridges_3")
 
         # bandages test structures
         test_dc_el2_centers = [
@@ -1421,10 +1434,12 @@ class Design12QStair(ChipDesign):
                             Bridge1.bridgify_CPW(
                                 cpw=primitive,
                                 bridges_step=bridges_step, gnd2gnd_dy=70e3,
-                                dest=self.region_bridges1, dest2=self.region_bridges2
+                                dest=self.region_bridges1, dest2=self.region_bridges2,
+                                dest3=self.region_bridges3,
+                                support_type=self.bridges_support_type
                             )
                 elif any([(skip_name in name) for skip_name in ["fork", "arc"]]):
-                    # skip primitives with names above
+                    # skip primitives with names that contain "fork" or "arc" as substrings
                     continue
                 elif any(
                         [
@@ -1437,8 +1452,10 @@ class Design12QStair(ChipDesign):
                         cpw=res_primitive,
                         bridges_step=bridges_step, gnd2gnd_dy=70e3,
                         dest=self.region_bridges1, dest2=self.region_bridges2,
+                        dest3=self.region_bridges3,
+                        support_type=self.bridges_support_type,
                         avoid_points=[resonator.res_coulingArc_cpw_path.end],
-                        avoid_distances = [30e3]
+                        avoid_distances=[30e3]
                     )
 
         ''' contact wires '''
@@ -1452,7 +1469,10 @@ class Design12QStair(ChipDesign):
                 Bridge1.bridgify_CPW(
                     cpw=ctr_line,
                     bridges_step=bridges_step, gnd2gnd_dy=100e3,
-                    dest=self.region_bridges1, dest2=self.region_bridges2,
+                    dest=self.region_bridges1,
+                    dest2=self.region_bridges2,
+                    dest3=self.region_bridges3,
+                    support_type=self.bridges_support_type,
                     avoid_points=self.control_lines_avoid_points,
                     avoid_distances=[200e3]
                 )
@@ -1471,16 +1491,12 @@ class Design12QStair(ChipDesign):
                 bridge_center1 = cpw_fl.end + DVector(0, dy)
                 br = Bridge1(
                     center=bridge_center1, gnd2gnd_dy=70e3,
+                    support_type=self.bridges_support_type,
                     trans_in=Trans.R90
                 )
-                br.place(
-                    dest=self.region_bridges1,
-                    region_id="bridges_1"
-                )
-                br.place(
-                    dest=self.region_bridges2,
-                    region_id="bridges_2"
-                )
+                br.place(dest=self.region_bridges1, region_id="bridges_1")
+                br.place(dest=self.region_bridges2, region_id="bridges_2")
+                br.place(dest=self.region_bridges3, region_id="bridges_3")
 
         ''' readout lines  '''
         # collecting avoid points
@@ -1502,7 +1518,8 @@ class Design12QStair(ChipDesign):
             Bridge1.bridgify_CPW(
                 cpw=ro_line,
                 bridges_step=bridges_step, gnd2gnd_dy=100e3,
-                dest=self.region_bridges1, dest2=self.region_bridges2,
+                dest=self.region_bridges1, dest2=self.region_bridges2, dest3=self.region_bridges3,
+                support_type=self.bridges_support_type,
                 avoid_points=ro_lines_avoid_points,
                 avoid_distances=resonator_avoid_distances
             )
@@ -1515,6 +1532,8 @@ class Design12QStair(ChipDesign):
                     cpw=cpw_to_bridgify,
                     bridges_step=bridges_step, gnd2gnd_dy=100e3,
                     dest=self.region_bridges1, dest2=self.region_bridges2,
+                    dest3=self.region_bridges3,
+                    support_type=self.bridges_support_type,
                     avoid_points=[cpw_to_bridgify.start, cpw_to_bridgify.end],
                     avoid_distances=[30e3]
                 )
@@ -1574,6 +1593,7 @@ class Design12QStair(ChipDesign):
         self.cell.shapes(self.dc_bandage_layer).insert(self.dc_bandage_reg)
         self.cell.shapes(self.layer_bridges1).insert(self.region_bridges1)
         self.cell.shapes(self.layer_bridges2).insert(self.region_bridges2)
+        self.cell.shapes(self.layer_bridges3).insert(self.region_bridges3)
         self.cell.shapes(self.layer_el_protection).insert(
             self.region_el_protection
         )
