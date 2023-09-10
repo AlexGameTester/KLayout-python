@@ -1,1 +1,0 @@
-This directory contains SonnetLab version 7.4
