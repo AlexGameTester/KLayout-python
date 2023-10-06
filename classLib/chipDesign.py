@@ -29,7 +29,7 @@ class ChipDesign:
     def __init__(
         self,
         cell_name="testScript",
-        global_design_params: GlobalDesignParameters = None
+        global_design_params: GlobalDesignParameters = GlobalDesignParameters()
     ):
         """
         Inherit this class for working on width chip design

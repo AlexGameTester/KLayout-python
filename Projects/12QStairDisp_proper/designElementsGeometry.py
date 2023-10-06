@@ -295,6 +295,9 @@ class CqrCouplingParamsType1:
 
 @dataclass()
 class ConnectivityMap:
+    """
+    This datastructure holds elements connections (basically,
+    """
     # incidence matrix for qubits graph
     # incidence matrix entries consists of 2 numbers - corresponding
     # qubits connectors idxs (see schematics for details)
@@ -395,6 +398,7 @@ class ROResonatorParams():
         """
     # see parameters details in `Design_fast.py`
     target_freqs = [7.6, 7.36, 7.44, 7.28, 7.44, 7.52, 7.6, 7.52, 7.36, 7.2, 7.2, 7.28]
+    target_qfactor = [10e3]*12
 
     L_coupling_list = [
         1e3 * x for x in [310, 310, 310, 310] * 3

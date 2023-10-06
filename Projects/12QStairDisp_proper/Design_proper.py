@@ -1,4 +1,4 @@
-__version__ = "12QStair_0.0.0.4"
+__version__ = "12QStair_0.0.0.5"
 
 '''
 NOTE:
@@ -1978,9 +1978,10 @@ def simulate_md_Cg(q_idx: int, resolution=(5e3, 5e3)):
 if __name__ == "__main__":
     ''' draw and show design for manual design evaluation '''
     FABRICATION.OVERETCHING = 0.0e3
-    design = Design12QStair("testScript", global_design_params=GlobalDesignParameters())
-    design.draw()
-    design.show()
+    # design = Design12QStair("testScript", global_design_params=GlobalDesignParameters())
+    # design.draw()
+    # design.show()
+
     # test = Cqq_type2("cellName")
     # test.draw()
     # test.show()
@@ -2014,7 +2015,7 @@ if __name__ == "__main__":
     #     simulate_md_Cg(q_idx=q_idx, resolution=(4e3, 4e3))
 
     ''' Resonators Q and f sim'''
-    # simulate_resonators_f_and_Q(resolution=(2e3, 2e3))
+    simulate_resonators_f_and_Q(resolution=(2e3, 2e3))
 
     ''' Resonators Q and f when placed together'''
     # simulate_resonators_f_and_Q_together()
