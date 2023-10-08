@@ -221,6 +221,18 @@ function [aStatus, aMessage]=SonnetCallEm(theFilename, theOptions)
                 if contains(aFileLine,'Analysis completed successfully')
                     aStatus=0;
                     aMessage='';
+                    % copy-pasted exit from function instead of waiting for
+                    % 'LogFileClosed'
+                    fclose(aFid);
+
+                    % if the log file exists then delete it
+                    if ~isempty(dir(aLogFilename))
+                        warning off all
+                        delete(aLogFilename);
+                        warning on all
+                    end
+
+                    return;
                 end
                 if contains(aFileLine,'Log file closed')
                     fclose(aFid);

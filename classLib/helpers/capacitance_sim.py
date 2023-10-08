@@ -270,3 +270,16 @@ def save_sim_results(output_filepath, design, additional_pars):
                 list(additional_pars.values()) +
                 list(design_pars.values())
             )
+
+def save_S_params(output_dir, deisgn, additional_pars):
+    import shutil
+    import os
+    import csv
+
+    # geometry parameters gathering
+    worm_params = worm.get_geometry_params_dict(prefix="worm_")
+    xmonCross_params = xmonCross.get_geometry_params_dict(prefix="xmonCross_")
+    Z0_params = Z0.get_geometry_params_dict(prefix="S21Line_")
+    CHIP_params = CHIP.get_geometry_params_dict(prefix="chip_")
+
+    project_dir = os.path.dirname(__file__)

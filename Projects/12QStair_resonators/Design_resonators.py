@@ -64,7 +64,7 @@ from globalDefinitions import CHIP, VERT_ARR_SHIFT, SQUID_PARS, PROJECT_DIR
 import designElementsGeometry
 
 reload(designElementsGeometry)
-from designElementsGeometry import QubitParams, Qubit, QubitsGrid
+from designElementsGeometry import QubitParams, Qubit, QubitsGrid, ResonatorParams
 from designElementsGeometry import DiskConn8Pars
 from designElementsGeometry import ConnectivityMap
 from designElementsGeometry import ROResonator, ROResonatorParams
@@ -75,6 +75,7 @@ import Cqq_couplings
 reload(Cqq_couplings)
 from Cqq_couplings import CqqCouplingType2, CqqCouplingParamsType2
 from Cqq_couplings import CqqCouplingType1, CqqCouplingParamsType1
+
 
 class Design12QStair(ChipDesign):
     def __init__(self, cell_name):
@@ -402,7 +403,7 @@ class Design12QStair(ChipDesign):
         # for consistent and easy simulation of notch port resonator
         self.qCenter_roLine_distance = abs((self.qubits[10].origin - self.resonators[0].start).x) \
                                        + \
-                                       ROResonatorParams.to_line_list[10]
+                                       ResonatorParams.to_line_list[10]
         ro_line_extension = self.qCenter_roLine_distance / 2
         turn_radii = ro_line_extension / 4
 
@@ -1485,6 +1486,7 @@ def simulate_Cqq(q1_idx, q2_idx=None, resolution=(5e3, 5e3)):
                 additional_pars={"C1, fF": C1, "C2, fF": C2, "C12, fF": C12}
             )
 
+
 def simulate_Cqr(q_idxs: List[int], resolution=(4e3, 4e3)):
     # TODO: 1. make 2d geometry parameters mesh, for simultaneous finding of C_qr and C_q
     #  2. make 3d geometry optimization inside kLayout for simultaneous finding of C_qr,
@@ -1550,7 +1552,6 @@ def simulate_res_f_and_Q(q_idx, resolution=(2e3, 2e3), type='freq'):
     design.show()
     ### DRAWING SECTION END ###
 
-    # simulation section start
     if type == 'freq':
         simulate_S_pars(design, crop_box, f'res_{q_idx}_{design.resonators_params.L1_list[q_idx]/1e3:.01f}_S_pars.csv', 7.0, 8.0)
     elif type == 'Q':
@@ -1645,7 +1646,7 @@ if __name__ == "__main__":
     # simulate_res_f_and_Q(4)
     # simulate_res_f_and_Q(5)
     # simulate_res_f_and_Q(6)
-    for i in [0]:
+    for i in [0, 3]:
         simulate_res_f_and_Q(i)
 
 

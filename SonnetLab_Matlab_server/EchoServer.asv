@@ -1,19 +1,19 @@
-sock = tcpserver("127.0.0.1", 30000, "Timeout", 20, "ByteOrder","big-endian");
-sock.InputBufferSize = 100000*8;
-
 DATA_FILENAME = 'S_DATA.csv';
 PROJ_NAME = 'matlab_proj.son';
 SONNET_PROJ_DIRNAME = 'Sonnet_projects';
 PROJ_DIR_PATH = [pwd filesep SONNET_PROJ_DIRNAME];
 
 while 1
+    sock = tcpserver("127.0.0.1", 30000, "Timeout", 20, "ByteOrder","big-endian");
+    sock.InputBufferSize = 100000*8;
+
     % waiting for connection
     disp(sock.get("Status"));
     %disp(sock.ByteOrder)
     % cleanup before previous run
     status = rmdir(PROJ_DIR_PATH ,'s');
     status = rmdir([PROJ_DIR_PATH filesep 'sondata'],'s');
-    status = mkdir(PROJ_DIR_PATH);
+    status = mkdir(PROJ_DIR_PATH );
     
     while 1
         %disp("waiting for data")
@@ -23,16 +23,13 @@ while 1
         if data == CMD.CLOSE
             respond( sock, RESPONSE.OK )
             clear sock;
-
-            sock = tcpserver("127.0.0.1", 30000, "Timeout", 20, "ByteOrder","big-endian");
-            sock.InputBufferSize = 100000*8;
+            break
         elseif data == CMD.SAY_HELLO
             respond( sock, RESPONSE.OK )
             %% generate default sonnet project with 2 dielectric layers %%
             proj = SonnetProject();
             proj.saveAs([PROJ_DIR_PATH filesep PROJ_NAME]);
-            disp(sock.get("Status"));
-
+            
             % change units to micrometers
             proj.changeLengthUnit("UM");
             % dielectric layers counting is from top to bottom starting with 1
@@ -59,7 +56,7 @@ while 1
                     if polygon.port_types(i) == PORT_TYPES.BOX_WALL
                         proj.addPort('STD',polygon_sonnet,edge_i,50,0,0,0);
                     elseif polygon.port_types(i) == PORT_TYPES.AUTOGROUNDED
-                        proj.addPort('AGND',polygon_sonnet,edge_i,50,0,0,0,'FIX',0);
+                        proj.addPort('AGND',polygon_sonnet,edge_i,50,0,0,0,'FIX',0)
                     elseif polygon.port_types(i) == PORT_TYPES.COCALIBRATED
                         % not implemented
                     end
@@ -72,7 +69,7 @@ while 1
             proj.changeBoxSizeXY(boxSettings.dim_X_um, boxSettings.dim_Y_um);
             proj.changeNumberOfCells(boxSettings.cells_X_num,boxSettings.cells_Y_num);
         elseif data == CMD.CLEAR_POLYGONS
-            %disp("received clear")
+            disp("received clear")
             respond( sock, RESPONSE.OK )
             for i = 1:length(proj.GeometryBlock.ArrayOfPolygons)
                 proj.deletePolygonUsingIndex(1);

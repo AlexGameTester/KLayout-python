@@ -126,7 +126,11 @@ aWasteCharacter=aRegistryFileLine(4);
 while feof(aFid)==0
     
     aRegistryFileLine=fgetl(aFid);
-    aRegistryFileLine=strrep(aRegistryFileLine,aWasteCharacter,'');
+    %aRegistryFileLine=strrep(aRegistryFileLine,aWasteCharacter,'');
+    %%waste character aapears to be 'n'. Hence, path to soncmd.exe get
+    %%stripped of all `n` chararcters. The problem is in `Sonnet
+    %%Software` -> `Soet Software`. This leads to file not found error when
+    %%running this file from command line with `system`.
     
     if contains(aRegistryFileLine,'"SONNET_DIR"=')
         aNewNumberOfInstalledVersions=length(aSonnetInstallDirectoryList)+1;

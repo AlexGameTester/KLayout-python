@@ -44,7 +44,6 @@ import classLib
 
 reload(classLib)
 from classLib.coplanars import CPW, CPW2CPW, CPWParameters, DPathCPW, Bridge1, Intersection
-from sonnetSim import SonnetLab, SonnetPort, SimulationBox
 from classLib.chipDesign import ChipDesign, GlobalDesignParameters
 from classLib.chipTemplates import CHIP_14x14_20pads
 from classLib.marks import MarkBolgar
@@ -56,6 +55,12 @@ from classLib.resonators import EMResonatorTL3QbitWormRLTail
 from classLib.josJ import AsymSquid
 from classLib.testPads import TestStructurePadsSquare
 from classLib.shapes import Rectangle
+
+import sonnetSim
+reload(sonnetSim)
+from sonnetSim import SonnetLab, SonnetPort, SimulationBox
+from sonnetSim.cMD import CMD
+from sonnetSim.pORT_TYPES import PORT_TYPES
 
 # import local dependencies in case project file is too big
 from classLib.baseClasses import ComplexBase
@@ -85,7 +90,7 @@ from Cqq_couplings import CqqCouplingType1, CqqCouplingParamsType1
 class Design12QStair(ChipDesign):
     def __init__(
         self, cell_name,
-        global_design_params: GlobalDesignParameters=None
+        global_design_params: GlobalDesignParameters=GlobalDesignParameters()
     ):
         super().__init__(cell_name, global_design_params=global_design_params)
 
@@ -1669,8 +1674,7 @@ class Design12QStair(ChipDesign):
                 p2 - rotation_center) + rotation_center
         p2 += DVector(self.resonators[q_idx].L_coupling, to_line)
         p2 = DPoint(p2)
-        print(p1)
-        print(p2)
+
         cent = (p1 + p2) / 2
         bwidth = abs(p1.x - p2.x)
         bheight = abs(p1.y - p2.y)
@@ -1711,15 +1715,19 @@ def simulate_res_f_and_Q(q_idx, resolution=(2e3, 2e3), type='freq'):
 
     if type == 'freq':
         simulate_S_pars(
-            design, crop_box,
-            f'res_{q_idx}_{design.resonators_params.L1_list[q_idx] / 1e3:.01f}_S_pars.csv', 7.0, 8.0
+            design=design,
+            crop_box=crop_box,
+            filename=f'res_{q_idx}_{design.resonators_params.L1_list[q_idx] / 1e3:.01f}_S_pars.csv',
+            min_freq=7.0, max_freq=8.0,
+            resolution=resolution
         )
     elif type == 'Q':
         simulate_S_pars(
-            design, crop_box,
-            f'res_{q_idx}_Q_S_pars.csv',
-            ROResonatorParams.target_freqs[q_idx] - 0.01,
-            ROResonatorParams.target_freqs[q_idx] + 0.01,
+            design=design,
+            crop_box=crop_box,
+            filename=f'res_{q_idx}_Q_S_pars.csv',
+            min_freq=ROResonatorParams.target_freqs[q_idx] - 0.01,
+            max_freq=ROResonatorParams.target_freqs[q_idx] + 0.01,
             resolution=resolution
         )
 
@@ -1727,11 +1735,11 @@ def simulate_res_f_and_Q(q_idx, resolution=(2e3, 2e3), type='freq'):
 def simulate_S_pars(design, crop_box, filename, min_freq=6.0, max_freq=7.0, resolution=(2e3, 2e3)):
     ### SIMULATION SECTION START ###
     ml_terminal = SonnetLab()
-    from sonnetSim.cMD import CMD
 
     resolution_dx = resolution[0]
     resolution_dy = resolution[1]
-
+    
+    # check for client->server sanity
     ml_terminal._send(CMD.SAY_HELLO)
     ml_terminal.clear()
     simBox = SimulationBox(
@@ -1741,7 +1749,6 @@ def simulate_S_pars(design, crop_box, filename, min_freq=6.0, max_freq=7.0, reso
     )
 
     ml_terminal.set_boxProps(simBox)
-    from sonnetSim.pORT_TYPES import PORT_TYPES
 
     ports = [
         SonnetPort(prt, PORT_TYPES.AUTOGROUNDED) for prt in design.sonnet_ports
@@ -1753,20 +1760,64 @@ def simulate_S_pars(design, crop_box, filename, min_freq=6.0, max_freq=7.0, reso
     result_path = ml_terminal.start_simulation(wait=True)
     ml_terminal.release()
 
+        #
+    import shutil
+    import os
+    import csv
+
+    # geometry parameters gathering
+    all_params = design.resonators_params.get_resonator_params_by_qubit_idx(q_idx=q)
+
     # creating directory with simulation results
-    output_projpath = os.path.join(
-        PROJECT_DIR,
-        filename
+    results_dirname = "resonators_S21"
+    results_dirpath = os.path.join(PROJECT_DIR, results_dirname)
+
+    output_metaFile_path = os.path.join(
+        results_dirpath,
+        "resonator_waveguide_Q_freq_meta.csv"
     )
 
+        # creating directory
+    if not os.path.exists(results_dirpath):
+        '''
+            Directory did not exist. We create it, then we create fresh meta-file.
+            Meta-file contain simulation parameters and corresponding
+            S-params filename that is located in this directory
+        '''
+        os.mkdir(results_dirpath)
+        with open(output_metaFile_path, "w+",
+                  newline='') as csv_file:
+            writer = csv.writer(csv_file)
+            # create header of the file
+            all_params["filename"] = "result_1.csv"
+            writer.writerow(list(all_params.keys()))
+            # add first parameters row
+            reader = csv.reader(csv_file)
+            writer.writerow(list(all_params.values()))
+
+    if os.path.exists(output_metaFile_path):
+        # both directory and metafile exist
+        # counting entries in metafile and generate name for new file for S-parameters
+        with open(output_metaFile_path, "r+",
+                  newline='') as csv_file:
+            reader = csv.reader(csv_file)
+            existing_entries_n = len(list(reader)) - 1
+            all_params["filename"] = "result_" + str(
+                existing_entries_n) + ".csv"
+
+            writer = csv.writer(csv_file)
+            # append new values row to file
+            writer.writerow(list(all_params.values()))
+
+    # copy result from sonnet folder and rename it accordingly
+    print("try to copy result", all_params["filename"])
+    print("result path", result_path)
     shutil.copy(
         result_path.decode("ascii"),
-        output_projpath
+        os.path.join(results_dirpath, all_params["filename"])
     )
-
-    design.layout.write(output_projpath[:-4] + '.gds')
-
-    ### RESULT SAVING SECTION END ###
+    design.save_as_gds2(os.path.join(results_dirpath, all_params["filename"]))
+    ##
 
 
 def simulate_Cqq(q1_idx, q2_idx=None, resolution=(5e3, 5e3)):
@@ -2015,7 +2066,8 @@ if __name__ == "__main__":
     #     simulate_md_Cg(q_idx=q_idx, resolution=(4e3, 4e3))
 
     ''' Resonators Q and f sim'''
-    simulate_resonators_f_and_Q(resolution=(2e3, 2e3))
+    for q in [0]:
+        simulate_res_f_and_Q(q_idx=q, resolution=(2e3, 2e3))
 
     ''' Resonators Q and f when placed together'''
     # simulate_resonators_f_and_Q_together()

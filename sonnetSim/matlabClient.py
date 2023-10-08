@@ -36,17 +36,18 @@ class MatlabClient():
             self.state = self.STATE.ERROR
 
     def _send(self, byte_arr, confirmation_value=RESPONSE.OK):
-        confirm_byte = None
+        response_bytes = None
         self.sock.sendall(byte_arr)
+        # print("I have sent", str(byte_arr))
         # print(self.sock.gettimeout())
         # waiting for 16-bit confirmation received or timeout expired
         try:
-            while (True):
-                confirm_byte = self.sock.recv(2, socket.MSG_PEEK)
-                if (len(confirm_byte) == 2):
-                    confirm_byte = self.sock.recv(2)
-                    confirm_val = struct.unpack("!H", confirm_byte)[0]
-                    if (confirm_val == confirmation_value):
+            while True:
+                response_bytes = self.sock.recv(2, socket.MSG_PEEK)
+                if len(response_bytes) == 2:
+                    response_bytes = self.sock.recv(2)
+                    confirm_val = struct.unpack("!H", response_bytes)[0]
+                    if confirm_val == confirmation_value:
                         return True
                     else:
                         self.state = self.STATE.ERROR

@@ -36,6 +36,7 @@ class CPWParameters(ElementBase, ABC):
         }
 
 
+
 class CPW(ElementBase):
     """@brief: class represents single coplanar waveguide
         @params:  float width - represents width of the central conductor
@@ -139,8 +140,9 @@ class CPW(ElementBase):
         alpha_trans = DCplxTrans(1, 180 * (alpha / pi), False, 0, 0)
         self.make_trans(dCplxTrans=alpha_trans)
         # hotfix rounding errors that lead to disconnections
-        self.metal_region.size(2, 0, 0)
-        self.empty_region.size(2, 0, 0)
+        # UPD 07.10.23: debugger throw shit as "Internal error: ../../../src/db/db/dbPolygon.cc:231 *pp != *p was not true in Region.size"
+        # self.metal_region.size(2, 0, 0)
+        # self.empty_region.size(2, 0, 0)
 
     def _refresh_named_connections(self):
         self.start = self.connections[0]
