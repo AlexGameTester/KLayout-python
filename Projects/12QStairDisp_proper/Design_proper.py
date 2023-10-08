@@ -1811,12 +1811,12 @@ def simulate_S_pars(design, crop_box, filename, min_freq=6.0, max_freq=7.0, reso
 
     # copy result from sonnet folder and rename it accordingly
     print("try to copy result", all_params["filename"])
-    print("result path", result_path)
+    print("results dirpath", results_dirpath)
     shutil.copy(
         result_path.decode("ascii"),
         os.path.join(results_dirpath, all_params["filename"])
     )
-    design.save_as_gds2(os.path.join(results_dirpath, all_params["filename"]))
+    design.save_as_gds2(os.path.join(results_dirpath, all_params["filename"][:-4]))
     ##
 
 
@@ -2066,8 +2066,8 @@ if __name__ == "__main__":
     #     simulate_md_Cg(q_idx=q_idx, resolution=(4e3, 4e3))
 
     ''' Resonators Q and f sim'''
-    for q in [0]:
-        simulate_res_f_and_Q(q_idx=q, resolution=(2e3, 2e3))
+    for q in range(6, 12):
+        simulate_res_f_and_Q(q_idx=q, resolution=(2.5e3, 2.5e3))
 
     ''' Resonators Q and f when placed together'''
     # simulate_resonators_f_and_Q_together()

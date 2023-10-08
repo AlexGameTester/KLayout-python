@@ -17,7 +17,7 @@ while 1
     
     while 1
         %disp("waiting for data")
-        % uint16 is my default command type. See `cMD.py` and `CMD` class
+        % uint16 is my default command type. See `cMD.py` and `CMD.m`
         data = read(sock, 1,"uint16");
         % sprintf("I received: %x", data)  % command diagnostics
         if data == CMD.CLOSE
