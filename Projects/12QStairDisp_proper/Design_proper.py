@@ -1712,6 +1712,7 @@ def simulate_res_f_and_Q(q_idx, resolution=(2e3, 2e3), type='freq'):
     ### DRAWING SECTION END ###
 
     cur_freqs = [7.395, 7.465, 7.65, 7.485]
+    fine_span = 0.02
 
     if type == 'freq':
         simulate_S_pars(
@@ -1726,8 +1727,8 @@ def simulate_res_f_and_Q(q_idx, resolution=(2e3, 2e3), type='freq'):
             design=design,
             crop_box=crop_box,
             filename=f'res_{q_idx}_Q_S_pars.csv',
-            min_freq=ROResonatorParams.target_freqs[q_idx] - 0.01,
-            max_freq=ROResonatorParams.target_freqs[q_idx] + 0.01,
+            min_freq=ROResonatorParams.target_freqs[q_idx] - fine_span/2,
+            max_freq=ROResonatorParams.target_freqs[q_idx] + fine_span/2,
             resolution=resolution
         )
 
@@ -1816,7 +1817,7 @@ def simulate_S_pars(design, crop_box, filename, min_freq=6.0, max_freq=7.0, reso
         result_path.decode("ascii"),
         os.path.join(results_dirpath, all_params["filename"])
     )
-    design.save_as_gds2(os.path.join(results_dirpath, all_params["filename"][:-4]))
+    design.save_as_gds2(os.path.join(results_dirpath, all_params["filename"][:-4]) + ".gds")
     ##
 
 

@@ -116,9 +116,9 @@ class SimulatedDesign(ChipDesign):
 
         self.SL.clear()
         self.SL.set_boxProps(self.simBox)
-        if self.simulation_type is "LINEAR":
+        if self.simulation_type == "LINEAR":
             self.SL.set_linspace_sweep(self.freqs[0]/1e9, self.freqs[-1]/1e9, len(self.freqs))
-        elif self.simulation_type is "ABS":
+        elif self.simulation_type == "ABS":
             self.SL.set_ABS_sweep(self.freqs[0]/1e9, self.freqs[-1]/1e9)
         else:
             self.SL.set_ABS_sweep(self.freqs[0]/1e9, self.freqs[-1]/1e9)
