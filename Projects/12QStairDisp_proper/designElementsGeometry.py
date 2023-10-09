@@ -397,6 +397,9 @@ class ROResonatorParams():
         Geometry parameters has to be verified by simulation.
         """
     # see parameters details in `Design_fast.py`
+    current_sim_freqs = [7.58338877, 7.34696578, 7.43494798, 7.26783703, 7.44070826,
+       7.50407024, 7.58251541, 7.50828703, 7.3511825 , 7.16000063,
+       7.18802701, 7.26911275]
     target_freqs = [7.6, 7.36, 7.44, 7.28, 7.44, 7.52, 7.6, 7.52, 7.36, 7.2, 7.2, 7.28]
     target_qfactor = [10e3]*12
 

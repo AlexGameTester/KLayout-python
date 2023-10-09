@@ -1711,8 +1711,6 @@ def simulate_res_f_and_Q(q_idx, resolution=(2e3, 2e3), type='freq'):
     design.show()
     ### DRAWING SECTION END ###
 
-    cur_freqs = [7.395, 7.465, 7.65, 7.485]
-
     if type == 'freq':
         simulate_S_pars(
             design=design,
@@ -1726,8 +1724,8 @@ def simulate_res_f_and_Q(q_idx, resolution=(2e3, 2e3), type='freq'):
             design=design,
             crop_box=crop_box,
             filename=f'res_{q_idx}_Q_S_pars.csv',
-            min_freq=ROResonatorParams.target_freqs[q_idx] - 0.01,
-            max_freq=ROResonatorParams.target_freqs[q_idx] + 0.01,
+            min_freq=ROResonatorParams.current_sim_freqs[q_idx] - 0.01,
+            max_freq=ROResonatorParams.current_sim_freqs[q_idx] + 0.01,
             resolution=resolution
         )
 
@@ -2067,7 +2065,7 @@ if __name__ == "__main__":
 
     ''' Resonators Q and f sim'''
     for q in range(12):
-        simulate_res_f_and_Q(q_idx=q, resolution=(2.5e3, 2.5e3))
+        simulate_res_f_and_Q(q_idx=q, resolution=(2.5e3, 2.5e3), type="Q")
 
     ''' Resonators Q and f when placed together'''
     # simulate_resonators_f_and_Q_together()
