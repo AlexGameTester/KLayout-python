@@ -2056,8 +2056,7 @@ if __name__ == "__main__":
     # )
 
     ''' C_qr sim '''
-    for q in range(12):
-        simulate_Cqr(q_idxs=[0, 5, 7], resolution=(5e3, 5e3))
+    simulate_Cqr(q_idxs=[0, 5, 7], resolution=(5e3, 5e3))
 
     ''' Simulation of C_{q1,q2} in fF '''
     simulate_Cqq(q1_idx=5, q2_idx=6, resolution=(2e3, 2e3))
@@ -2067,7 +2066,7 @@ if __name__ == "__main__":
         simulate_md_Cg(q_idx=q_idx, resolution=(2e3, 2e3))
 
     ''' Resonators Q and f sim'''
-    for q in range(6, 12):
+    for q in range(12):
         simulate_res_f_and_Q(q_idx=q, resolution=(2.5e3, 2.5e3))
 
     ''' Resonators Q and f when placed together'''
