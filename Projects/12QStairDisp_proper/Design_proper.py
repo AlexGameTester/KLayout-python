@@ -1888,21 +1888,22 @@ def simulate_Cqr(q_idxs: List[int], resolution=(4e3, 4e3)):
     donut_metal_width_list = np.linspace(10e3, 80e3, 8)
     # dl_list = [0e3]
 
-    for simulation_i, (donut_disk_d, donut_metal_width, q_idx) in list(
-            enumerate(
-                list(
-                    itertools.product(
-                        donut_disk_d_list, donut_metal_width_list, q_idxs
-                    )
-                )
-            )
-    ):
-        ### DRAWING SECTION START ###
+    # for simulation_i, (donut_disk_d, donut_metal_width, q_idx) in list(
+    #         enumerate(
+    #             list(
+    #                 itertools.product(
+    #                     donut_disk_d_list, donut_metal_width_list, q_idxs
+    #                 )
+    #             )
+    #         )
+    # ):
+    for simulation_i, q_idx in enumerate(q_idxs):
         design = Design12QStair("testScript")
+        ### DRAWING SECTION START ###
         print("simulation #", simulation_i)
         # exclude coils from simulation (sometimes port is placed onto coil (TODO: fix)
-        design.q_res_coupling_params[q_idx].donut_disk_d = donut_disk_d
-        design.q_res_coupling_params[q_idx].donut_metal_width = donut_metal_width
+        # design.q_res_coupling_params[q_idx].donut_disk_d = donut_disk_d
+        # design.q_res_coupling_params[q_idx].donut_metal_width = donut_metal_width
         design.resonators_params.N_coils_list = [1] * design.NQUBITS
         design.draw_chip()
         design.draw_qubits_array()
@@ -1913,7 +1914,7 @@ def simulate_Cqr(q_idxs: List[int], resolution=(4e3, 4e3)):
         resonator = design.resonators[q_idx]
         res_reg = resonator.metal_region
         qubit = design.qubits[q_idx]
-        q_reg = qubit.disk_cap_shunt.metal_region
+        q_reg = design.region_ph.overlapping(qubit.disk_cap_shunt.metal_region).dup()
 
         # TODO: make simulation such that all polygons (except those with ports are connected to
         #  ground). Now it is tolerable to have some of them (with large capacity to ground) to
@@ -1933,13 +1934,19 @@ def simulate_Cqr(q_idxs: List[int], resolution=(4e3, 4e3)):
             PROJECT_DIR,
             f"Xmon_Cqr_results.csv"
         )
+        # design.save_as_gds2(
+        #     filename=os.path.join(
+        #         PROJECT_DIR,
+        #         f"Cqr_{int(donut_disk_d / 1e3)}_dmw_{int(donut_metal_width / 1e3)}.gds"
+        #     )
+        # )
+
         design.save_as_gds2(
             filename=os.path.join(
                 PROJECT_DIR,
-                f"ddd_{int(donut_disk_d / 1e3)}_dmw_{int(donut_metal_width / 1e3)}.gds"
+                f"Cqr_qidx_{q_idx}.gds"
             )
         )
-
         save_sim_results(
             output_filepath=output_filepath,
             design=design,
@@ -1972,6 +1979,8 @@ def simulate_md_Cg(q_idx: int, resolution=(5e3, 5e3)):
         qubit = design.qubits[q_idx]
         q_reg = qubit.disk_cap_shunt.metal_region
         md_line = design.cpw_md_lines[q_idx]
+        if md_line is None:
+            return
         md_reg = md_line.metal_region
 
         # TODO: make simulation such that all polygons (except those with ports are connected to
@@ -2056,18 +2065,18 @@ if __name__ == "__main__":
     # )
 
     ''' C_qr sim '''
-    simulate_Cqr(q_idxs=[0, 5, 7], resolution=(5e3, 5e3))
+    simulate_Cqr(q_idxs=range(6,12), resolution=(2e3, 2e3))
+    #
+    # ''' Simulation of C_{q1,q2} in fF '''
+    # simulate_Cqq(q1_idx=5, q2_idx=6, resolution=(2e3, 2e3))
 
-    ''' Simulation of C_{q1,q2} in fF '''
-    simulate_Cqq(q1_idx=5, q2_idx=6, resolution=(2e3, 2e3))
-
-    ''' MD line C_qd for md1,..., md6 '''
-    for q_idx in range(12):
-        simulate_md_Cg(q_idx=q_idx, resolution=(2e3, 2e3))
-
-    ''' Resonators Q and f sim'''
-    for q in range(12):
-        simulate_res_f_and_Q(q_idx=q, resolution=(2.5e3, 2.5e3), type="Q")
+    # ''' MD line C_md for md1,..., md6 '''
+    # for q_idx in range(12):
+    #     simulate_md_Cg(q_idx=q_idx, resolution=(2e3, 2e3))
+    #
+    # ''' Resonators Q and f sim'''
+    # for q in range(12):
+    #     simulate_res_f_and_Q(q_idx=q, resolution=(2.5e3, 2.5e3), type="Q")
 
     ''' Resonators Q and f when placed together'''
     # simulate_resonators_f_and_Q_together()

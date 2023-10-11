@@ -69,11 +69,32 @@ def simulate_cij(
     else:
         crop_box = env_reg.bbox()
 
+    ''' CROP + SNAP TO ORIGIN SECTION START '''
+    design.crop(crop_box, design.region_ph)
+    # print("sonnet ports positions BEFORE transform:")
+    # for sp in design.sonnet_ports:
+    #     print(sp.x, sp.y)
+    dr = DPoint(0, 0) - crop_box.p1  # translation vector to snap to origin
+    trans = DTrans(dr.x, dr.y)
+    design.transform_region(
+        design.region_ph, DTrans(dr.x, dr.y),
+        trans_ports=True
+    )
+    crop_box = crop_box.transformed(trans)
+    for i in range(len(subregs)):
+      subregs[i] = subregs[i].transformed(trans)
+    design.layout.clear_layer(layer)  # clear photo layer
+    design.show()  # place cropped and snapped photo Region() onto the clear photo layer
+    ''' CROP + SNAP TO ORIGIN SECTION END '''
+
+
     ''' SONNET PORTS POSITIONS SECTION START '''
     # crop all subregs such they all contained inside crop_box
     subregs = [subreg & Region(crop_box) for subreg in subregs]
 
     n_terminals = len(subregs)
+    edge_best1 = None  # diagnostics
+    edge_best2 = None  # diagnostics
     # TODO: if subregion has an edge that lies on the `crop_box` perimeter - choose this one as a
     #  port and stop iteration for this subregion
     if n_terminals == 1:
@@ -93,7 +114,8 @@ def simulate_cij(
                     edge_center_best = (edge.p1 + edge.p2) / 2
         design.sonnet_ports.append(edge_center_best)
     elif n_terminals == 2:
-        # TODO: code is capable to put port on a long edge. This has to be kept in mind.
+        # TODO: code is capable to put port on a long edge. This has to be kept in mind.Long edge is bad because
+        #  it has large dimensions and results in distorted S-parameters even with de-embeding,
         from itertools import product
         edge1_center_best, edge2_center_best = None, None
         max_distance = 0
@@ -109,10 +131,14 @@ def simulate_cij(
             if all(
                     [
                         centers_d > max_distance,
+                        # grounded port can't be attached to diagonal edge, so we search among vertical/horizontal
+                        # edge pairs only
                         any([(edge1.dy() == 0), (edge1.dx() == 0)]),
                         any([(edge2.dy() == 0), (edge2.dx() == 0)])
                     ]
             ):
+                edge_best1 = edge1
+                edge_best2 = edge2
                 edge1_center_best, edge2_center_best = edge1_center, edge2_center
                 max_distance = centers_d
             else:
@@ -122,20 +148,6 @@ def simulate_cij(
         design.sonnet_ports.append(edge2_center_best)
     # [print(port.x, port.y) for port in design.sonnet_ports]
     ''' SONNET PORTS POSITIONS SECTION END '''
-
-    ''' CROP + SNAP TO ORIGIN SECTION START '''
-    design.crop(crop_box, design.region_ph)
-    # print("sonnet ports positions BEFORE transform:")
-    # for sp in design.sonnet_ports:
-    #     print(sp.x, sp.y)
-    dr = DPoint(0, 0) - crop_box.p1  # translation vector to snap to origin
-    design.transform_region(
-        design.region_ph, DTrans(dr.x, dr.y),
-        trans_ports=True
-    )
-    design.layout.clear_layer(layer)  # clear photo layer
-    design.show()  # place cropped and snapped photo Region() onto the clear photo layer
-    ''' CROP + SNAP TO ORIGIN SECTION END '''
 
     '''SIMULATION SECTION START'''
     ml_terminal = SonnetLab()

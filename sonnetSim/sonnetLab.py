@@ -30,6 +30,7 @@ class SonnetPort:
         # due to no use of using copy() for Point(), DPoint() and other objects
         return SonnetPort(self.point, self.port_type)
 
+R_min = 1e10
 
 class SimulationBox:
     def __init__(self, dim_X_nm=None, dim_Y_nm=None, cells_X_num=None, cells_Y_num=None):
@@ -70,12 +71,13 @@ class SonnetLab(MatlabClient):
         self.ports = deepcopy(ports)
 
     def send_polygon(self, polygon, port_edges_indexes=None, port_edges_types=None):
+        global R_min
         # print()
         # print("new polygon")
         pts_x = np.zeros(polygon.num_points(), dtype=np.float64)
         pts_y = np.zeros(polygon.num_points(), dtype=np.float64)
         # print( "Sending polygon, edges: ", polygon.num_points_hull() )
-        if port_edges_indexes is not None:
+        if port_edges_indexes is not None:  # TODO: implement this option (it is both easier and faster to find indexes at the stage where the edges are being found).
             print("port edges indexes passing is not implemented yet.")
             raise NotImplemented
         else:
@@ -90,6 +92,8 @@ class SonnetLab(MatlabClient):
                 for port in self.ports:
                     r_middle = (edge.p1 + edge.p2) * 0.5
                     R = port.point.distance(r_middle)
+                    if (R < R_min) and (R > 0):
+                      R_min = R
                     # if( polygon.num_points_hull() == 4):
                     #     print(r_middle, "\t", port.point, "\t", R)
                     if R < 10:  # distance from connection point to the
