@@ -57,6 +57,7 @@ from classLib.testPads import TestStructurePadsSquare
 from classLib.shapes import Rectangle
 
 import sonnetSim
+
 reload(sonnetSim)
 from sonnetSim import SonnetLab, SonnetPort, SimulationBox
 from sonnetSim.cMD import CMD
@@ -89,8 +90,8 @@ from Cqq_couplings import CqqCouplingType1, CqqCouplingParamsType1
 
 class Design12QStair(ChipDesign):
     def __init__(
-        self, cell_name,
-        global_design_params: GlobalDesignParameters=GlobalDesignParameters()
+            self, cell_name,
+            global_design_params: GlobalDesignParameters = GlobalDesignParameters()
     ):
         super().__init__(cell_name, global_design_params=global_design_params)
 
@@ -382,7 +383,7 @@ class Design12QStair(ChipDesign):
             qubit.place(self.region_el, region_id="el")
 
     def draw_qq_couplings(
-        self, donut_metal_width=CqqCouplingParamsType1().donut_metal_width, direct_list=[]
+            self, donut_metal_width=CqqCouplingParamsType1().donut_metal_width, direct_list=[]
     ):
         it_1d = list(enumerate(self.qubits_grid.pts_grid))
         it_2d = itertools.product(it_1d, it_1d)
@@ -1733,12 +1734,63 @@ def simulate_res_f_and_Q(q_idx, resolution=(2e3, 2e3), type='freq'):
 
 
 def simulate_S_pars(design, crop_box, filename, min_freq=6.0, max_freq=7.0, resolution=(2e3, 2e3)):
+    ''' SAVING PARAMETERS AND FILENAME OF ANTICIPATED EM SOLVER OUTPUT '''
+    import shutil
+    import os
+    import csv
+
+    # geometry parameters gathering
+    all_params = design.resonators_params.get_resonator_params_by_qubit_idx(q_idx=q)
+
+    # creating directory with simulation results
+    results_dirname = "resonators_S21"
+    results_dirpath = os.path.join(PROJECT_DIR, results_dirname)
+
+    output_metaFile_path = os.path.join(
+        results_dirpath,
+        "resonator_waveguide_Q_freq_meta.csv"
+    )
+
+    # creating directory
+    if not os.path.exists(results_dirpath):
+        '''
+            Directory did not exist. We create it, then we create fresh meta-file.
+            Meta-file contain simulation parameters and corresponding
+            S-params filename that is located in this directory
+        '''
+        os.mkdir(results_dirpath)
+        with open(output_metaFile_path, "w+",
+                  newline='') as csv_file:
+            writer = csv.writer(csv_file)
+            # create header of the file
+            all_params["filename"] = "result_1.csv"
+            writer.writerow(list(all_params.keys()))
+            # add first parameters row
+            reader = csv.reader(csv_file)
+            writer.writerow(list(all_params.values()))
+    else:
+        '''
+            Directory and metafile with first entry exist.
+            Counting entries in metafile and generate name for new file for S-parameters.
+            Then add new entry to the metafile
+        '''
+        with open(output_metaFile_path, "r+",
+                  newline='') as csv_file:
+            reader = csv.reader(csv_file)
+            existing_entries_n = len(list(reader)) - 1
+            all_params["filename"] = "result_" + str(
+                existing_entries_n) + ".csv"
+
+            writer = csv.writer(csv_file)
+            # append new values row to file
+            writer.writerow(list(all_params.values()))
+
     ### SIMULATION SECTION START ###
     ml_terminal = SonnetLab()
 
     resolution_dx = resolution[0]
     resolution_dy = resolution[1]
-    
+
     # check for client->server sanity
     ml_terminal._send(CMD.SAY_HELLO)
     ml_terminal.clear()
@@ -1760,56 +1812,7 @@ def simulate_S_pars(design, crop_box, filename, min_freq=6.0, max_freq=7.0, reso
     result_path = ml_terminal.start_simulation(wait=True)
     ml_terminal.release()
 
-        #
-    import shutil
-    import os
-    import csv
-
-    # geometry parameters gathering
-    all_params = design.resonators_params.get_resonator_params_by_qubit_idx(q_idx=q)
-
-    # creating directory with simulation results
-    results_dirname = "resonators_S21"
-    results_dirpath = os.path.join(PROJECT_DIR, results_dirname)
-
-    output_metaFile_path = os.path.join(
-        results_dirpath,
-        "resonator_waveguide_Q_freq_meta.csv"
-    )
-
-        # creating directory
-    if not os.path.exists(results_dirpath):
-        '''
-            Directory did not exist. We create it, then we create fresh meta-file.
-            Meta-file contain simulation parameters and corresponding
-            S-params filename that is located in this directory
-        '''
-        os.mkdir(results_dirpath)
-        with open(output_metaFile_path, "w+",
-                  newline='') as csv_file:
-            writer = csv.writer(csv_file)
-            # create header of the file
-            all_params["filename"] = "result_1.csv"
-            writer.writerow(list(all_params.keys()))
-            # add first parameters row
-            reader = csv.reader(csv_file)
-            writer.writerow(list(all_params.values()))
-
-    if os.path.exists(output_metaFile_path):
-        # both directory and metafile exist
-        # counting entries in metafile and generate name for new file for S-parameters
-        with open(output_metaFile_path, "r+",
-                  newline='') as csv_file:
-            reader = csv.reader(csv_file)
-            existing_entries_n = len(list(reader)) - 1
-            all_params["filename"] = "result_" + str(
-                existing_entries_n) + ".csv"
-
-            writer = csv.writer(csv_file)
-            # append new values row to file
-            writer.writerow(list(all_params.values()))
-
-    # copy result from sonnet folder and rename it accordingly
+    # copy result from sonnet output and rename it in accordance with metafile
     print("try to copy result", all_params["filename"])
     print("results dirpath", results_dirpath)
     shutil.copy(
@@ -1951,13 +1954,13 @@ def simulate_Cqr(q_idxs: List[int], resolution=(4e3, 4e3)):
             output_filepath=output_filepath,
             design=design,
             additional_pars={
-                "q_idx"                : q_idx,
-                "resolution"           : resolution,
-                "donut_disk_d, um"     : design.q_res_coupling_params[q_idx].donut_disk_d,
+                "q_idx": q_idx,
+                "resolution": resolution,
+                "donut_disk_d, um": design.q_res_coupling_params[q_idx].donut_disk_d,
                 "donut_metal_width, um": design.q_res_coupling_params[q_idx].donut_metal_width,
-                "C1, fF"               : C1,
-                "C2, fF"               : C2,
-                "C12, fF"              : C12
+                "C1, fF": C1,
+                "C2, fF": C2,
+                "C12, fF": C12
             }
         )
 
@@ -2024,13 +2027,13 @@ def simulate_md_Cg(q_idx: int, resolution=(5e3, 5e3)):
             output_filepath=output_filepath,
             design=design,
             additional_pars={
-                "q_idx"                       : q_idx,
-                "resolution"                  : resolution,
-                "md_line_cpw2_len, um"        : design.md_line_cpw2_len,
+                "q_idx": q_idx,
+                "resolution": resolution,
+                "md_line_cpw2_len, um": design.md_line_cpw2_len,
                 "md_line_cpw12_smoothhing, um": design.md_line_cpw12_smoothhing,
-                "C1, fF"                      : C1,
-                "C2, fF"                      : C2,
-                "C12, fF"                     : C12
+                "C1, fF": C1,
+                "C2, fF": C2,
+                "C12, fF": C12
             }
         )
 
