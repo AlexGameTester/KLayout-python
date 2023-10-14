@@ -1719,6 +1719,7 @@ def simulate_res_f_and_Q(q_idx, resolution=(2e3, 2e3), type='freq'):
             design=design,
             crop_box=crop_box,
             filename=f'res_{q_idx}_{design.resonators_params.L1_list[q_idx] / 1e3:.01f}_S_pars.csv',
+            q_idx=q_idx,
             min_freq=7.0, max_freq=8.0,
             resolution=resolution
         )
@@ -1727,20 +1728,21 @@ def simulate_res_f_and_Q(q_idx, resolution=(2e3, 2e3), type='freq'):
             design=design,
             crop_box=crop_box,
             filename=f'res_{q_idx}_Q_S_pars.csv',
+            q_idx=q_idx,
             min_freq=ROResonatorParams.current_sim_freqs[q_idx] - second_span/2,
             max_freq=ROResonatorParams.current_sim_freqs[q_idx] + second_span/2,
             resolution=resolution
         )
 
 
-def simulate_S_pars(design, crop_box, filename, min_freq=6.0, max_freq=7.0, resolution=(2e3, 2e3)):
+def simulate_S_pars(design, crop_box, filename, q_idx, min_freq=6.0, max_freq=7.0, resolution=(2e3, 2e3)):
     ''' SAVING PARAMETERS AND FILENAME OF ANTICIPATED EM SOLVER OUTPUT '''
     import shutil
     import os
     import csv
 
     # geometry parameters gathering
-    all_params = design.resonators_params.get_resonator_params_by_qubit_idx(q_idx=q)
+    all_params = design.resonators_params.get_resonator_params_by_qubit_idx(q_idx=q_idx)  # TODO: pass q_idx here
 
     # creating directory with simulation results
     results_dirname = "resonators_S21"
@@ -1978,8 +1980,9 @@ def simulate_md_Cg(q_idx: int, resolution=(5e3, 5e3)):
         design.draw_microwave_drvie_lines()
 
         ''' CROP BOX CALCULATION SECTION START '''
-        qubit = design.qubits[q_idx]
-        q_reg = qubit.disk_cap_shunt.metal_region
+        qubits = design.qubits
+        qubit = qubits[q_idx]
+        q_reg = design.region_ph.overlapping(qubit.disk_cap_shunt.metal_region).dup()
         md_line = design.cpw_md_lines[q_idx]
         if md_line is None:
             return
@@ -1994,11 +1997,19 @@ def simulate_md_Cg(q_idx: int, resolution=(5e3, 5e3)):
         md_dv_n /= md_dv_n.abs()
         md_importance_length = design.md_line_cpw12_smoothhing + 3 / 2 * design.md_line_cpw2_len
 
+        rotated_angle_deg = np.arctan2(md_dv_n.y, md_dv_n.x)*180/np.pi
+        rotation_center = qubit.origin.dup()
+
+        trans_tmp = ICplxTrans(1, 0, False, DVector(rotation_center))*ICplxTrans(1, -rotated_angle_deg, False, 0, 0)*ICplxTrans(1, 0, False, DVector(-rotation_center))
+        design.region_ph.transform(trans_tmp)
+        md_reg.transform(trans_tmp)
+        q_reg.transform(trans_tmp)
+
         box_region = q_reg.sized(1 * q_reg.bbox().width(), 1 * q_reg.bbox().height()) + \
                      Region(  # add a box-point to region
                          pya.Box(
-                             qubit.origin + 2 * md_importance_length * md_dv_n,
-                             qubit.origin + 2 * md_importance_length * md_dv_n + DVector(1e3, 1e3)
+                             qubit.origin,
+                             qubit.origin + 2 * md_importance_length * md_dv_n
                          )
                      )
         # and take their smallest enclosing Region
@@ -2070,7 +2081,7 @@ if __name__ == "__main__":
     #     )
     # )
 
-    ''' C_qr sim '''
+    # ''' C_qr sim '''
     # simulate_Cqr(q_idxs=range(8,12), resolution=(2e3, 2e3))
     #
     # ''' Simulation of C_{q1,q2} in fF '''
@@ -2078,7 +2089,7 @@ if __name__ == "__main__":
 
     # ''' MD line C_md for md1,..., md6 '''
     for q_idx in range(12):
-        simulate_md_Cg(q_idx=q_idx, resolution=(1e3, 1e3))
+        simulate_md_Cg(q_idx=q_idx, resolution=(5e3, 5e3))
     #
     # ''' Resonators Q and f sim'''
     # for q in range(12):
