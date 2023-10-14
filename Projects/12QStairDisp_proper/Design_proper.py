@@ -1891,16 +1891,15 @@ def simulate_Cqr(q_idxs: List[int], resolution=(4e3, 4e3)):
     donut_metal_width_list = np.linspace(10e3, 80e3, 8)
     # dl_list = [0e3]
 
-    # for simulation_i, (donut_disk_d, donut_metal_width, q_idx) in list(
-    #         enumerate(
-    #             list(
-    #                 itertools.product(
-    #                     donut_disk_d_list, donut_metal_width_list, q_idxs
-    #                 )
-    #             )
-    #         )
-    # ):
-    for simulation_i, q_idx in enumerate(q_idxs):
+    for simulation_i, (donut_disk_d, donut_metal_width, q_idx) in list(
+            enumerate(
+                list(
+                    itertools.product(
+                        donut_disk_d_list, donut_metal_width_list, q_idxs
+                    )
+                )
+            )
+    ):
         design = Design12QStair("testScript")
         ### DRAWING SECTION START ###
         print("simulation #", simulation_i)
@@ -2012,15 +2011,19 @@ def simulate_md_Cg(q_idx: int, resolution=(5e3, 5e3)):
         )
         print()
         '''SAVING REUSLTS SECTION START'''
+        save_dir = os.path.join(PROJECT_DIR, "Cmd_sonnet")
+        if not os.path.exists(save_dir):
+            os.mkdir(save_dir)
+
         design.save_as_gds2(
             filename=os.path.join(
-                PROJECT_DIR,
+                save_dir,
                 f"Cg_md_{q_idx}.gds"
             )
         )
 
         output_filepath = os.path.join(
-            PROJECT_DIR,
+            save_dir,
             f"Cmd_q_results.csv"
         )
         save_sim_results(
@@ -2068,14 +2071,14 @@ if __name__ == "__main__":
     # )
 
     ''' C_qr sim '''
-    simulate_Cqr(q_idxs=range(6,12), resolution=(2e3, 2e3))
+    # simulate_Cqr(q_idxs=range(8,12), resolution=(2e3, 2e3))
     #
     # ''' Simulation of C_{q1,q2} in fF '''
     # simulate_Cqq(q1_idx=5, q2_idx=6, resolution=(2e3, 2e3))
 
     # ''' MD line C_md for md1,..., md6 '''
-    # for q_idx in range(12):
-    #     simulate_md_Cg(q_idx=q_idx, resolution=(2e3, 2e3))
+    for q_idx in range(12):
+        simulate_md_Cg(q_idx=q_idx, resolution=(1e3, 1e3))
     #
     # ''' Resonators Q and f sim'''
     # for q in range(12):
