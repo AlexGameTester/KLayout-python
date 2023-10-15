@@ -320,7 +320,6 @@ class Design12QStair(ChipDesign):
 
     def draw_chip(self):
         self.region_bridges2.insert(self.chip_box)
-
         self.region_ph.insert(self.chip_box)
         for contact_pad in self.contact_pads:
             contact_pad.place(self.region_ph)
@@ -1985,18 +1984,16 @@ def simulate_md_Cg(q_idx: int, resolution=(5e3, 5e3)):
         q_reg = design.region_ph.overlapping(qubit.disk_cap_shunt.metal_region).dup()
         md_line = design.cpw_md_lines[q_idx]
         if md_line is None:
-            return
-        md_reg = md_line.metal_region
+            continue
+        md_reg = md_line.metal_region.dup()
 
         # TODO: make simulation such that all polygons (except those with ports are connected to
         #  ground). Now it is tolerable to have some of them (with large capacity to ground) to
         #  stay with floating potential (it will be close to ground plane potential due to their
         #  respectively large capacitance to ground i.e. low impedance to ground).
 
-        md_dv_n = -list(md_line.primitives.values())[-1].dr  # goes out from qubit towards md line
-        md_dv_n /= md_dv_n.abs()
-        md_importance_length = design.md_line_cpw12_smoothhing + 3 / 2 * design.md_line_cpw2_len
-
+        # rotate design around center of the qubit such that microwave drive end is directed along x-axis.
+        md_dv_n = -list(md_line.primitives.values())[-1].dr.dup()  # goes out from qubit towards md line
         rotated_angle_deg = np.arctan2(md_dv_n.y, md_dv_n.x)*180/np.pi
         rotation_center = qubit.origin.dup()
 
@@ -2005,15 +2002,24 @@ def simulate_md_Cg(q_idx: int, resolution=(5e3, 5e3)):
         md_reg.transform(trans_tmp)
         q_reg.transform(trans_tmp)
 
+        md_dv_n = trans_tmp*md_dv_n  # goes out from qubit towards md linex
+        md_dv_n /= md_dv_n.abs()
+        md_importance_length = design.md_line_cpw12_smoothhing + 3 / 2 * design.md_line_cpw2_len
         box_region = q_reg.sized(1 * q_reg.bbox().width(), 1 * q_reg.bbox().height()) + \
                      Region(  # add a box-point to region
                          pya.Box(
                              qubit.origin,
-                             qubit.origin + 2 * md_importance_length * md_dv_n
+                             qubit.origin + DPoint(3/2*md_importance_length, 2)
                          )
                      )
         # and take their smallest enclosing Region
         box_region = Region(box_region.bbox())
+
+        # design.region_el_protection.insert(q_reg)
+        # design.region_el_protection.insert(md_reg)
+        # design.region_bridges3.insert(box_region)
+        # design.show()
+        # return
 
         C1, C12, C2 = simulate_cij(
             design=design, layer=design.layer_ph,

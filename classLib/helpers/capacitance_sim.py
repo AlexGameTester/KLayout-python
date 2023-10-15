@@ -128,15 +128,7 @@ def simulate_cij(
             edge2_center = (edge2.p1 + edge2.p2) / 2
             centers_dv = edge1_center - edge2_center
             centers_d = centers_dv.abs()
-            if all(
-                    [
-                        centers_d > max_distance,
-                        # grounded port can't be attached to diagonal edge, so we search among vertical/horizontal
-                        # edge pairs only
-                        any([(edge1.dy() == 0), (edge1.dx() == 0)]),
-                        any([(edge2.dy() == 0), (edge2.dx() == 0)])
-                    ]
-            ):
+            if centers_d > max_distance:
                 edge_best1 = edge1
                 edge_best2 = edge2
                 edge1_center_best, edge2_center_best = edge1_center, edge2_center
