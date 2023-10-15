@@ -2095,7 +2095,7 @@ if __name__ == "__main__":
 
     # ''' MD line C_md for md1,..., md6 '''
     for q_idx in range(12):
-        simulate_md_Cg(q_idx=q_idx, resolution=(5e3, 5e3))
+        simulate_md_Cg(q_idx=q_idx, resolution=(1e3, 1e3))
     #
     # ''' Resonators Q and f sim'''
     # for q in range(12):
