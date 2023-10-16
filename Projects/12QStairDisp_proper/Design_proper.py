@@ -1,4 +1,4 @@
-__version__ = "12QStair_0.0.0.5"
+__version__ = "12QStair_0.0.0.6"
 
 '''
 NOTE:
@@ -7,6 +7,9 @@ in ascending order to qubit idxs.
 E.g. self.resonators[1] - resonator that belongs to qubit №1 (starting from 0)
 
 Changes log
+12QStair_0.0.0.6
+    1. Change flux control line shortcuts to ground. Both now have 4 um width (instead of 4 um at SQUID side & 2 um at remaining side)
+    2. Change microwave drive control line. Line end to qubit distance increased. Capacitive coupling decreased   
 12QStair_0.0.0.5
     1. Add concave or convex bridge design opportunities.
     2. Litographic signature of the sample has changed its position
@@ -116,7 +119,7 @@ class Design12QStair(ChipDesign):
         info_bridges2 = pya.LayerInfo(6, 0)  # bridge photo layer 3
         self.region_bridges3 = Region()
         self.layer_bridges3 = self.layout.layer(info_bridges2)
-        self.bridges_support_type = "concave"
+        self.bridges_support_type = "no_support"
 
         # layer with rectangles that will be converted to the CABL format
         info_el_protection = pya.LayerInfo(7, 0)
@@ -173,7 +176,7 @@ class Design12QStair(ChipDesign):
 
         # length ofa thin part of the microwave drive line end
         self.md_line_cpw2_len = 300e3
-        self.q_origin_md_end_d = 320e3
+        self.q_origin_md_end_d = 270e3
 
         ''' Flux control lines '''
         self.cpw_fl_lines: List[DPathCPW] = [None] * self.NQUBITS
@@ -254,7 +257,7 @@ class Design12QStair(ChipDesign):
 
         self.add_chip_marking(
             text_bl=DPoint(9.2e6, 9.6e6),
-            chip_name="12_0.0.0.5_" + self.bridges_support_type,
+            chip_name=__version__,
             text_scale=200
         )
 
@@ -2062,31 +2065,31 @@ def simulate_md_Cg(q_idx: int, resolution=(5e3, 5e3)):
 if __name__ == "__main__":
     ''' draw and show design for manual design evaluation '''
     FABRICATION.OVERETCHING = 0.0e3
-    # design = Design12QStair("testScript", global_design_params=GlobalDesignParameters())
-    # design.draw()
-    # design.show()
+    design = Design12QStair("testScript", global_design_params=GlobalDesignParameters())
+    design.draw()
+    design.show()
 
     # test = Cqq_type2("cellName")
     # test.draw()
     # test.show()
 
-    # design.save_as_gds2(
-    #     os.path.join(
-    #         PROJECT_DIR,
-    #         __version__ + "_overetching_0um.gds"
-    #     )
-    # )
+    design.save_as_gds2(
+        os.path.join(
+            PROJECT_DIR,
+            __version__ + "_overetching_0um.gds"
+        )
+    )
 
-    # FABRICATION.OVERETCHING = 0.5e3
-    # design = Design12QStair("testScript")
-    # design.draw()
-    # design.show()
-    # design.save_as_gds2(
-    #     os.path.join(
-    #         PROJECT_DIR,
-    #         "Dmon_" + __version__ + "_overetching_0um5.gds"
-    #     )
-    # )
+    FABRICATION.OVERETCHING = 0.5e3
+    design = Design12QStair("testScript")
+    design.draw()
+    design.show()
+    design.save_as_gds2(
+        os.path.join(
+            PROJECT_DIR,
+            __version__ + "_overetching_0um5.gds"
+        )
+    )
 
     # ''' C_qr sim '''
     # simulate_Cqr(q_idxs=range(8,12), resolution=(2e3, 2e3))
@@ -2095,8 +2098,8 @@ if __name__ == "__main__":
     # simulate_Cqq(q1_idx=5, q2_idx=6, resolution=(2e3, 2e3))
 
     # ''' MD line C_md for md1,..., md6 '''
-    for q_idx in range(12):
-        simulate_md_Cg(q_idx=q_idx, resolution=(1e3, 1e3))
+    # for q_idx in range(12):
+    #     simulate_md_Cg(q_idx=q_idx, resolution=(1e3, 1e3))
     #
     # ''' Resonators Q and f sim'''
     # for q in range(12):
