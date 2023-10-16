@@ -173,11 +173,12 @@ class Design12QStair(ChipDesign):
 
         # length ofa thin part of the microwave drive line end
         self.md_line_cpw2_len = 300e3
+        self.q_origin_md_end_d = 320e3
 
         ''' Flux control lines '''
         self.cpw_fl_lines: List[DPathCPW] = [None] * self.NQUBITS
         # flux line widths at the end of flux line
-        self.flux2ground_left_width = 2e3
+        self.flux2ground_left_width = 4e3
         self.flux2ground_right_width = 4e3
         # Z = 49.0538 E_eff = 6.25103 (E = 11.45)
         self.z_fl1: CPWParameters = CPWParameters(30e3, 15e3)
@@ -547,7 +548,7 @@ class Design12QStair(ChipDesign):
     def draw_microwave_drvie_lines(self):
         r_turn = 100e3
 
-        q_origin_md_end_d = 220e3
+        q_origin_md_end_d = self.q_origin_md_end_d
 
         q_idx = 10
         qubit = self.qubits[q_idx]
