@@ -32,9 +32,8 @@ class CPWParameters(ElementBase, ABC):
 
         self._geometry_parameters = {
             "cpw width, um": self.width,
-            "cpw_gap, um"  : self.gap
+            "cpw_gap, um": self.gap
         }
-
 
 
 class CPW(ElementBase):
@@ -48,9 +47,9 @@ class CPW(ElementBase):
     """
 
     def __init__(
-        self, width=0, gap=0, start=DPoint(0, 0),
-        end=DPoint(0, 0), open_end_gap=0, open_start_gap=0, trans_in=None,
-        cpw_params=None, region_id="default"
+            self, width=0, gap=0, start=DPoint(0, 0),
+            end=DPoint(0, 0), open_end_gap=0, open_start_gap=0, trans_in=None,
+            cpw_params=None, region_id="default"
     ):
         if (cpw_params is None):
             self.width = width
@@ -169,9 +168,9 @@ class CPW(ElementBase):
 
 class CPWArc(ElementBase):
     def __init__(
-        self, z0=CPWParameters(width=20e3, gap=10e3),
-        start=DPoint(0, 0), R=2e3,
-        delta_alpha=pi / 4, trans_in=None, region_id="default"
+            self, z0=CPWParameters(width=20e3, gap=10e3),
+            start=DPoint(0, 0), R=2e3,
+            delta_alpha=pi / 4, trans_in=None, region_id="default"
     ):
         # TODO: make constructor parametrical
         #  i.e. request center of the arc and angle interval in
@@ -205,8 +204,8 @@ class CPWArc(ElementBase):
         self.alpha_end = self.angle_connections[1]
 
     def _get_solid_arc(
-        self, center, R, width,
-        alpha_start, alpha_end, n_inner, n_outer
+            self, center, R, width,
+            alpha_start, alpha_end, n_inner, n_outer
     ):
         pts = []
         #        print(alpha_start/pi, alpha_end/pi, cos( alpha_start ), cos( alpha_end ),
@@ -290,8 +289,8 @@ class CPWArc(ElementBase):
 
 class CPW2CPW(ElementBase):
     def __init__(
-        self, Z0, Z1, start, end,
-        trans_in=None, region_id="default"
+            self, Z0, Z1, start, end,
+            trans_in=None, region_id="default"
     ):
         self.Z0: CPWParameters = Z0
         self.Z1: CPWParameters = Z1
@@ -350,10 +349,10 @@ class CPW2CPW(ElementBase):
 
 class CPW2CPWArc(ElementBase):
     def __init__(
-        self, origin=DPoint(0, 0), r=10, start_angle=0,
-        end_angle=np.pi / 4,
-        cpw1_params=None, cpw2_params=None,
-        trans_in=None, inverse=False, region_id="default"
+            self, origin=DPoint(0, 0), r=10, start_angle=0,
+            end_angle=np.pi / 4,
+            cpw1_params=None, cpw2_params=None,
+            trans_in=None, inverse=False, region_id="default"
     ):
         """
         Parameters
@@ -435,8 +434,8 @@ class CPW2CPWArc(ElementBase):
                                   self.end_angle + np.pi / 2]
 
     def _get_cpw_arc(
-        self, center, r, n_arc_pts=200, method="linear",
-        segment="center_metal"
+            self, center, r, n_arc_pts=200, method="linear",
+            segment="center_metal"
     ):
         """
         TODO: add description
@@ -569,9 +568,9 @@ class CPWRLPath(ComplexBase):
     __version__ = "0.1"
 
     def __init__(
-        self, origin, shape, cpw_parameters, turn_radiuses,
-        segment_lengths, turn_angles, trans_in=None,
-        bridged=False
+            self, origin, shape, cpw_parameters, turn_radiuses,
+            segment_lengths, turn_angles, trans_in=None,
+            bridged=False
     ):
         """
         A piecewise-linear coplanar waveguide with rounded turns.
@@ -793,11 +792,11 @@ class CPWRLPath(ComplexBase):
 
 class DPathCPW(ComplexBase):
     def __init__(
-        self, points: Union[List[DPoint], np.ndarray],
-        cpw_parameters: List[CPWParameters],
-        turn_radii: List[float],
-        trans_in=None,
-        region_id="default"
+            self, points: Union[List[DPoint], np.ndarray],
+            cpw_parameters: List[CPWParameters],
+            turn_radii: List[float],
+            trans_in=None,
+            region_id="default"
     ):
         """
         A piecewise-linear coplanar waveguide with rounded turns.
@@ -1097,10 +1096,10 @@ class DPathCPW(ComplexBase):
 
     def get_total_length(self):
         return sum(self._segment_lengths) + \
-               sum(
-                   [abs(R * alpha) for R, alpha in
-                    zip(self._turn_radii, self._turn_angles)]
-               )
+            sum(
+                [abs(R * alpha) for R, alpha in
+                 zip(self._turn_radii, self._turn_angles)]
+            )
 
 
 class Bridge1(ElementBase):
@@ -1118,8 +1117,9 @@ class Bridge1(ElementBase):
     gnd2gnd_dy = 70e3
 
     def __init__(
-        self, center, gnd_touch_dx=20e3, gnd2gnd_dy=70e3, support_type: str = "no_support",
-        trans_in=None
+            self, center, gnd_touch_dx=20e3, gnd2gnd_dy=70e3, support_type: str = "no_support", support_width=3e3,
+            support_to_gnd=10e3,
+            trans_in=None
     ):
         """
 
@@ -1132,6 +1132,10 @@ class Bridge1(ElementBase):
             "concave" - bridge surface needs signle stripline at the middle
             "convex" - bridge surface needs two stiplines at sides
             "no_support" - bridge surface remains as is
+        support_width: float
+            [um] width of the support strip
+        support_to_gnd: float
+            [um] distance between support edge and closes ground rectangle (closest)
         trans_in
         """
         self.center = center
@@ -1139,6 +1143,8 @@ class Bridge1(ElementBase):
         self.angle = 0
         self.gnd2gnd_dy = gnd2gnd_dy
         self.support_type = support_type
+        self.support_width = support_width
+        self.support_to_gnd = support_to_gnd
         super().__init__(center, trans_in)
 
         self._geometry_parameters = OrderedDict(
@@ -1245,8 +1251,8 @@ class Bridge1(ElementBase):
             self.metal_regions["bridges_3"].insert(
                 pya.Box().from_dbox(
                     pya.DBox(
-                        top_gnd_touch_box.center() + DVector(-3e3/2, -self.gnd_touch_dy/2 - 10e3),
-                        bot_gnd_touch_box.center() + DVector(3e3/2, self.gnd_touch_dy/2 + 10e3)
+                        top_gnd_touch_box.center() + DVector(-self.support_width / 2, -self.gnd_touch_dy / 2 - self.support_to_gnd),
+                        bot_gnd_touch_box.center() + DVector(self.support_width / 2, self.gnd_touch_dy / 2 + self.support_to_gnd)
                     )
                 )
             )
@@ -1254,13 +1260,13 @@ class Bridge1(ElementBase):
             # 2 lines at the sides of a bridge (outside of the bridge)
             # bridge hull clearance = 1 um, clearance from contact box edges
             # is 30 um (along brdige length)
-            center_left = DPoint(-self.bridge_width/2, 0) + DVector(-(1e3 + 3e3/2), 0)
-            p1_y = bot_gnd_touch_box.p2.y + 30e3
-            p2_y = top_gnd_touch_box.p1.y - 30e3
+            center_left = DPoint(-self.bridge_width / 2, 0) + DVector(-(1e3 + self.support_width / 2), 0)
+            p1_y = bot_gnd_touch_box.p2.y + self.support_to_gnd
+            p2_y = top_gnd_touch_box.p1.y - self.support_to_gnd
             box1 = pya.Box().from_dbox(
                 pya.DBox(
-                    DPoint((center_left - DVector(3e3/2, 0)).x, p1_y),
-                    DPoint((center_left + DVector(3e3/2, 0)).x, p2_y)
+                    DPoint((center_left - DVector(self.support_width / 2, 0)).x, p1_y),
+                    DPoint((center_left + DVector(self.support_width / 2, 0)).x, p2_y)
                 )
             )
             box2 = Trans.M90 * box1  # reflected along y-axis
@@ -1278,17 +1284,19 @@ class Bridge1(ElementBase):
 
     @staticmethod
     def bridgify_CPW(
-        cpw: Union[CPW, CPWArc, DPathCPW], bridges_step: float,
-        gnd2gnd_dy=70e3,
-        dest: Region = None,
-        dest2: Region = None,
-        dest3: Region = None,
-        bridge_layer1=-1,
-        bridge_layer2=-1,
-        bridge_layer3=-1,
-        support_type: str = "no_support",
-        avoid_points: List[DPoint] = None,
-        avoid_distances: List[float] = None
+            cpw: Union[CPW, CPWArc, DPathCPW], bridges_step: float,
+            gnd2gnd_dy=70e3,
+            dest: Region = None,
+            dest2: Region = None,
+            dest3: Region = None,
+            bridge_layer1=-1,
+            bridge_layer2=-1,
+            bridge_layer3=-1,
+            support_type: str = "no_support",
+            support_width=3e3,
+            support_to_gnd=10e3,
+            avoid_points: List[DPoint] = None,
+            avoid_distances: List[float] = None
     ):
         """
             Function puts bridge patterns to fabricate bridges on
@@ -1322,6 +1330,10 @@ class Bridge1(ElementBase):
             "concave" - bridge surface needs signle stripline at the middle
             "convex" - bridge surface needs two stiplines at sides
             "no_support" - bridge surface remains as is
+        support_width: float
+            [um] width of the support strip
+        support_to_gnd: float
+            [um] distance between support edge and closes ground rectangle (closest)
         avoid_points : list[Union[DPoint,Point,Vector, DVector]]
             list points that you wish to keep bridges away
         avoid_distances : Union[list[float], float]
@@ -1338,19 +1350,23 @@ class Bridge1(ElementBase):
             dest2=dest2, bridge_layer2=bridge_layer2,
             dest3=dest3, bridge_layer3=bridge_layer3,
             support_type=support_type,
+            support_width=support_width,
+            support_to_gnd=support_to_gnd,
             gnd2gnd_dy=gnd2gnd_dy,
             avoid_points=avoid_points,
             avoid_distances=avoid_distances,
         )
 
     def __bridgify_CPW(
-        self, cpw, bridges_step,
-        dest: Region = None, bridge_layer1=-1,
-        dest2: Region = None, bridge_layer2=-1,
-        dest3: Region = None, bridge_layer3=-1,
-        support_type:str = "no_support",
-        gnd2gnd_dy=70e3,
-        avoid_points: List[DPoint] = None, avoid_distances: List[float] = None
+            self, cpw, bridges_step,
+            dest: Region = None, bridge_layer1=-1,
+            dest2: Region = None, bridge_layer2=-1,
+            dest3: Region = None, bridge_layer3=-1,
+            support_type: str = "no_support",
+            support_width=3e3,
+            support_to_gnd=10e3,
+            gnd2gnd_dy=70e3,
+            avoid_points: List[DPoint] = None, avoid_distances: List[float] = None
     ):
         """
             Function puts bridge patterns to fabricate bridges on coplanar waveguide
@@ -1380,6 +1396,10 @@ class Bridge1(ElementBase):
             "concave" - bridge surface needs signle stripline at the middle
             "convex" - bridge surface needs two stiplines at sides
             "no_support" - bridge surface remains as is
+        support_width: float
+            [um] width of the support strip
+        support_to_gnd: float
+            [um] distance between support edge and closes ground rectangle (closest)
         avoid_points : list[Union[DPoint,Point,Vector, DVector]]
             list points that you wish to keep bridges away
         avoid_distances : Union[list[float]]
@@ -1443,6 +1463,8 @@ class Bridge1(ElementBase):
                     Bridge1(
                         center, gnd2gnd_dy=gnd2gnd_dy,
                         support_type=support_type,
+                        support_width=support_width,
+                        support_to_gnd=support_to_gnd,
                         trans_in=DCplxTrans(
                             1, alpha / pi * 180, False, 0,
                             0
@@ -1469,6 +1491,8 @@ class Bridge1(ElementBase):
             bridge = Bridge1(
                 center=arc_mid, gnd2gnd_dy=gnd2gnd_dy,
                 support_type=support_type,
+                support_width=support_width,
+                support_to_gnd=support_to_gnd,
                 trans_in=DCplxTrans(1, alpha / pi * 180, False, 0, 0)
             )
 
@@ -1488,6 +1512,8 @@ class Bridge1(ElementBase):
                         bridge_layer1=bridge_layer1,
                         bridge_layer2=bridge_layer2, bridge_layer3=bridge_layer3,
                         support_type=support_type,
+                        support_width=support_width,
+                        support_to_gnd=support_to_gnd,
                         avoid_points=avoid_points,
                         avoid_distances=avoid_distances
                     )
@@ -1522,9 +1548,10 @@ class Intersection:
 
     @staticmethod
     def resolve_cpw_cpw_intersection(
-        cpw1: CPW, cpw2: CPW, cpw_reg: Region, bridge_reg1: Region, bridge_reg2: Region,
-        bridge_reg3: Region, support_type: str="no_support",
-        clearance_mul=1
+            cpw1, cpw2, cpw_reg, bridge_reg1: Region, bridge_reg2: Region,
+            bridge_reg3: Region, support_type: str = "no_support",  support_width=3e3,
+            support_to_gnd=10e3,
+            clearance_mul=1
     ):
         """
         Places bridges between all grounds and slightly modifies geometry of the cutted coplanar
@@ -1538,6 +1565,14 @@ class Intersection:
             was drawn second
         cpw_reg : Region
             Region where both cpws are going to be placed
+        support_type: str
+            "concave" - bridge surface needs signle stripline at the middle
+            "convex" - bridge surface needs two stiplines at sides
+            "no_support" - bridge surface remains as is
+        support_width: float
+            [um] width of the support strip
+        support_to_gnd: float
+            [um] distance between support edge and closes ground rectangle (closest)
         clearance_mul : float
             distance between cpw2 center line and cpw1 `repaired` edges centers in units of cpw2.b.
             (point to line distance)
@@ -1562,6 +1597,7 @@ class Intersection:
                 "returning with None"
             )
             return None
+        
         s1 = cpw1.dr / cpw1.dr.abs()
         s2 = cpw2.dr / cpw2.dr.abs()
         # 90 deg clockwise rotated tangent vectors
@@ -1597,6 +1633,8 @@ class Intersection:
             center=intersection,
             gnd2gnd_dy=ground_filling_cpw1.dr.abs() + 2 * cpw1.gap + cpw1.gap,
             support_type=support_type,
+            support_width=support_width,
+            support_to_gnd=support_to_gnd,
             trans_in=DCplxTrans(1, -90 + 180 * np.arctan2(s1.y, s1.x) / np.pi, False, 0, 0)
         )
         bridge1.place(bridge_reg1, region_id="bridges_1")
@@ -1608,6 +1646,7 @@ class Intersection:
             center=intersection + cpw1.b * s2,
             gnd2gnd_dy=ground_filling_cpw1.dr.abs() + 2 * cpw1.gap + cpw1.gap,
             support_type=support_type,
+            support_to_gnd=support_to_gnd,
             trans_in=DCplxTrans(1, -90 + 180 * np.arctan2(s1.y, s1.x) / np.pi, False, 0, 0)
         )
         bridge2.place(bridge_reg1, region_id="bridges_1")
@@ -1618,6 +1657,7 @@ class Intersection:
             center=intersection - cpw1.b * s2,
             gnd2gnd_dy=ground_filling_cpw1.dr.abs() + 2 * cpw1.gap + cpw1.gap,
             support_type=support_type,
+            support_to_gnd=support_to_gnd,
             trans_in=DCplxTrans(1, -90 + 180 * np.arctan2(s1.y, s1.x) / np.pi, False, 0, 0)
         )
         bridge3.place(bridge_reg1, region_id="bridges_1")
