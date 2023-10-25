@@ -1,4 +1,4 @@
-__version__ = "12QStair_0.0.0.7_4Ser"
+__version__ = "12QStair_0.0.0.8_4Ser"
 
 '''
 NOTE:
@@ -7,6 +7,10 @@ in ascending order to qubit idxs.
 E.g. self.resonators[1] - resonator that belongs to qubit №1 (starting from 0)
 
 Changes log
+12QStair_0.0.0.8_4Ser
+    1. bridge support lines start and end located at the centers of corresponding bridge contact pads. 
+12QStair_0.0.0.7_4Ser
+    1. bridge support lines are 5 um from bridge contact pads 
 12QStair_0.0.0.6
     1. Change flux control line shortcuts to ground. Both now have 4 um width (instead of 4 um at SQUID side & 2 um at remaining side)
     2. Change microwave drive control line. Line end to qubit distance increased. Capacitive coupling decreased   
@@ -120,6 +124,7 @@ class Design12QStair(ChipDesign):
         self.region_bridges3 = Region()
         self.layer_bridges3 = self.layout.layer(info_bridges2)
         self.bridges_support_type = "concave"
+        self.bridges_support_to_gnd = -5e3
 
         # layer with rectangles that will be converted to the CABL format
         info_el_protection = pya.LayerInfo(7, 0)
@@ -1075,7 +1080,7 @@ class Design12QStair(ChipDesign):
                         bridge_reg1=self.region_bridges1, bridge_reg2=self.region_bridges2,
                         bridge_reg3=self.region_bridges3,
                         support_type=self.bridges_support_type,
-                        support_to_gnd=5e3
+                        support_to_gnd=self.bridges_support_to_gnd
                     )
                     self.intersection_points.append(intersection_pt)
 
@@ -1447,7 +1452,7 @@ class Design12QStair(ChipDesign):
                                 dest=self.region_bridges1, dest2=self.region_bridges2,
                                 dest3=self.region_bridges3,
                                 support_type=self.bridges_support_type,
-                                support_to_gnd=5e3
+                                support_to_gnd=self.bridges_support_to_gnd
                             )
                 elif any([(skip_name in name) for skip_name in ["fork", "arc"]]):
                     # skip primitives with names that contain "fork" or "arc" as substrings
@@ -1465,7 +1470,7 @@ class Design12QStair(ChipDesign):
                         dest=self.region_bridges1, dest2=self.region_bridges2,
                         dest3=self.region_bridges3,
                         support_type=self.bridges_support_type,
-                        support_to_gnd=5e3,
+                        support_to_gnd=self.bridges_support_to_gnd,
                         avoid_points=[resonator.res_coulingArc_cpw_path.end],
                         avoid_distances=[30e3]
                     )
@@ -1485,7 +1490,7 @@ class Design12QStair(ChipDesign):
                     dest2=self.region_bridges2,
                     dest3=self.region_bridges3,
                     support_type=self.bridges_support_type,
-                    support_to_gnd=5e3,
+                    support_to_gnd=self.bridges_support_to_gnd,
                     avoid_points=self.control_lines_avoid_points,
                     avoid_distances=[200e3]
                 )
@@ -1505,7 +1510,7 @@ class Design12QStair(ChipDesign):
                 br = Bridge1(
                     center=bridge_center1, gnd2gnd_dy=70e3,
                     support_type=self.bridges_support_type,
-                    support_to_gnd=5e3,
+                    support_to_gnd=self.bridges_support_to_gnd,
                     trans_in=Trans.R90
                 )
                 br.place(dest=self.region_bridges1, region_id="bridges_1")
@@ -1534,7 +1539,7 @@ class Design12QStair(ChipDesign):
                 bridges_step=bridges_step, gnd2gnd_dy=100e3,
                 dest=self.region_bridges1, dest2=self.region_bridges2, dest3=self.region_bridges3,
                 support_type=self.bridges_support_type,
-                support_to_gnd=5e3,
+                support_to_gnd=self.bridges_support_to_gnd,
                 avoid_points=ro_lines_avoid_points,
                 avoid_distances=resonator_avoid_distances
             )
@@ -1549,7 +1554,7 @@ class Design12QStair(ChipDesign):
                     dest=self.region_bridges1, dest2=self.region_bridges2,
                     dest3=self.region_bridges3,
                     support_type=self.bridges_support_type,
-                    support_to_gnd=5e3,
+                    support_to_gnd=self.bridges_support_to_gnd,
                     avoid_points=[cpw_to_bridgify.start, cpw_to_bridgify.end],
                     avoid_distances=[30e3]
                 )
