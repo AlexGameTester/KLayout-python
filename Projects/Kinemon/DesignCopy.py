@@ -160,7 +160,7 @@ PROJECT_DIR = r"C:\klayout_dev\kmon-calculations\Cq_Cqr"
 
 
 class ProductionParams:
-    start_mode = 1
+    start_mode = 0
     par_d = 6e3
 
     _xmon_fork_gnd_gap = 5e3
@@ -168,7 +168,7 @@ class ProductionParams:
     _fork_gnd_gap = 10e3
 
     _meander_length_list = [
-        23613.00,
+        2.5e5,
         30924.72,
         18140.92,
         11783.04,
@@ -293,14 +293,14 @@ class DefaultParams:
         'line_width_dx': 0.120e3,
         'line_width_dy': 0.120e3,
         'add_dx_mid': 0,
-        'line_gap': 1.8e3
+        'line_gap': 1.5e3
     }
     kinemon_params_dict = {
-        'area_ratio': 1 / 2,
+        'area_ratio': 0.99,
         'MC_dy': None,
         'MC_dx': None,
         'KI_bridge_width': 1e3,
-        'KI_bridge_height': 4e3,
+        'KI_bridge_height': 0.9e3,
         'KI_pad_y_offset': 0.2e3,
         'KI_pad_width': 3e3,
         'KI_ledge_y_offset': 0.3e3,
@@ -749,7 +749,7 @@ class DesignDmon(ChipDesign):
         self.squid_vertical_shift_list = [0e3] * 6 + [0e3] * 2
 
         # josephson junctions
-        self.squid_pars: List[RFSquidParams] = []
+        self.squid_pars: List[KinemonParams] = []
         self.jj_dx_list = np.array(
             [159.842, 159.842, 159.842, 99.482, 99.482, 159.842,
              203.785, 203.785]
@@ -776,6 +776,9 @@ class DesignDmon(ChipDesign):
         #             self.jj_dx_list,
         #             self.kinInd_squaresN_list
         #         )
+        self.meander_params = [MeanderParams(**DefaultParams.meander_params_dict,
+                                             line_length=length) for length in ProductionParams.get_meander_length_list()]
+
         for i, (big_jj_dx, big_jj_dy, small_jj_dx, small_jj_dy) in enumerate(
             zip(ProductionParams.get_big_jj_dx_list(),
                 ProductionParams.get_big_jj_dy_list(),
@@ -817,16 +820,18 @@ class DesignDmon(ChipDesign):
             pars_i.bot_wire_x = [-dx, dx]
             pars_i.BC_dx = [pars_i.BC_dx[0]] * 2
             pars_i.BCW_dx = [pars_i.BCW_dx[0]] * 2
-            self.squid_pars.append(
-                RFSquidParams(
-                    asym_pars=pars_i,
-                    line_width_dx=self.kinInd_width_dx,
-                    line_width_dy=self.kinInd_width_dy,
-                    line_squares_n=100, # Unused. Keep for compatibility
-                    # same as for photo_jj recess distance
-                    jj_kinInd_recess_d=self.jj_kinInd_recess_d
-                )
+
+            rfsq_params = RFSquidParams(
+                asym_pars=pars_i,
+                line_width_dx=self.kinInd_width_dx,
+                line_width_dy=self.kinInd_width_dy,
+                line_squares_n=100,  # Unused. Keep for compatibility
+                # same as for photo_jj recess distance
+                jj_kinInd_recess_d=self.jj_kinInd_recess_d
             )
+            self.squid_pars.append(KinemonParams(rfsq_params,
+                                                 self.meander_params[i],
+                                                 **DefaultParams.kinemon_params_dict))
         ''' el-dc concacts attributes SECTION START '''
         # microwave and flux drive lines parameters
         # self.ctr_lines_turn_radius = 40e3
@@ -877,8 +882,6 @@ class DesignDmon(ChipDesign):
 
         # self.example_meander = MeanderParams(**DefaultParams.meander_params_dict, line_length=33.3e3)
         # self.meander_params = [self.example_meander] * 8
-        self.meander_params = [MeanderParams(**DefaultParams.meander_params_dict,
-                                             line_length=length) for length in ProductionParams.get_meander_length_list()]
         ### ADDITIONAL VARIABLES SECTION END ###
 
     def draw(self):

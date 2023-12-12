@@ -140,6 +140,15 @@ class KinemonParams(RFSquidParams):
         @param KI_pad_y_offset: Offset of end of kinetic inductance contact pad relatively to contact pads of josephson junctions
         @param KI_pad_width: Width of kinetic inductance contact pad
         """
+        self.KI_bridge_width = KI_bridge_width
+        self.KI_bridge_height = KI_bridge_height
+        self.KI_pad_y_offset = KI_pad_y_offset
+        self.KI_pad_width = KI_pad_width
+        self.KI_ledge_y_offset = KI_ledge_y_offset
+        self.KI_JJ_ledge_height = KI_JJ_ledge_height
+        self.KI_JJ_ledge_width = KI_JJ_ledge_width
+
+        # Squid params object have a priority over direct input of params
         self.__dict__.update(rf_sq_params.__dict__)
         self.meander_params = meander_params
         # TODO: Implement variable area_ratio
@@ -154,14 +163,6 @@ class KinemonParams(RFSquidParams):
             self.MC_dx = self.TC_dx
         else:
             self.MC_dx = MC_dx
-
-        self.KI_bridge_width = KI_bridge_width
-        self.KI_bridge_height = KI_bridge_height
-        self.KI_pad_y_offset = KI_pad_y_offset
-        self.KI_pad_width = KI_pad_width
-        self.KI_ledge_y_offset = KI_ledge_y_offset
-        self.KI_JJ_ledge_height = KI_JJ_ledge_height
-        self.KI_JJ_ledge_width = KI_JJ_ledge_width
 
 
 class Kinemon(AsymSquid):
