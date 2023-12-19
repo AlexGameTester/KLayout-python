@@ -69,11 +69,13 @@ class KinIndMeander(ElementBase):
         ext_points = []
         dy_hw = self.meander_params.line_width_dy / 2
         dx_hw = self.meander_params.line_width_dx / 2
+        x_offset = self.meander_params.add_dx_mid
+        p0 = DPoint(-x_offset, -dy_hw)
         p1 = DPoint(0, -dy_hw)
         p2 = p1 + DVector(self.s / 2 + dx_hw, 0)
         p3 = p2 + DVector(0, self.dy_step + 2 * dy_hw)
         p4 = p3 + DVector(-self.s + self.dx_step, 0)
-        ext_points += [p1, p2, p3, p4]
+        ext_points += [p0, p1, p2, p3, p4]
         for i in range(self.n_periods):
             p1 = ext_points[-1]
             p2 = p1 + DVector(0, self.dy_step - 2 * dy_hw)
@@ -81,18 +83,20 @@ class KinIndMeander(ElementBase):
             p4 = p3 + DVector(0, self.dy_step + 2 * dy_hw)
             if i == self.n_periods - 1:
                 p5 = p4 + DVector(-self.s / 2 + self.dx_step, 0)
+                p6 = p5 + DVector(-x_offset, 0)
+                ext_points += [p1, p2, p3, p4, p5, p6]
             else:
                 p5 = p4 + DVector(-self.s + self.dx_step, 0)
-
-            ext_points += [p1, p2, p3, p4, p5]
+                ext_points += [p1, p2, p3, p4, p5]
 
         # Interior points
         int_points = []
+        p0 = DPoint(-x_offset, dy_hw)
         p1 = DPoint(0, dy_hw)
         p2 = p1 + DVector(self.s / 2 - dx_hw, 0)
         p3 = p2 + DVector(0, self.dy_step - 2 * dy_hw)
         p4 = p3 + DVector(-self.s + self.dx_step, 0)
-        int_points += [p1, p2, p3, p4]
+        int_points += [p0, p1, p2, p3, p4]
 
         for i in range(self.n_periods):
             p1 = int_points[-1]
@@ -103,10 +107,11 @@ class KinIndMeander(ElementBase):
             # half of the width for the last point
             if i == self.n_periods - 1:
                 p5 = p4 + DVector(-self.s / 2 + self.dx_step, 0)
+                p6 = p5 + DVector(-x_offset, 0)
+                int_points += [p1, p2, p3, p4, p5, p6]
             else:
                 p5 = p4 + DVector(-self.s + self.dx_step, 0)
-
-            int_points += [p1, p2, p3, p4, p5]
+                int_points += [p1, p2, p3, p4, p5]
 
         # Last point correction
         int_points[-1] += DVector(dx_hw, 0)
@@ -127,7 +132,7 @@ class KinemonParams(RFSquidParams):
                  KI_pad_y_offset=0.2e3,
                  KI_pad_width=3e3,
                  KI_ledge_y_offset=0.3e3,
-                 KI_JJ_ledge_height=6.95e3,
+                 KI_JJ_ledge_height=4e3,
                  KI_JJ_ledge_width=2e3):
         """
         @param rf_sq_params:
@@ -140,6 +145,15 @@ class KinemonParams(RFSquidParams):
         @param KI_pad_y_offset: Offset of end of kinetic inductance contact pad relatively to contact pads of josephson junctions
         @param KI_pad_width: Width of kinetic inductance contact pad
         """
+        self.KI_bridge_width = KI_bridge_width
+        self.KI_bridge_height = KI_bridge_height
+        self.KI_pad_y_offset = KI_pad_y_offset
+        self.KI_pad_width = KI_pad_width
+        self.KI_ledge_y_offset = KI_ledge_y_offset
+        self.KI_JJ_ledge_height = KI_JJ_ledge_height
+        self.KI_JJ_ledge_width = KI_JJ_ledge_width
+
+        # Squid params object have a priority over direct input of params
         self.__dict__.update(rf_sq_params.__dict__)
         self.meander_params = meander_params
         # TODO: Implement variable area_ratio
@@ -154,14 +168,6 @@ class KinemonParams(RFSquidParams):
             self.MC_dx = self.TC_dx
         else:
             self.MC_dx = MC_dx
-
-        self.KI_bridge_width = KI_bridge_width
-        self.KI_bridge_height = KI_bridge_height
-        self.KI_pad_y_offset = KI_pad_y_offset
-        self.KI_pad_width = KI_pad_width
-        self.KI_ledge_y_offset = KI_ledge_y_offset
-        self.KI_JJ_ledge_height = KI_JJ_ledge_height
-        self.KI_JJ_ledge_width = KI_JJ_ledge_width
 
 
 class Kinemon(AsymSquid):
@@ -214,8 +220,8 @@ class Kinemon(AsymSquid):
         end = start + r0
 
         self.squid_params.meander_params.dr = r0
-        trans = DCplxTrans(start)
-        self.kin_ind_meander = KinIndMeander(self.squid_params.meander_params, trans_in=trans, region_id="kinInd")
+        meander_trans =DCplxTrans(start + DVector(self.squid_params.meander_params.add_dx_mid, 0))
+        self.kin_ind_meander = KinIndMeander(self.squid_params.meander_params, trans_in=meander_trans, region_id="kinInd")
         self.kin_ind_meander.start = start
         self.kin_ind_meander.end = end
         self.primitives["kinIndMeander"] = self.kin_ind_meander
@@ -287,7 +293,8 @@ class Kinemon(AsymSquid):
         w_b = self.squid_params.KI_bridge_width
         l_meander = self.squid_params.meander_params.line_length
         l_bridge = self.squid_params.KI_bridge_height
-
+        print("Length difference term")
+        print(w_m / w_b * (l_bridge + w_m) + 2 * w_b)
         l_eff = l_meander - w_m / w_b * (l_bridge + w_m) + 2 * w_b
         return l_eff
 

@@ -161,18 +161,17 @@ PROJECT_DIR = r"C:\klayout_dev\kmon-calculations\Cq_Cqr"
 
 class ProductionParams:
     start_mode = 0
-    par_d = 2e3
+    par_d = 6e3
 
     # 10
     _cross_gnd_gap_x = 10e3
 
     _xmon_fork_gnd_gap = 5e3
 
-    # 10
-    _fork_gnd_gap = 250e3
+    _fork_gnd_gap = 10e3
 
     _meander_length_list = [
-        23613.00,
+        3.95e5, # Max ~4.3e5
         30924.72,
         18140.92,
         11783.04,
@@ -182,36 +181,28 @@ class ProductionParams:
         18706.04,
     ]
 
-    _cross_gnd_gap_y_list = np.array(
-        # 10
-        [1e3 * x for x in [100] * 8]
-    )
-
     _cross_width_y_list = np.array(
-        # 4
-        [1e3 * x for x in [15.5, 8, 6, 36, 50, 4, 19, 3]]
+        [1e3 * x for x in [13.2, 8, 6, 36, 50, 4, 19, 3]]
     )
 
     _cross_len_y_list = np.array(
-        # 289
         [1e3 * x for x in
-         [270, 205.0, 211.0, 154.0, 154.0, 258.0, 267.0, 267.0]]
+         [360, 205.0, 211.0, 154.0, 154.0, 258.0, 267.0, 267.0]]
     )
 
     _fork_y_span_list = np.array(
         [
-            # 300
             x * 1e3 for x in
-            [320, 31.5, 13.7, 14.0, 14.0, 71.2, 75.3, 76.2]
+            [327, 31.5, 13.7, 14.0, 14.0, 71.2, 75.3, 76.2]
         ]
     )
 
     _fork_metal_width_list = np.array(
-        [1e3 * x for x in ([9.5] * 3 + [6] * 2 + [10] * 3)]
+        [1e3 * x for x in ([10] * 3 + [6] * 2 + [10] * 3)]
     )
 
     _cross_len_x_list = np.array(
-        [1e3 * x for x in [20, 65.602, 35.098, 0, 0, 196.603,
+        [1e3 * x for x in [129.905, 65.602, 35.098, 0, 0, 196.603,
                            233.873, 233.415]]
     )
 
@@ -249,6 +240,9 @@ class ProductionParams:
         109.66,
         109.66,
     ])
+
+    _BC_dy = 4e3
+    _TC_dy = 4e3
 
     # <editor-fold desc="getters">
     @staticmethod
@@ -308,27 +302,36 @@ class ProductionParams:
         return np.copy(ProductionParams._cross_gnd_gap_y_list)
     # </editor-fold>
 
+    @staticmethod
+    def get_BC_dy():
+        return ProductionParams._BC_dy
+
+    @staticmethod
+    def get_TC_dy():
+        return ProductionParams._TC_dy
+
 
 class DefaultParams:
     meander_params_dict = {
         'dr': DPoint(0, 0),
         'line_width_dx': 0.120e3,
         'line_width_dy': 0.120e3,
-        'add_dx_mid': 0,
-        'line_gap': 1.8e3
+        'add_dx_mid': 6e3,
+        'line_gap': 0.9e3
     }
     kinemon_params_dict = {
-        'area_ratio': 1 / 2,
+        'area_ratio': 0.99,
         'MC_dy': None,
         'MC_dx': None,
         'KI_bridge_width': 1e3,
-        'KI_bridge_height': 4e3,
+        'KI_bridge_height': 0.9e3,
         'KI_pad_y_offset': 0.2e3,
         'KI_pad_width': 3e3,
         'KI_ledge_y_offset': 0.3e3,
-        'KI_JJ_ledge_height': 6.95e3,
+        'KI_JJ_ledge_height': 4e3,
         'KI_JJ_ledge_width': 2e3,
     }
+
 
 
 class DPathCPWStraight(ComplexBase):
@@ -622,7 +625,7 @@ class DesignDmon(ChipDesign):
     def __init__(self, cell_name):
         super().__init__(cell_name)
         # TODO: Debug only
-        # self.id = RANDOM.random()
+        self.id = RANDOM.random()
         dc_bandage_layer_i = pya.LayerInfo(3,
                                            0)  # for DC contact deposition
         self.dc_bandage_reg = Region()
@@ -744,6 +747,7 @@ class DesignDmon(ChipDesign):
         # fork at the end of resonator parameters
         self.fork_metal_width_list = ProductionParams.get_fork_metal_width_list()
         self.fork_gnd_gap = ProductionParams.get_fork_gnd_gap()
+        # TODO: Changing here
         self.xmon_fork_gnd_gap = ProductionParams.get_xmon_fork_gnd_gap()
         # fork at the end of resonator parameters
         self.fork_x_span_list = self.cross_width_y_list + + 2 * \
@@ -767,7 +771,7 @@ class DesignDmon(ChipDesign):
         self.squid_vertical_shift_list = [0e3] * 6 + [0e3] * 2
 
         # josephson junctions
-        self.squid_pars: List[RFSquidParams] = []
+        self.squid_pars: List[KinemonParams] = []
         self.jj_dx_list = np.array(
             [159.842, 159.842, 159.842, 99.482, 99.482, 159.842,
              203.785, 203.785]
@@ -794,6 +798,9 @@ class DesignDmon(ChipDesign):
         #             self.jj_dx_list,
         #             self.kinInd_squaresN_list
         #         )
+        self.meander_params = [MeanderParams(**DefaultParams.meander_params_dict,
+                                             line_length=length) for length in ProductionParams.get_meander_length_list()]
+
         for i, (big_jj_dx, big_jj_dy, small_jj_dx, small_jj_dy) in enumerate(
             zip(ProductionParams.get_big_jj_dx_list(),
                 ProductionParams.get_big_jj_dy_list(),
@@ -822,10 +829,10 @@ class DesignDmon(ChipDesign):
                 squid_dx=2 * dx,
                 squid_dy=13e3,
                 TC_dx=2.5e3 * np.sqrt(2) + 1e3,
-                TC_dy=7e3,
+                TC_dy=ProductionParams.get_TC_dy(),
                 TCW_dy=0,
                 BCW_dy=0e3,
-                BC_dy=7e3,
+                BC_dy=ProductionParams.get_BC_dy(),
                 BC_dx=[2.5e3 * np.sqrt(2) + 1e3],
                 SQLTJJ_dx=big_jj_dx,
                 SQLBJJ_dy=big_jj_dy,
@@ -835,16 +842,18 @@ class DesignDmon(ChipDesign):
             pars_i.bot_wire_x = [-dx, dx]
             pars_i.BC_dx = [pars_i.BC_dx[0]] * 2
             pars_i.BCW_dx = [pars_i.BCW_dx[0]] * 2
-            self.squid_pars.append(
-                RFSquidParams(
-                    asym_pars=pars_i,
-                    line_width_dx=self.kinInd_width_dx,
-                    line_width_dy=self.kinInd_width_dy,
-                    line_squares_n=100, # Unused. Keep for compatibility
-                    # same as for photo_jj recess distance
-                    jj_kinInd_recess_d=self.jj_kinInd_recess_d
-                )
+
+            rfsq_params = RFSquidParams(
+                asym_pars=pars_i,
+                line_width_dx=self.kinInd_width_dx,
+                line_width_dy=self.kinInd_width_dy,
+                line_squares_n=100,  # Unused. Keep for compatibility
+                # same as for photo_jj recess distance
+                jj_kinInd_recess_d=self.jj_kinInd_recess_d
             )
+            self.squid_pars.append(KinemonParams(rfsq_params,
+                                                 self.meander_params[i],
+                                                 **DefaultParams.kinemon_params_dict))
         ''' el-dc concacts attributes SECTION START '''
         # microwave and flux drive lines parameters
         # self.ctr_lines_turn_radius = 40e3
@@ -2447,7 +2456,6 @@ def simulate_Cqr(resolution=(4e3, 4e3), mode="Cq", pts=3, par_d=10e3, output_fna
     #  2. make 3d geometry optimization inside kLayout for simultaneous finding of C_qr, C_q and C_qq
 
     simulation_id = int(10 * time.time())
-    print(f"Simulation id: {simulation_id}")
     ALMOST_ZERO = 1.5e3
 
 
@@ -2488,21 +2496,11 @@ def simulate_Cqr(resolution=(4e3, 4e3), mode="Cq", pts=3, par_d=10e3, output_fna
             # adjusting `cross_len_x` to gain proper E_C
             # design.cross_width_y_list += dl
             # design.cross_width_x_list += dl
-            # design.fork_gnd_gap += dl
-            # design.cross_gnd_gap_x = design.fork_gnd_gap # TODO: Maybe we shouldn't change both of them
-            design.cross_width_y_list += dl
-
-
-            if design.cross_width_y_list[res_idx] < ALMOST_ZERO:
-                print("Value is negative: ", design.cross_width_y_list)
-                design.cross_width_y_list = np.ones_like(design.cross_width_y_list) * ALMOST_ZERO
-                # design.cross_width_y_list = ALMOST_ZERO
+            # design.cross_len_x_list += dl
 
             save_fname = "Cqr_Cq_results.csv"
-        else:
-            raise ValueError(f"Unknown mode: {mode}")
 
-        print(f"idx = {res_idx}, par val = {design.cross_width_y_list[res_idx]}")
+        print(f"idx = {res_idx}, par val = {design.fork_y_span_list[res_idx]}")
 
         # exclude coils from simulation (sometimes port is placed onto coil (TODO: fix)
         design.N_coils = [0] * design.NQUBITS
@@ -3110,7 +3108,7 @@ if __name__ == "__main__":
         print("Simulation mode")
     # simulate_Cqr(resolution=(3e3, 3e3), mode="Cq", pts=3, par_d=10e3)
     # import ctypes  # An included library with Python install.
-        simulate_Cqr(resolution=(1e3, 3e3), mode="Cq", pts=3, par_d=ProductionParams.par_d)
+        simulate_Cqr(resolution=(4e3, 4e3), mode="Cqr", pts=3, par_d=ProductionParams.par_d)
     # ctypes.windll.user32.MessageBoxW(0, "Simulation completed", "KLayout simulator", 0)
     # simulate_Cqr(resolution=(1e3, 1e3), mode="Cqr")
 
