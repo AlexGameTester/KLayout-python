@@ -168,7 +168,7 @@ class ProductionParams:
     _fork_gnd_gap = 10e3
 
     _meander_length_list = [
-        2.5e5,
+        3.95e5, # Max ~4.3e5
         30924.72,
         18140.92,
         11783.04,
@@ -238,6 +238,9 @@ class ProductionParams:
         109.66,
     ])
 
+    _BC_dy = 4e3
+    _TC_dy = 4e3
+
     @staticmethod
     def get_cross_width_y_list():
         return np.copy(ProductionParams._cross_width_y_list)
@@ -286,14 +289,22 @@ class ProductionParams:
     def get_fork_gnd_gap():
         return ProductionParams._fork_gnd_gap
 
+    @staticmethod
+    def get_BC_dy():
+        return ProductionParams._BC_dy
+
+    @staticmethod
+    def get_TC_dy():
+        return ProductionParams._TC_dy
+
 
 class DefaultParams:
     meander_params_dict = {
         'dr': DPoint(0, 0),
         'line_width_dx': 0.120e3,
         'line_width_dy': 0.120e3,
-        'add_dx_mid': 0,
-        'line_gap': 1.5e3
+        'add_dx_mid': 6e3,
+        'line_gap': 0.9e3
     }
     kinemon_params_dict = {
         'area_ratio': 0.99,
@@ -304,7 +315,7 @@ class DefaultParams:
         'KI_pad_y_offset': 0.2e3,
         'KI_pad_width': 3e3,
         'KI_ledge_y_offset': 0.3e3,
-        'KI_JJ_ledge_height': 6.95e3,
+        'KI_JJ_ledge_height': 4e3,
         'KI_JJ_ledge_width': 2e3,
     }
 
@@ -807,10 +818,10 @@ class DesignDmon(ChipDesign):
                 squid_dx=2 * dx,
                 squid_dy=13e3,
                 TC_dx=2.5e3 * np.sqrt(2) + 1e3,
-                TC_dy=7e3,
+                TC_dy=ProductionParams.get_TC_dy(),
                 TCW_dy=0,
                 BCW_dy=0e3,
-                BC_dy=7e3,
+                BC_dy=ProductionParams.get_BC_dy(),
                 BC_dx=[2.5e3 * np.sqrt(2) + 1e3],
                 SQLTJJ_dx=big_jj_dx,
                 SQLBJJ_dy=big_jj_dy,
