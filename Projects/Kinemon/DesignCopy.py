@@ -166,12 +166,14 @@ class ProductionParams:
     # 10
     _cross_gnd_gap_x = 10e3
 
+    _cross_gnd_gap_y_list = np.array([60e3] * 8)
+
     _xmon_fork_gnd_gap = 5e3
 
     _fork_gnd_gap = 10e3
 
     _meander_length_list = [
-        3.95e5, # Max ~4.3e5
+        4.3e5, # Max ~4.3e5
         30924.72,
         18140.92,
         11783.04,
@@ -315,9 +317,9 @@ class DefaultParams:
     meander_params_dict = {
         'dr': DPoint(0, 0),
         'line_width_dx': 0.120e3,
-        'line_width_dy': 0.120e3,
-        'add_dx_mid': 6e3,
-        'line_gap': 0.9e3
+        'line_width_dy': 0.100e3,
+        'add_dx_mid': 8e3,
+        'line_gap': 0.4e3
     }
     kinemon_params_dict = {
         'area_ratio': 0.99,

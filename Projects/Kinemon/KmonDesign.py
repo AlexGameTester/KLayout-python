@@ -220,7 +220,7 @@ class Kinemon(AsymSquid):
         end = start + r0
 
         self.squid_params.meander_params.dr = r0
-        meander_trans =DCplxTrans(start + DVector(self.squid_params.meander_params.add_dx_mid, 0))
+        meander_trans = DCplxTrans(start + DVector(self.squid_params.meander_params.add_dx_mid, 0))
         self.kin_ind_meander = KinIndMeander(self.squid_params.meander_params, trans_in=meander_trans, region_id="kinInd")
         self.kin_ind_meander.start = start
         self.kin_ind_meander.end = end
