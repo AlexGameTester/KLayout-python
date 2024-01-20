@@ -236,7 +236,7 @@ class Design12QStair(ChipDesign):
         self.draw_qubits_array()
         self.draw_qq_couplings()
 
-        # self.draw_readout_resonators()
+        self.draw_readout_resonators()
         # self.draw_microwave_drvie_lines()
         # self.draw_flux_control_lines()
         # self.draw_readout_lines()

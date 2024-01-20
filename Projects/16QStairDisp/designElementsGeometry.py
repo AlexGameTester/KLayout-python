@@ -35,6 +35,7 @@ class QubitsGrid:
     dx: float = 1e6
     dy: float = 1e6
     pts_grid: np.ndarray = None  # initialized after construction since it is mutable
+    NQUBITS: int = None  # number of qubits in `pts_grid`
 
     def __post_init__(self):
         # mutable input argument has to be initialized here
@@ -45,15 +46,16 @@ class QubitsGrid:
             [
                 # grid iterates from left to right (direct),
                 # from top to bottom
-                # starting from the top row left-most qubit.
+                # starting from the left-most qubit of the top row.
                 (-1, 3), (0, 3),
                 (-1, 2), (0, 2), (1, 2),
                 (-1, 1), (0, 1), (1, 1), (2, 1),
-                         (0, 0), (1, 0), (2, 0), (3, 0),
-                                 (1, -1), (2, -1), (3, -1)
+                (0, 0), (1, 0), (2, 0), (3, 0),
+                (1, -1), (2, -1), (3, -1)
             ],
             dtype=float
         )
+        self.NQUBITS = len(self.pts_grid)
         self.__centralize_grid()
 
     def __centralize_grid(self):
@@ -71,7 +73,12 @@ class QubitsGrid:
         return origin + DVector(pt_x, pt_y)
 
     def get_q_sweet_spot(self, q_idx):
-        if q_idx in [0, 2, 3, 5, 8, 10]:
+        # used 2 non-neighbour diagonals that qubits placed along. Choosing I and III diagonals,
+        # see schematics
+        if q_idx in [
+            1, 4, 8, 12,
+            2, 6, 11, 14
+        ]:
             return "USS"  # upper sweet spot
         else:
             return "LSS"  # lower sweet spot
@@ -320,7 +327,7 @@ class ConnectivityMap:
     # row 2
     qq_coupling_connectors_map[5, 6] = np.array((0, 3))
     qq_coupling_connectors_map[6, 7] = np.array((0, 4))
-    qq_coupling_connectors_map[8, 9] = np.array((7, 4))
+    qq_coupling_connectors_map[7, 8] = np.array((7, 4))
     # row 3
     qq_coupling_connectors_map[9, 10] = np.array((0, 3))
     qq_coupling_connectors_map[10, 11] = np.array((0, 4))
@@ -337,11 +344,15 @@ class ConnectivityMap:
     qq_coupling_connectors_map[1, 3] = np.array((6, 3))
     qq_coupling_connectors_map[3, 6] = np.array((6, 2))
     qq_coupling_connectors_map[6, 9] = np.array((7, 2))
-    # сol 3
-    qq_coupling_connectors_map[8, 11] = np.array((6, 2))
-    qq_coupling_connectors_map[11, 14] = np.array((7, 2))
-    # col 4
-    qq_coupling_connectors_map[12, 15] = np.array((7, 2))
+    # col 3
+    qq_coupling_connectors_map[4, 7] = np.array((6, 3))
+    qq_coupling_connectors_map[7, 10] = np.array((6, 2))
+    qq_coupling_connectors_map[10, 13] = np.array((7, 2))
+    # сol 4
+    qq_coupling_connectors_map[8, 11] = np.array((6, 3))
+    qq_coupling_connectors_map[11, 14] = np.array((6, 2))
+    # col 5
+    qq_coupling_connectors_map[12, 15] = np.array((6, 2))
 
     # q_idx, res_idx, q_connector_idx, ro_line_idx
     # for `q_connector_idx` see schematics .drawio
@@ -352,10 +363,10 @@ class ConnectivityMap:
     # ORDER BY qubit idx (i.e. pre-sorted ascending, first col) (see `self.__post_init`)
     q_res_connector_roline_map: np.ndarray = np.array(
         [
-            (1, 4, 3, 0), (4, 1, 4, 0), (8, 2, 4, 0), (12, 3, 4, 0),
-            (0, 4, 3, 0), (3, 4, 0, 0), (7, 5, 0, 0), (11, 6, 0, 0), (15, 7, 0, 0),
-            (2, 8, 0, 1), (6, 9, 0, 1), (10, 10, 4, 1), (14, 11, 4, 1),
-            (5, 8, 0, 1), (9, 9, 0, 1), (13, 10, 4, 1)
+            (1, 4, 4, 0), (4, 5, 0, 0), (8, 7, 0, 0), (12, 2, 0, 0),
+            (0, 1, 4, 0), (3, 6, 0, 0), (7, 0, 0, 0), (11, 3, 0, 0), (15, 7, 0, 0),
+            (2, 3, 4, 1), (6, 2, 4, 1), (10, 4, 4, 1), (14, 1, 4, 1),
+            (5, 0, 4, 1), (9, 5, 4, 1), (13, 6, 4, 1)
 
         ],
     )
@@ -389,7 +400,7 @@ class ConnectivityMap:
                 "ConnectivityMap.get_squid_connector_idx:"
                 f"squid connector idx for qubit_idx={qubit_idx}"
                 f"is not defined."
-                )
+            )
 
     def get_md_connector_idx(self, qubit_idx):
         if qubit_idx in self.direct_squids_idxs:
@@ -413,14 +424,17 @@ class ROResonatorParams():
     # see parameters details in `Design_fast.py`
     current_sim_freqs = [7.58338877, 7.34696578, 7.43494798, 7.26783703, 7.44070826,
                          7.50407024, 7.58251541, 7.50828703, 7.3511825, 7.16000063,
-                         7.18802701, 7.26911275]
-    target_freqs = [7.6, 7.36, 7.44, 7.28, 7.44, 7.52, 7.6, 7.52, 7.36, 7.2, 7.2, 7.28]
-    target_qfactor = [10e3] * 12
+                         7.18802701, 7.26911275,
+
+                         7.26911275,  7.26911275,  7.26911275,  7.26911275]
+    target_freqs = [7.6, 7.36, 7.44, 7.28, 7.44, 7.52, 7.6, 7.52, 7.36, 7.2, 7.2, 7.28,
+                    7.28, 7.28, 7.28, 7.28]
+    target_qfactor = [10e3] * 16
 
     L_coupling_list = [
-        1e3 * x for x in [310, 310, 310, 310] * 3
+        1e3 * x for x in [310, 310, 310, 310] * 4
     ]
-    L0_list = [986e3] * 12
+    L0_list = [986e3] * 16
     L1_list = [
         1e3 * x for x in
         [
@@ -435,20 +449,26 @@ class ROResonatorParams():
             68.20935545352937,
             129.35206171474732,
             204.73535930161088,
+            125.11764705882364,
+
+            125.11764705882364,
+            125.11764705882364,
+            125.11764705882364,
             125.11764705882364
         ]
     ]
-    res_r_list = [60e3] * 12
-    tail_turn_radiuses_list = [60e3] * 12  # res_r_list
-    N_coils_list = [2, 2, 2, 2, 1, 1, 2, 2, 1, 2, 2, 2]
-    L2_list = [60e3] * 12  # res_r_list
+    res_r_list = [40e3] * 16  # [60e3] * 16
+    tail_turn_radiuses_list = [60e3] * 16  # res_r_list
+    N_coils_list = [2, 2, 2, 2, 1, 1, 2, 2, 1, 2, 2, 2,
+                    3, 3, 3, 3]
+    L2_list = [60e3] * 16  # res_r_list
     L3_list = []  # get numericals from Design_fast
-    L4_list = [60e3] * 12  # res_r_list
-    Z_res_list = [CPWParameters(width=20e3, gap=10e3)] * 12
-    to_line_list = [54e3] * 12
+    L4_list = [60e3] * 16  # res_r_list
+    Z_res_list = [CPWParameters(width=20e3, gap=10e3)] * 16
+    to_line_list = [54e3] * 16
 
-    tail_segments_list = [[60000.0, 215000.0, 60000.0]] * 12
-    res_tail_shapes_list = ["LRLRL"] * 12
+    tail_segments_list = [[60000.0, 215000.0, 60000.0]] * 16
+    res_tail_shapes_list = ["LRLRL"] * 16
 
     tail_turn_angles_list = [
         [np.pi / 2, -np.pi / 2],
@@ -462,23 +482,32 @@ class ROResonatorParams():
         [np.pi / 2, -np.pi / 2],
         [np.pi / 2, -np.pi / 2],
         [np.pi / 2, -np.pi / 2],
+        [np.pi / 2, -np.pi / 2],
+
+
+        [np.pi / 2, -np.pi / 2],
+        [np.pi / 2, -np.pi / 2],
+        [np.pi / 2, -np.pi / 2],
         [np.pi / 2, -np.pi / 2]
     ]
     resonator_rotation_angles: np.ndarray = np.array(
         [
-            180, 180, 270,
-            90, 135, -45, 270,
+            90, 0,
             90, -45, -45,
-            90, 0
+            90, 135, -45, -45,
+                135, 135, -45, 270,
+                    180, 180, 180
         ],
         dtype=float
     )  # addressed by qubit index
 
-    # corresponding to 6 RO frequencies from 7.2 to 7.60 both inclusive
-    _donut_metal_width_USS = 1e3 * np.array([9.86, 11.24, 12.69, 14.20, 15.76, 17.36])
-    _donut_disk_d_USS = [20e3] * 6
-    _donut_metal_width_LSS = 1e3 * np.array([52.52, 53.86, 55.08, 56.2, 57.21, 58.12])
-    _donut_disk_d_LSS = [10e3] * 6
+    # corresponding to 8 RO frequencies from 7.2 to 7.76 both inclusive
+    _donut_metal_width_USS = 1e3 * np.array([9.86, 11.24, 12.69, 14.20, 15.76, 17.36,
+                                             17.36, 17.36])
+    _donut_disk_d_USS = [20e3] * 8
+    _donut_metal_width_LSS = 1e3 * np.array([52.52, 53.86, 55.08, 56.2, 57.21, 58.12,
+                                             58.12, 58.12])
+    _donut_disk_d_LSS = [10e3] * 8
     # see correspondence of q_idx and freq_idx in the working journal
     q_idx_ro_freq_idx = None
     q_res_coupling_params: List[CqrCouplingParamsType1] = None
@@ -491,11 +520,16 @@ class ROResonatorParams():
         self.NQUBITS = len(self.qubits_grid.pts_grid)
 
         # see correspondence of q_idx and freq_idx in the working journal
+        # `self.q_idx_ro_freq_idx[q_idx]` contains freq idx of qubit referenced by `q_idx`
+        # freq_idx instead of frequency is used, due to discrete amount of resonators with
+        # different frequencies for each readout line.
+        # Rules are reflected in work journal
         self.q_idx_ro_freq_idx = [
-            5, 2, 3,
-            1, 3, 4, 5,
-            4, 2, 0,
-            0, 1
+            1, 4,
+            3, 6, 5,
+            0, 2, 0, 7,
+               5, 4, 3, 2,
+                  6, 1, 7
         ]
 
         self.q_res_coupling_params = [None] * self.NQUBITS
