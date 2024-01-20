@@ -363,7 +363,7 @@ class ConnectivityMap:
     # ORDER BY qubit idx (i.e. pre-sorted ascending, first col) (see `self.__post_init`)
     q_res_connector_roline_map: np.ndarray = np.array(
         [
-            (1, 4, 4, 0), (4, 5, 0, 0), (8, 7, 0, 0), (12, 2, 0, 0),
+            (1, 4, 0, 0), (4, 5, 0, 0), (8, 7, 0, 0), (12, 2, 0, 0),
             (0, 1, 4, 0), (3, 6, 0, 0), (7, 0, 0, 0), (11, 3, 0, 0), (15, 7, 0, 0),
             (2, 3, 4, 1), (6, 2, 4, 1), (10, 4, 4, 1), (14, 1, 4, 1),
             (5, 0, 4, 1), (9, 5, 4, 1), (13, 6, 4, 1)
@@ -571,62 +571,48 @@ class ROResonatorParams():
 
     def get_adjusting_trans_by_qubit_idx(self, q_idx: int):
         additional_displacement_trans = DCplxTrans(1, 0, False, 0, 0)
-        if q_idx in [0, 1, 4]:
-            additional_displacement_trans = DCplxTrans(
-                1, 0, False,
-                DVector(
-                    -CqrCouplingParamsType1().bendings_disk_center_d,
-                    0
-                )
-            ) * additional_displacement_trans
-
-            if q_idx == 4:
+        if q_idx in [13, 14, 15]:  # bottom row
+            if q_idx in [13, 14]:
                 additional_displacement_trans = DCplxTrans(
                     1, 0, False,
-                    DVector(
-                        -self.qubits_grid.dx / 2,
-                        -self.qubits_grid.dy / 2
-                    )
+                    DVector(-self.L_coupling_list[q_idx], 0)
                 ) * additional_displacement_trans
-        elif q_idx in [5, 8, 9]:
-            additional_displacement_trans = DCplxTrans(
-                1, 0, False,
-                DVector(
-                    CqrCouplingParamsType1().bendings_disk_center_d,
-                    0
-                )
-            ) * additional_displacement_trans
-            if q_idx in [5, 8]:
+            elif q_idx in [15]:
                 additional_displacement_trans = DCplxTrans(
                     1, 0, False,
-                    DVector(
-                        self.qubits_grid.dx / 2,
-                        self.qubits_grid.dy / 2
-                    )
+                    DVector(self.L_coupling_list[q_idx], 0)
                 ) * additional_displacement_trans
-                if q_idx == 8:
-                    additional_displacement_trans = DCplxTrans(
-                        1, 0, False,
-                        DVector(
-                            -self.qubits_grid.dx / 5,
-                            self.qubits_grid.dy / 5
-                        )
-                    ) * additional_displacement_trans
-                if q_idx == 5:
-                    additional_displacement_trans = DCplxTrans(
-                        1, 0, False,
-                        DVector(
-                            self.qubits_grid.dx / 5,
-                            -self.qubits_grid.dy / 5
-                        )
-                    ) * additional_displacement_trans
-        elif q_idx in [11]:
+        elif q_idx in [3, 4, 7, 8, 11, 12, 14, 15]:  # upper diagonal (both inner and outer)
             additional_displacement_trans = DCplxTrans(
                 1, 0, False,
-                DVector(
-                    CqrCouplingParamsType1().bendings_disk_center_d,
-                    0
-                )
+                DVector(self.L_coupling_list[q_idx] / 2, -self.L_coupling_list[q_idx] / 2)
+            ) * additional_displacement_trans
+            # align inner qubit resonators bases with outer ones
+            if q_idx in [3, 7, 11]:
+                additional_displacement_trans = DCplxTrans(
+                    1, 0, False,
+                    DVector(self.qubits_grid.dx/2, self.qubits_grid.dy/2)
+                ) * additional_displacement_trans
+            elif q_idx in [12]:  # rightmost column
+                additional_displacement_trans = DCplxTrans(
+                    1, 0, False,
+                    DVector(0, self.L_coupling_list[q_idx] / 2)
+                ) * additional_displacement_trans
+        elif q_idx in [6, 9, 10]:  # lower diagonal (both inner and outer)
+            additional_displacement_trans = DCplxTrans(
+                1, 0, False,
+                DVector(-self.L_coupling_list[q_idx] / 2, self.L_coupling_list[q_idx] / 2)
+            ) * additional_displacement_trans
+            # align inner qubit resonators bases with outer ones
+            if q_idx in [6, 10]:
+                additional_displacement_trans = DCplxTrans(
+                    1, 0, False,
+                    DVector(-self.qubits_grid.dx/2, -self.qubits_grid.dy/2)
+                ) * additional_displacement_trans
+        elif q_idx in [1]:
+            additional_displacement_trans = DCplxTrans(
+                1, 0, False,
+                DVector(self.L_coupling_list[q_idx], 0)
             ) * additional_displacement_trans
 
         return additional_displacement_trans

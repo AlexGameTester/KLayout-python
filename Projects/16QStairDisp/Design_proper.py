@@ -431,7 +431,7 @@ class Design12QStair(ChipDesign):
         -------
 
         """
-        q_idxs = list(range(12))
+        q_idxs = list(range(self.NQUBITS))
         resonator_kw_args_list = list(
             map(
                 self.resonators_params.get_resonator_params_by_qubit_idx, q_idxs
