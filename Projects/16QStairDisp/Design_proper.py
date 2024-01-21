@@ -83,13 +83,16 @@ from Cqq_couplings import CqqCouplingType2, CqqCouplingParamsType2
 from Cqq_couplings import CqqCouplingType1, CqqCouplingParamsType1
 
 
+
+DEBUG = True
 class Design12QStair(ChipDesign):
     def __init__(
             self, cell_name,
             global_design_params: GlobalDesignParameters = GlobalDesignParameters()
     ):
         super().__init__(cell_name, global_design_params=global_design_params)
-
+        global DEBUG
+        self.DEBUG = DEBUG
         ''' DEFINE LYTOGRAPHY LAYERS AND REGIONS '''
         # `Region` objects are used as intermediate buffers for actual
         # `cell.layer`structures. This optimizes logical operations
@@ -125,6 +128,12 @@ class Design12QStair(ChipDesign):
             self.region_el_protection, self.region_cut, self.region_bridges3
         ]
 
+        if self.DEBUG == True:
+            info_debug_region = pya.LayerInfo("debug")
+            self.layer_debug = self.layout.layer(info_debug_region)
+            self.debug_region = Region()
+            self.regions.append(self.debug_region)
+
         # has to call it once more to add new layers
         # defined in this child of `ChipDesign`
         self.lv.add_missing_layers()
@@ -134,7 +143,7 @@ class Design12QStair(ChipDesign):
 
         ''' QUBITS GRID '''
         self.qubits_grid: QubitsGrid = QubitsGrid()
-        self.NQUBITS = len(self.qubits_grid.pts_grid)  # 12
+        self.NQUBITS = self.qubits_grid.NQUBITS
         self.qubits: List[Qubit] = [None] * self.NQUBITS
         self.squids: List[AsymSquid] = [None] * self.NQUBITS
         ''' QUBIT COUPLINGS '''
@@ -148,10 +157,11 @@ class Design12QStair(ChipDesign):
         ''' READOUT RESONATORS '''
         self.resonators_params = ROResonatorParams(qubits_grid=self.qubits_grid)
         self.resonators: List[ROResonator] = [None] * self.NQUBITS
-        # TODO: hide into designElementsGeomtry
-        self.q_res_connector_idxs: np.ndarray = np.array([4, 4, 0, 4, 4, 0, 0, 4, 0, 0, 4, 0])
 
         self.q_res_connector_roline_map = self.connectivity_map.q_res_connector_roline_map
+
+        self.q_res_connector_idxs: np.ndarray = self.q_res_connector_roline_map[:, 2]  # not tested, bugs possible
+
         self.q_res_coupling_params: List[
             CqrCouplingParamsType1] = self.resonators_params.q_res_coupling_params
 
@@ -160,16 +170,7 @@ class Design12QStair(ChipDesign):
         self.qCenter_roLine_distance = None
 
         ''' Microwave control lines '''
-        # Z = 49.0538 E_eff = 6.25103 (E = 11.45)
-        self.z_md1: CPWParameters = CPWParameters(30e3, 15e3)
-        self.z_md2: CPWParameters = CPWParameters(4e3, 4e3)
-        self.cpw_md_lines: List[DPathCPW] = [None] * self.NQUBITS
-        # length of the smoothing part between normal thick and end-thin cpw for md line
-        self.md_line_cpw12_smoothhing = 100e3
-
-        # length ofa thin part of the microwave drive line end
-        self.md_line_cpw2_len = 300e3
-        self.q_origin_md_end_d = 270e3
+        # None are present
 
         ''' Flux control lines '''
         self.cpw_fl_lines: List[DPathCPW] = [None] * self.NQUBITS
@@ -206,10 +207,10 @@ class Design12QStair(ChipDesign):
         self.ro_line_Z = CPWParameters(width=18e3, gap=10e3)
         self.contact_pads: List[ContactPad] = self.chip.get_contact_pads(
             chip_Z_list=[
-                self.ro_line_Z, self.z_md1, self.z_fl1, self.z_md1, self.z_fl1,  # left side
+                self.ro_line_Z, self.z_fl1, self.z_fl1, self.z_fl1, self.z_fl1,  # left side
                 self.z_fl1, self.z_fl1, self.ro_line_Z, self.z_fl1, self.z_fl1,  # bottom
                 self.ro_line_Z, self.z_fl1, self.z_fl1, self.z_fl1, self.z_fl1,  # right
-                self.ro_line_Z, self.z_fl1, self.z_md1, self.z_fl1, self.z_md1  # top
+                self.ro_line_Z, self.z_fl1, self.z_fl1, self.z_fl1, self.z_fl1  # top
             ],
             back_metal_gap=200e3,
             back_metal_width=0e3,
@@ -237,9 +238,9 @@ class Design12QStair(ChipDesign):
         self.draw_qq_couplings()
 
         self.draw_readout_resonators()
-        # self.draw_microwave_drvie_lines()
+
         # self.draw_flux_control_lines()
-        # self.draw_readout_lines()
+        self.draw_readout_lines()
         #
         # self.resolve_cpw_intersections()
         #
@@ -438,7 +439,7 @@ class Design12QStair(ChipDesign):
             )
         )
 
-        if q_idx_direct is not None:
+        if q_idx_direct is not None:   # not tested, bugs possible
             q_idx = q_idx_direct
             q_res_connector_idx = self.q_res_connector_idxs[q_idx]
 
@@ -465,21 +466,62 @@ class Design12QStair(ChipDesign):
         # readout line is extended around qubit square in order to
         # fit readout resonators `L_couplings` and left a bit more space
         # for consistent and easy simulation of notch port resonator
+        # TODO: conctruct envelope in a single cycle?
         self.qCenter_roLine_distance = abs((self.qubits[10].origin - self.resonators[0].start).x) \
-                                       + \
+                                         + \
                                        ROResonatorParams.to_line_list[10]
         ro_line_extension = self.qCenter_roLine_distance / 2
         turn_radii = self.ro_line_Z.b * 3
-        # readout line 1
+
+        ''' readout line 0 (top right envelope) '''
+        p0_start = self.contact_pads[-1].end
+        p1_start = p0_start + DPoint(0, -3 * turn_radii)
+        p0_end = self.contact_pads[10].end
+        # RO line extends by 2 curve radii of the resonator along coupling
+
+        pts_middle = []
+        for q_idx, _, _, ro_line_idx in self.q_res_connector_roline_map:  # 3rd column contains readout line correspondance
+            # TODO: fix fucking problem with `origin` not tracking changes after construction had
+            #  to use `resonator.start` here for god's sake.
+            if ro_line_idx != 0:
+                continue
+            res_i = self.resonators[q_idx]
+            res_i_to_line = self.resonators_params.to_line_list[q_idx]
+            res_i_Lcoupling = self.resonators_params.L_coupling_list[q_idx]
+            res_i_r = self.resonators_params.res_r_list[q_idx]
+            res_i_rotation = DCplxTrans(
+                1, self.resonators_params.resonator_rotation_angles[q_idx], False, 0, 0
+            )
+            p_res_start = res_i.start + \
+                          res_i_rotation * DVector(-3 * res_i_r, res_i_to_line)
+            p_res_end = res_i.start + \
+                        res_i_rotation * DVector(res_i_Lcoupling + 3 * res_i_r, res_i_to_line)
+            pts_middle += [p_res_start, p_res_end]
+
+        p1_end = p0_end + DVector(-turn_radii, 0)
+        p2_start = DPoint(pts_middle[0].x, pts_middle[0].y + 2 * turn_radii)
+        pts = [p0_start, p1_start, p2_start] + pts_middle + [p1_end, p0_end]
+        self.ro_lines[1] = DPathCPW(
+            points=pts,
+            cpw_parameters=[self.ro_line_Z],
+            turn_radii=[turn_radii],
+            trans_in=None,
+            region_id="ph"
+        )
+        self.ro_lines[1].place(self.region_ph, region_id="ph")
+
+        ''' readout line 1 (bottom left envelope)'''
         p0_start = self.contact_pads[0].end
         p1_start = p0_start + DPoint(turn_radii, 0)
         p0_end = self.contact_pads[7].end
         # RO line extends by 2 curve radii of the resonator along coupling
 
         pts_middle = []
-        for q_idx in [10, 7, 3, 4, 0, 1]:  # TODO: move this list to geometry config file
+        for q_idx, _, _, ro_line_idx in self.q_res_connector_roline_map:  # 3rd column contains readout line correspondance
             # TODO: fix problem with `origin` not tracking changes after construction had
             #  to use `resonator.start` here for god's sake.
+            if ro_line_idx != 1:
+                continue
             res_i = self.resonators[q_idx]
             res_i_to_line = self.resonators_params.to_line_list[q_idx]
             res_i_Lcoupling = self.resonators_params.L_coupling_list[q_idx]
@@ -496,6 +538,14 @@ class Design12QStair(ChipDesign):
         p1_end = p0_end + DVector(0, 3 * turn_radii)
         p2_end = DVector(pts_middle[-1].x, p1_end.y)
         pts = [p0_start, p1_start] + pts_middle + [p2_end, p1_end, p0_end]
+
+        # debug start
+        if self.DEBUG:
+            dv = DVector(50e3, 50e3)
+            for pt in pts:
+                self.debug_region.insert(pya.Box(pt - dv, pt + dv))
+        # debug end
+
         self.ro_lines[0] = DPathCPW(
             points=pts,
             cpw_parameters=[self.ro_line_Z],
@@ -505,41 +555,6 @@ class Design12QStair(ChipDesign):
         )
         self.ro_lines[0].place(self.region_ph, region_id="ph")
 
-        # readout line 2
-        p0_start = self.contact_pads[15].end
-        p1_start = p0_start + DPoint(0, -3 * turn_radii)
-        p0_end = self.contact_pads[10].end
-        # RO line extends by 2 curve radii of the resonator along coupling
-
-        pts_middle = []
-        for q_idx in [11, 8, 9, 5, 6, 2]:  # TODO: move this list to geometry config file
-            # TODO: fix fucking problem with `origin` not tracking changes after construction had
-            #  to use `resonator.start` here for god's sake.
-            res_i = self.resonators[q_idx]
-            res_i_to_line = self.resonators_params.to_line_list[q_idx]
-            res_i_Lcoupling = self.resonators_params.L_coupling_list[q_idx]
-            res_i_r = self.resonators_params.res_r_list[q_idx]
-            res_i_rotation = DCplxTrans(
-                1, self.resonators_params.resonator_rotation_angles[q_idx], False, 0, 0
-            )
-            p_res_start = res_i.start + \
-                          res_i_rotation * DVector(-3 * res_i_r, res_i_to_line)
-            p_res_end = res_i.start + \
-                        res_i_rotation * DVector(res_i_Lcoupling + 3 * res_i_r, res_i_to_line)
-            pts_middle += [p_res_start, p_res_end]
-
-        p1_end = p0_end + DVector(-turn_radii, 0)
-
-        p2_start = DPoint(pts_middle[0].x, pts_middle[0].y + 2 * turn_radii)
-        pts = [p0_start, p1_start, p2_start] + pts_middle + [p1_end, p0_end]
-        self.ro_lines[1] = DPathCPW(
-            points=pts,
-            cpw_parameters=[self.ro_line_Z],
-            turn_radii=[turn_radii],
-            trans_in=None,
-            region_id="ph"
-        )
-        self.ro_lines[1].place(self.region_ph, region_id="ph")
 
     def draw_microwave_drvie_lines(self):
         r_turn = 100e3
@@ -1604,6 +1619,9 @@ class Design12QStair(ChipDesign):
         self.cell.shapes(self.layer_bridges2).insert(self.region_bridges2)
         self.cell.shapes(self.layer_bridges3).insert(self.region_bridges3)
         self.cell.shapes(self.layer_el_protection).insert(
+            self.region_el_protection
+        )
+        self.cell.shapes(self.layer).insert(
             self.region_el_protection
         )
         self.lv.zoom_fit()

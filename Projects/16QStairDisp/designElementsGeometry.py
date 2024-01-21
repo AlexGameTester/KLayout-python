@@ -36,7 +36,8 @@ class QubitsGrid:
     dy: float = 1e6
     pts_grid: np.ndarray = None  # initialized after construction since it is mutable
     NQUBITS: int = None  # number of qubits in `pts_grid`
-
+    # {q_idx: flux} correspondance map. Flux normalized to [0,1] interval
+    q_fl_idle: Dict[int, float] = None
     def __post_init__(self):
         # mutable input argument has to be initialized here
         # otherwise this argument will depend on the history of it's modifications
@@ -56,6 +57,20 @@ class QubitsGrid:
             dtype=float
         )
         self.NQUBITS = len(self.pts_grid)
+
+        # used 2 non-neighbour diagonals that qubits placed along. Choosing I and III diagonals,
+        # see schematics
+        q_uss_list = [
+            1, 4, 8,
+            12, 3, 7, 11, 15
+        ]
+        for q_idx in range(self.NQUBITS):
+            if q_idx in q_uss_list:
+                self.q_fl_idle[q_idx] = 0
+            else:
+                self.q_fl_idle[q_idx] = 0.5
+
+        # shift qubits grid to match with the chip center
         self.__centralize_grid()
 
     def __centralize_grid(self):
@@ -71,17 +86,6 @@ class QubitsGrid:
         pt_y = pt_pos[1] * self.dy
         origin = self.origin
         return origin + DVector(pt_x, pt_y)
-
-    def get_q_sweet_spot(self, q_idx):
-        # used 2 non-neighbour diagonals that qubits placed along. Choosing I and III diagonals,
-        # see schematics
-        if q_idx in [
-            1, 4, 8, 12,
-            2, 6, 11, 14
-        ]:
-            return "USS"  # upper sweet spot
-        else:
-            return "LSS"  # lower sweet spot
 
 
 @dataclass  # dataclass is used for simplicity of class declaration and readability only
@@ -313,9 +317,9 @@ class ConnectivityMap:
     qq_coupling_connectors_map: np.ndarray = np.zeros((16, 16, 2), dtype=int) - 1
 
     # squids directed from bottom to top (qubit indexes)
-    direct_squids_idxs = [2, 5, 6, 9, 10, 13, 14]
+    direct_squids_idxs = [2, 5, 6, 9, 10, 13, 14, 15]
     # upside-down squids (qubit indexes)
-    upsidedown_squids_idxs = [0, 1, 3, 4, 7, 8, 11, 12, 15]
+    upsidedown_squids_idxs = [0, 1, 3, 4, 7, 8, 11, 12]
 
     # TODO: fill structure automatically for more qubits
     # horizontal
@@ -416,7 +420,7 @@ class ConnectivityMap:
 
 
 @dataclass()
-class ROResonatorParams():
+class ROResonatorParams:
     """
         Static class that contains information on readout resonators geometry parameters.
         Geometry parameters has to be verified by simulation.
@@ -536,13 +540,13 @@ class ROResonatorParams():
 
         for q_idx in range(self.NQUBITS):
             freq_idx = self.q_idx_ro_freq_idx[q_idx]
-            ss_str = self.qubits_grid.get_q_sweet_spot(q_idx)
-            if ss_str == "USS":
+            q_fl_idle = self.qubits_grid.q_fl_idle[q_idx]
+            if q_fl_idle == 0:
                 self.q_res_coupling_params[q_idx] = CqrCouplingParamsType1(
                     donut_metal_width=self._donut_metal_width_USS[freq_idx],
                     donut_disk_d=self._donut_disk_d_USS[freq_idx]
                 )
-            elif ss_str == "LSS":
+            elif q_fl_idle == 0.5:
                 self.q_res_coupling_params[q_idx] = CqrCouplingParamsType1(
                     donut_metal_width=self._donut_metal_width_LSS[freq_idx],
                     donut_disk_d=self._donut_disk_d_LSS[freq_idx]
