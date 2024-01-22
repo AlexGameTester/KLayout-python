@@ -1,5 +1,5 @@
 # import built-ins
-from typing import List
+from typing import List, Dict
 from importlib import reload
 from dataclasses import dataclass, field
 
@@ -64,6 +64,7 @@ class QubitsGrid:
             1, 4, 8,
             12, 3, 7, 11, 15
         ]
+        self.q_fl_idle = {}
         for q_idx in range(self.NQUBITS):
             if q_idx in q_uss_list:
                 self.q_fl_idle[q_idx] = 0
@@ -368,7 +369,7 @@ class ConnectivityMap:
     q_res_connector_roline_map: np.ndarray = np.array(
         [
             (1, 4, 0, 0), (4, 5, 0, 0), (8, 7, 0, 0), (12, 2, 0, 0),
-            (0, 1, 4, 0), (3, 6, 0, 0), (7, 0, 0, 0), (11, 3, 0, 0), (15, 7, 0, 0),
+            (0, 1, 4, 0), (3, 6, 0, 0), (7, 0, 0, 0), (11, 3, 0, 0), (15, 7, 0, 1),
             (2, 3, 4, 1), (6, 2, 4, 1), (10, 4, 4, 1), (14, 1, 4, 1),
             (5, 0, 4, 1), (9, 5, 4, 1), (13, 6, 4, 1)
 
@@ -496,7 +497,7 @@ class ROResonatorParams:
     ]
     resonator_rotation_angles: np.ndarray = np.array(
         [
-            90, 0,
+            0, 0,
             90, -45, -45,
             90, 135, -45, -45,
                 135, 135, -45, 270,
@@ -565,6 +566,7 @@ class ROResonatorParams:
             "tail_segment_lengths"         : self.tail_segments_list[q_idx],
             "tail_turn_angles"             : self.tail_turn_angles_list[q_idx],
             "tail_trans_in"                : Trans.R270,
+            "to_line"                      : self.to_line_list[q_idx],
             "resonator_rotation_trans"     : DCplxTrans(
                 1, self.resonator_rotation_angles[q_idx], False, 0, 0
             ),
@@ -618,6 +620,11 @@ class ROResonatorParams:
                 1, 0, False,
                 DVector(self.L_coupling_list[q_idx], 0)
             ) * additional_displacement_trans
+        elif q_idx in [0]:
+            additional_displacement_trans = DCplxTrans(
+                1, 0, False,
+                DVector(-self.L_coupling_list[q_idx], 0)
+            ) * additional_displacement_trans
 
         return additional_displacement_trans
 
@@ -628,6 +635,7 @@ class ROResonator(EMResonatorTL3QbitWormRLTail):
         tail_shape, tail_turn_radiuses,
         tail_segment_lengths, tail_turn_angles, tail_trans_in=None,
         coupling_pars: CqrCouplingParamsType1 = CqrCouplingParamsType1(),
+        to_line: float = None,
         resonator_rotation_trans=DCplxTrans(1, 0, False, 0, 0),
         additional_displacement_trans=DCplxTrans(1, 0, False, 0, 0),
         trans_in=None
@@ -663,6 +671,7 @@ class ROResonator(EMResonatorTL3QbitWormRLTail):
         tail_turn_angles
         tail_trans_in
         coupling_pars
+        to_line
         resonator_rotation_trans: DCplxTrans
             rotation of the resonator itself
         additional_displacement_trans: DCplxTrans
@@ -672,6 +681,7 @@ class ROResonator(EMResonatorTL3QbitWormRLTail):
         self.coupling_pars = coupling_pars
         self.resonator_rotation_trans = resonator_rotation_trans
         self.additional_displacement_trans = additional_displacement_trans
+        self.to_line = to_line
         super().__init__(
             Z0, start=DPoint(0, 0),
             L_coupling=L_coupling,
@@ -770,3 +780,10 @@ class ROResonator(EMResonatorTL3QbitWormRLTail):
             region_id=self.region_id
         )
         self.primitives["coupling_bandage"] = self.coupling_bandage
+
+    def get_resonator_ro_connections(self):
+        p_res_start = self.start + \
+                      self.resonator_rotation_trans * DVector(-3 * self.r, self.to_line)
+        p_res_end = (self.start +
+                     self.resonator_rotation_trans * DVector(self.L_coupling + 3 * self.r, self.to_line))
+        return [p_res_start, p_res_end]
