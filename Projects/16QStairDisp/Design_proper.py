@@ -1,4 +1,4 @@
-__version__ = "16QStair_0.0.0.0_1Ser"
+__version__ = "16QStair_0.0.0.0_1It"
 
 '''
 NOTE:
@@ -7,8 +7,8 @@ in ascending order to qubit idxs.
 E.g. self.resonators[1] - resonator that belongs to qubit №1 (starting from 0)
 
 Changes log
-16QStair_0.0.0.0_1Ser
-    1. Based on 12QStair_0.0.0.8_4Ser
+16QStair_0.0.0.0_0It
+    1. Based on 12QStair_0.0.0.0_0It
 '''
 
 # import built-ins
@@ -82,11 +82,10 @@ reload(Cqq_couplings)
 from Cqq_couplings import CqqCouplingType2, CqqCouplingParamsType2
 from Cqq_couplings import CqqCouplingType1, CqqCouplingParamsType1
 
-
 DEBUG = True
 
 
-class Design12QStair(ChipDesign):
+class Design16QStair(ChipDesign):
     def __init__(
             self, cell_name,
             global_design_params: GlobalDesignParameters = GlobalDesignParameters()
@@ -246,47 +245,47 @@ class Design12QStair(ChipDesign):
         if self.DEBUG:
             self.draw_lines_grid()
         #
-        # self.resolve_cpw_intersections()
+        self.resolve_cpw_intersections()
         #
-        # self.draw_test_structures()
-        # self.draw_express_test_structures_pads()
-        # self.draw_bandages()
-        # self.draw_el_convertion_regions()
+        self.draw_test_structures()
+        self.draw_express_test_structures_pads()
+        self.draw_bandages()
+        self.draw_el_convertion_regions()
         #
-        # self.add_chip_marking(
-        #     text_bl=DPoint(9.2e6, 9.6e6),
-        #     chip_name=__version__,
-        #     text_scale=200
-        # )
-        #
-        # self.draw_litography_alignment_marks()
-        # self.draw_bridges()
+        self.add_chip_marking(
+            text_bl=DPoint(9.2e6, 9.6e6),
+            chip_name=__version__,
+            text_scale=200
+        )
+
+        self.draw_litography_alignment_marks()
+        self.draw_bridges()
         # self.draw_pinning_holes()
         # # 4Q_Disp_Xmon v.0.3.0.8 p.12 - ensure that contact pads has no holes
         # for contact_pad in self.contact_pads:
         #     contact_pad.place(self.region_ph)
         #
-        # self.extend_photo_overetching()
-        # self.inverse_destination(self.region_ph)
-        # # convert to gds acceptable polygons (without inner holes)
-        # self.region_ph.merge()
-        # self.resolve_holes()
-        # # convert to litograph readable format. Litograph can't handle
-        # # polygons with more than 200 vertices.
-        # self.split_polygons_in_layers(max_pts=180)
-        #
-        # # for processes after litographies
-        # self.draw_cutting_marks()
-        #
-        # # requested by fabrication team
-        # self.draw_additional_boxes()
+        self.extend_photo_overetching()
+        self.inverse_destination(self.region_ph)
+        # convert to gds acceptable polygons (without inner holes)
+        self.region_ph.merge()
+        self.resolve_holes()
+        # convert to litograph readable format. Litograph can't handle
+        # polygons with more than 200 vertices.
+        self.split_polygons_in_layers(max_pts=180)
+
+        # for processes after litographies
+        self.draw_cutting_marks()
+
+        # requested by fabrication team
+        self.draw_additional_boxes()
 
     def draw_lines_grid(self):
         dv = DVector(50e3, 50e3)
         for x in np.linspace(0, self.chip.dx, self.lines_grid_xn):
             for y in np.linspace(0, self.chip.dy, self.lines_grid_xn):
-                pt = DPoint(x,y)
-                self.debug_region.insert(pya.Box(pt- dv, pt + dv))
+                pt = DPoint(x, y)
+                self.debug_region.insert(pya.Box(pt - dv, pt + dv))
 
     def split_polygons_in_layers(self, max_pts=200):
         # TODO: add to parent class
@@ -450,7 +449,7 @@ class Design12QStair(ChipDesign):
             )
         )
 
-        if q_idx_direct is not None:   # not tested, bugs possible
+        if q_idx_direct is not None:  # not tested, bugs possible
             q_idx = q_idx_direct
             q_res_connector_idx = self.q_res_connector_idxs[q_idx]
 
@@ -479,7 +478,7 @@ class Design12QStair(ChipDesign):
         # for consistent and easy simulation of notch port resonator
         # TODO: conctruct envelope in a single cycle?
         self.qCenter_roLine_distance = abs((self.qubits[10].origin - self.resonators[0].start).x) \
-                                         + \
+                                       + \
                                        ROResonatorParams.to_line_list[10]
         ro_line_extension = self.qCenter_roLine_distance / 2
         turn_radii = self.ro_line_Z.b * 3
@@ -562,7 +561,7 @@ class Design12QStair(ChipDesign):
         q_idx = 0
         qubit = self.qubits[q_idx]
         p_start = self.contact_pads[18].end
-        p1 = p_start + DVector(0, -3*turn_radii)
+        p1 = p_start + DVector(0, -2 * turn_radii)
 
         p_end = qubit.origin + DVector(
             0,
@@ -570,12 +569,12 @@ class Design12QStair(ChipDesign):
             qubit.disk_cap_shunt.pars.disk_gap
         ) + DVector(8.0169e3, 0)
         resonator = self.resonators[q_idx]
-        ro_line_intersect = (2*self.resonators[q_idx].get_resonator_ro_connections()[1] +
-                             self.resonators[1].get_resonator_ro_connections()[0])/3
-        intersect_seg_l = max(3*self.ro_line_Z.b, 3*turn_radii)
-        p_int_ext = ro_line_intersect + resonator.resonator_rotation_trans * DVector(0, intersect_seg_l/2)
-        p_int_inn = ro_line_intersect + resonator.resonator_rotation_trans * DVector(0, -intersect_seg_l/2)
-        p_tr_start = DPoint(p_end.x, p_end.y + self.qubits_grid.dy/2)
+        ro_line_intersect = (2 * self.resonators[q_idx].get_resonator_ro_connections()[1] +
+                             self.resonators[1].get_resonator_ro_connections()[0]) / 3
+        intersect_seg_l = max(3 * self.ro_line_Z.b, 3 * turn_radii)
+        p_int_ext = ro_line_intersect + resonator.resonator_rotation_trans * DVector(0, intersect_seg_l / 2)
+        p_int_inn = ro_line_intersect + resonator.resonator_rotation_trans * DVector(0, -intersect_seg_l / 2)
+        p_tr_start = DPoint(p_end.x, p_end.y + self.qubits_grid.dy / 4)
         pts = [p_start, p1, p_int_ext, p_int_inn, p_tr_start, p_end]
 
         # debug section start
@@ -592,243 +591,402 @@ class Design12QStair(ChipDesign):
         )
         self.cpw_fl_lines[q_idx] = fl_dpath
 
-        # q_idx = 11
-        # qubit = self.qubits[q_idx]
-        # p_start = self.contact_pads[16].end
-        # p1 = p_start + DVector(0, -0.25e6)
-        # p_end = qubit.origin + DVector(
-        #     0,
-        #     qubit.disk_cap_shunt.pars.disk_r +
-        #     qubit.disk_cap_shunt.pars.disk_gap
-        # ) + DVector(8.0169e3, 0)
-        # p2 = DPoint(6e6, 11e6)
-        # p_tr_start = DPoint(p_end.x, 9e6)
-        # fl_dpath = DPathCPW(
-        #     points=[p_start, p1, p2, p_tr_start, p_end],
-        #     cpw_parameters=[self.z_fl1],
-        #     turn_radii=[r_turn]
-        # )
-        # self.cpw_fl_lines[q_idx] = fl_dpath
-        #
-        # q_idx = 8
-        # qubit = self.qubits[q_idx]
-        # p_start = self.contact_pads[14].end
-        # p1 = p_start + DVector(-0.25e6, 0)
-        # p_end = qubit.origin + DVector(
-        #     0,
-        #     qubit.disk_cap_shunt.pars.disk_r + qubit.disk_cap_shunt.pars.disk_gap
-        # ) + DVector(8.0169e3, 0)
-        # p2 = DPoint(7.703e6, 10.215e6)
-        # p3 = DPoint(7.2e6, 9.8e6)
-        # p4 = DPoint(7.1e6, 8.7e6)
-        # p_tr_start = DPoint(p_end.x, 7.90e6)
-        # fl_dpath = DPathCPW(
-        #     points=[p_start, p1, p2, p3, p4, p_tr_start, p_end],
-        #     cpw_parameters=[self.z_fl1],
-        #     turn_radii=[r_turn]
-        # )
-        # self.cpw_fl_lines[q_idx] = fl_dpath
-        #
-        # q_idx = 9
-        # qubit = self.qubits[q_idx]
-        # p_start = self.contact_pads[13].end
-        # p1 = p_start + DVector(-0.35e6, 0)
-        # p_end = qubit.origin + DVector(
-        #     0,
-        #     qubit.disk_cap_shunt.pars.disk_r + qubit.disk_cap_shunt.pars.disk_gap
-        # ) + DVector(8.0169e3, 0)
-        # p2 = DPoint(11.6e6, 8.92e6)
-        # p3 = DPoint(8.842e6, 9.081e6)
-        # p4 = DPoint(7.902e6, 8.177e6)
-        # p_tr_start = p_end + DVector(
-        #     0,
-        #     CqqCouplingParamsType1().bendings_disk_center_d
-        # )
-        # fl_dpath = DPathCPW(
-        #     points=[p_start, p1, p2, p3, p4, p_tr_start, p_end],
-        #     cpw_parameters=[self.z_fl1],
-        #     turn_radii=[r_turn]
-        # )
-        # self.cpw_fl_lines[q_idx] = fl_dpath
-        #
-        # q_idx = 5
-        # qubit = self.qubits[q_idx]
-        # p_start = self.contact_pads[12].end
-        # p1 = p_start + DVector(-3 * r_turn, 0)
-        # p2 = p1 + DVector(-0.25e6, 0)
-        # p_end = qubit.origin + DVector(
-        #     0,
-        #     qubit.disk_cap_shunt.pars.disk_r + qubit.disk_cap_shunt.pars.disk_gap
-        # ) + DVector(8.0169e3, 0)
-        # p3 = DPoint(11.1e6, 8.31e6)
-        # p4 = DPoint(9.525e6, 8.414e6)
-        # p5 = DPoint(8.632e6, 7.466e6)
-        # p_tr_start = p_end + DVector(
-        #     0,
-        #     CqqCouplingParamsType1().bendings_disk_center_d / 2
-        # )
-        # fl_dpath = DPathCPW(
-        #     points=[p_start, p1, p2, p3, p4, p5, p_tr_start, p_end],
-        #     cpw_parameters=[self.z_fl1],
-        #     turn_radii=[r_turn]
-        # )
-        # self.cpw_fl_lines[q_idx] = fl_dpath
-        #
-        # q_idx = 6
-        # qubit = self.qubits[q_idx]
-        # p_start = self.contact_pads[11].end
-        # p1 = p_start + DVector(-3 * r_turn, 0)
-        # p_end = qubit.origin + DVector(
-        #     0,
-        #     qubit.disk_cap_shunt.pars.disk_r + qubit.disk_cap_shunt.pars.disk_gap
-        # ) + DVector(8.0169e3, 0)
-        # p2 = DPoint(10.3e6, 7.2e6)
-        # p_tr_start = p_end + DVector(
-        #     0,
-        #     CqqCouplingParamsType1().bendings_disk_center_d / 2
-        # )
-        # fl_dpath = DPathCPW(
-        #     points=[p_start, p1, p2, p_tr_start, p_end],
-        #     cpw_parameters=[self.z_fl1],
-        #     turn_radii=[r_turn]
-        # )
-        # self.cpw_fl_lines[q_idx] = fl_dpath
-        #
-        # q_idx = 7
-        # p_start = self.contact_pads[2].end
-        # p1 = p_start + DVector(0.25e6, 0)
-        # p2 = DPoint(3.426e6, 6.905e6)
-        # qubit = self.qubits[q_idx]
-        # squid_connector_idx = self.connectivity_map.get_squid_connector_idx(qubit_idx=q_idx)
-        # fl_line_connector_angle = qubit.qubit_params.qubit_cap_params.connector_angles[
-        #     squid_connector_idx
-        # ]
-        # _p_tr_trans = DCplxTrans(1, fl_line_connector_angle, False, 0, 0)
-        # p_tr_start = qubit.origin + _p_tr_trans * DVector(
-        #     CqqCouplingParamsType1().bendings_disk_center_d, -8.0169e3
-        # )
-        # p3 = DPoint(4.9e6, 6.905e6)
-        # p_end = qubit.origin + _p_tr_trans * DVector(
-        #     qubit.disk_cap_shunt.pars.disk_r +
-        #     qubit.disk_cap_shunt.pars.disk_gap,
-        #     -8.0169e3
-        # )
-        # fl_dpath = DPathCPW(
-        #     points=[p_start, p1, p2, p3, p_tr_start, p_end],
-        #     cpw_parameters=[self.z_fl1],
-        #     turn_radii=[r_turn]
-        # )
-        # self.cpw_fl_lines[q_idx] = fl_dpath
-        #
-        # q_idx = 3
-        # p_start = self.contact_pads[4].end
-        # p1 = p_start + DVector(0.25e6, 0)
-        # p2 = DPoint(3.87e6, 5.21e6)
-        # p3 = DPoint(4.89e6, 5.79e6)
-        # qubit = self.qubits[q_idx]
-        # squid_connector_idx = self.connectivity_map.get_squid_connector_idx(qubit_idx=q_idx)
-        # fl_line_connector_angle = qubit.qubit_params.qubit_cap_params.connector_angles[
-        #     squid_connector_idx
-        # ]
-        # _p_tr_trans = DCplxTrans(1, fl_line_connector_angle, False, 0, 0)
-        # p_tr_start = qubit.origin + _p_tr_trans * DVector(
-        #     CqqCouplingParamsType1().bendings_disk_center_d, -8.0169e3
-        # )
-        # p_end = qubit.origin + _p_tr_trans * DVector(
-        #     qubit.disk_cap_shunt.pars.disk_r +
-        #     qubit.disk_cap_shunt.pars.disk_gap,
-        #     -8.0169e3
-        # )
-        # fl_dpath = DPathCPW(
-        #     points=[p_start, p1, p2, p3, p_tr_start, p_end],
-        #     cpw_parameters=[self.z_fl1],
-        #     turn_radii=[r_turn]
-        # )
-        # self.cpw_fl_lines[q_idx] = fl_dpath
-        #
-        # q_idx = 4
-        # qubit = self.qubits[q_idx]
-        # p_start = self.contact_pads[5].end
-        # p1 = p_start + DVector(0, r_turn)
-        # p_end = qubit.origin + (-1) * DVector(
-        #     8.0169e3,
-        #     qubit.disk_cap_shunt.pars.disk_r +
-        #     qubit.disk_cap_shunt.pars.disk_gap
-        # )
-        # p2 = DPoint(4.70e6, 4.43e6)
-        # p3 = DPoint(5.57e6, 5.36e6)
-        # p_tr_start = p_end - DVector(
-        #     0,
-        #     CqqCouplingParamsType1().bendings_disk_center_d
-        # )
-        # fl_dpath = DPathCPW(
-        #     points=[p_start, p1, p2, p3, p_tr_start, p_end],
-        #     cpw_parameters=[self.z_fl1],
-        #     turn_radii=[r_turn]
-        # )
-        # self.cpw_fl_lines[q_idx] = fl_dpath
-        #
-        # q_idx = 0
-        # qubit = self.qubits[q_idx]
-        # p_start = self.contact_pads[6].end
-        # p1 = p_start + DVector(0, r_turn)
-        # p_end = qubit.origin + (-1) * DVector(
-        #     8.0169e3,
-        #     qubit.disk_cap_shunt.pars.disk_r +
-        #     qubit.disk_cap_shunt.pars.disk_gap
-        # )
-        # p2 = DPoint(6.7e6, 3.5e6)
-        # p3 = DPoint(p2.x, 5.0e6)
-        # p_tr_start = p_end - DVector(
-        #     0,
-        #     CqqCouplingParamsType1().bendings_disk_center_d
-        # )
-        # fl_dpath = DPathCPW(
-        #     points=[p_start, p1, p2, p3, p_tr_start, p_end],
-        #     cpw_parameters=[self.z_fl1],
-        #     turn_radii=[r_turn]
-        # )
-        # self.cpw_fl_lines[q_idx] = fl_dpath
-        #
-        # q_idx = 1
-        # qubit = self.qubits[q_idx]
-        # p_start = self.contact_pads[8].end
-        # p1 = p_start + DVector(0, r_turn)
-        # p_end = qubit.origin + (-1) * DVector(
-        #     8.0169e3,
-        #     qubit.disk_cap_shunt.pars.disk_r +
-        #     qubit.disk_cap_shunt.pars.disk_gap
-        # )
-        # p_tr_start = p_end - DVector(
-        #     0,
-        #     CqqCouplingParamsType1().bendings_disk_center_d
-        # )
-        # fl_dpath = DPathCPW(
-        #     points=[p_start, p1, p_tr_start, p_end],
-        #     cpw_parameters=[self.z_fl1],
-        #     turn_radii=[r_turn]
-        # )
-        # self.cpw_fl_lines[q_idx] = fl_dpath
-        #
-        # q_idx = 2
-        # qubit = self.qubits[q_idx]
-        # p_start = self.contact_pads[9].end
-        # p1 = p_start + DVector(0, r_turn)
-        # p_end = qubit.origin + (-1) * DVector(
-        #     8.0169e3,
-        #     qubit.disk_cap_shunt.pars.disk_r +
-        #     qubit.disk_cap_shunt.pars.disk_gap
-        # )
-        # p_tr_start = p_end - DVector(
-        #     0,
-        #     CqqCouplingParamsType1().bendings_disk_center_d
-        # )
-        # fl_dpath = DPathCPW(
-        #     points=[p_start, p1, p_tr_start, p_end],
-        #     cpw_parameters=[self.z_fl1],
-        #     turn_radii=[r_turn]
-        # )
-        # self.cpw_fl_lines[q_idx] = fl_dpath
+        q_idx = 1
+        qubit = self.qubits[q_idx]
+        p_start = self.contact_pads[17].end
+        p1 = p_start + DVector(0, -2 * turn_radii)
+
+        p_end = qubit.origin + DVector(
+            0,
+            qubit.disk_cap_shunt.pars.disk_r +
+            qubit.disk_cap_shunt.pars.disk_gap
+        ) + DVector(8.0169e3, 0)
+        resonator = self.resonators[q_idx]
+        ro_line_intersect = (self.resonators[0].get_resonator_ro_connections()[1] +
+                             2 * self.resonators[q_idx].get_resonator_ro_connections()[0]) / 3
+        intersect_seg_l = max(3 * self.ro_line_Z.b, 3 * turn_radii)
+        p_int_ext = ro_line_intersect + resonator.resonator_rotation_trans * DVector(0, intersect_seg_l / 2)
+        p_int_inn = ro_line_intersect + resonator.resonator_rotation_trans * DVector(0, -intersect_seg_l / 2)
+        p_tr_start = DPoint(p_end.x, p_end.y + self.qubits_grid.dy / 4)
+        pts = [p_start, p1, p_int_ext, p_int_inn, p_tr_start, p_end]
+
+        fl_dpath = DPathCPW(
+            points=pts,
+            cpw_parameters=[self.z_fl1],
+            turn_radii=[turn_radii]
+        )
+        self.cpw_fl_lines[q_idx] = fl_dpath
+
+        q_idx = 3
+        qubit = self.qubits[q_idx]
+        p_start = self.contact_pads[16].end
+        p1 = p_start + DVector(0, -turn_radii)
+
+        p_end = qubit.origin + DVector(
+            0,
+            qubit.disk_cap_shunt.pars.disk_r +
+            qubit.disk_cap_shunt.pars.disk_gap
+        ) + DVector(8.0169e3, 0)
+        resonator = self.resonators[q_idx]
+        ro_line_intersect = (self.resonators[1].get_resonator_ro_connections()[1] +
+                             3 * self.resonators[3].get_resonator_ro_connections()[0]) / 4
+        intersect_seg_l = max(3 * self.ro_line_Z.b, 3 * turn_radii)
+        p_int_ext = ro_line_intersect + resonator.resonator_rotation_trans * DVector(0, intersect_seg_l / 2)
+        p_int_inn = ro_line_intersect + resonator.resonator_rotation_trans * DVector(0, -intersect_seg_l / 2)
+        p_tr_start = DPoint(p_end.x, p_end.y + self.qubits_grid.dy / 4)
+        pts = [p_start, p1, p_int_ext, p_int_inn, p_tr_start, p_end]
+
+        fl_dpath = DPathCPW(
+            points=pts,
+            cpw_parameters=[self.z_fl1],
+            turn_radii=[turn_radii]
+        )
+        self.cpw_fl_lines[q_idx] = fl_dpath
+
+        q_idx = 4
+        qubit = self.qubits[q_idx]
+        p_start = self.contact_pads[15].end
+        p1 = p_start + DVector(0, -turn_radii)
+
+        p_end = qubit.origin + DVector(
+            0,
+            qubit.disk_cap_shunt.pars.disk_r +
+            qubit.disk_cap_shunt.pars.disk_gap
+        ) + DVector(8.0169e3, 0)
+        resonator = self.resonators[q_idx]
+        ro_line_intersect = (self.resonators[3].get_resonator_ro_connections()[1] +
+                             self.resonators[4].get_resonator_ro_connections()[0]) / 2
+        intersect_seg_l = max(3 * self.ro_line_Z.b, 3 * turn_radii)
+        p_int_ext = ro_line_intersect + resonator.resonator_rotation_trans * DVector(0, intersect_seg_l / 2)
+        p_int_inn = ro_line_intersect + resonator.resonator_rotation_trans * DVector(0, -intersect_seg_l / 2)
+        p_tr_start = DPoint(p_end.x, p_end.y + self.qubits_grid.dy / 4)
+        pts = [p_start, p1, p_int_ext, p_int_inn, p_tr_start, p_end]
+
+        fl_dpath = DPathCPW(
+            points=pts,
+            cpw_parameters=[self.z_fl1],
+            turn_radii=[turn_radii]
+        )
+        self.cpw_fl_lines[q_idx] = fl_dpath
+
+        q_idx = 7
+        qubit = self.qubits[q_idx]
+        p_start = self.contact_pads[14].end
+        p1 = p_start + DVector(-3 * turn_radii, 0)
+
+        p_end = qubit.origin + DVector(
+            0,
+            qubit.disk_cap_shunt.pars.disk_r +
+            qubit.disk_cap_shunt.pars.disk_gap
+        ) + DVector(8.0169e3, 0)
+        resonator = self.resonators[q_idx]
+        ro_line_intersect = (self.resonators[4].get_resonator_ro_connections()[1] +
+                             self.resonators[7].get_resonator_ro_connections()[0]) / 2
+        intersect_seg_l = max(3 * self.ro_line_Z.b, 3 * turn_radii)
+        p_int_ext = ro_line_intersect + resonator.resonator_rotation_trans * DVector(0, intersect_seg_l / 2)
+        p_int_inn = ro_line_intersect + resonator.resonator_rotation_trans * DVector(0, -intersect_seg_l / 2)
+        p_tr_start = DPoint(p_end.x, p_end.y + self.qubits_grid.dy / 4)
+        pts = [p_start, p1, p_int_ext, p_int_inn, p_tr_start, p_end]
+
+        fl_dpath = DPathCPW(
+            points=pts,
+            cpw_parameters=[self.z_fl1],
+            turn_radii=[turn_radii]
+        )
+        self.cpw_fl_lines[q_idx] = fl_dpath
+
+        q_idx = 8
+        qubit = self.qubits[q_idx]
+        p_start = self.contact_pads[13].end
+        p1 = p_start + DVector(-3 * turn_radii, 0)
+
+        p_end = qubit.origin + DVector(
+            0,
+            qubit.disk_cap_shunt.pars.disk_r +
+            qubit.disk_cap_shunt.pars.disk_gap
+        ) + DVector(8.0169e3, 0)
+        resonator = self.resonators[q_idx]
+        ro_line_intersect = (self.resonators[7].get_resonator_ro_connections()[1] +
+                             self.resonators[8].get_resonator_ro_connections()[0]) / 2
+        intersect_seg_l = max(3 * self.ro_line_Z.b, 3 * turn_radii)
+        p_int_ext = ro_line_intersect + resonator.resonator_rotation_trans * DVector(0, intersect_seg_l / 2)
+        p_int_inn = ro_line_intersect + resonator.resonator_rotation_trans * DVector(0, -intersect_seg_l / 2)
+        p_tr_start = DPoint(p_end.x, p_end.y + self.qubits_grid.dy / 4)
+        pts = [p_start, p1, p_int_ext, p_int_inn, p_tr_start, p_end]
+
+        fl_dpath = DPathCPW(
+            points=pts,
+            cpw_parameters=[self.z_fl1],
+            turn_radii=[turn_radii]
+        )
+        self.cpw_fl_lines[q_idx] = fl_dpath
+
+        q_idx = 11
+        qubit = self.qubits[q_idx]
+        p_start = self.contact_pads[12].end
+        p1 = p_start + DVector(-3 * turn_radii, 0)
+
+        p_end = qubit.origin + DVector(
+            0,
+            qubit.disk_cap_shunt.pars.disk_r +
+            qubit.disk_cap_shunt.pars.disk_gap
+        ) + DVector(8.0169e3, 0)
+        resonator = self.resonators[q_idx]
+        ro_line_intersect = (self.resonators[8].get_resonator_ro_connections()[1] +
+                             self.resonators[11].get_resonator_ro_connections()[0]) / 2
+        intersect_seg_l = max(3 * self.ro_line_Z.b, 3 * turn_radii)
+        p_int_ext = ro_line_intersect + resonator.resonator_rotation_trans * DVector(0, intersect_seg_l / 2)
+        p_int_inn = ro_line_intersect + resonator.resonator_rotation_trans * DVector(0, -intersect_seg_l / 2)
+        p_tr_start = DPoint(p_end.x, p_end.y + self.qubits_grid.dy / 4)
+        pts = [p_start, p1, p_int_ext, p_int_inn, p_tr_start, p_end]
+
+        fl_dpath = DPathCPW(
+            points=pts,
+            cpw_parameters=[self.z_fl1],
+            turn_radii=[turn_radii]
+        )
+        self.cpw_fl_lines[q_idx] = fl_dpath
+
+        q_idx = 12
+        qubit = self.qubits[q_idx]
+        p_start = self.contact_pads[11].end
+        p1 = p_start + DVector(-3 * turn_radii, 0)
+
+        p_end = qubit.origin + DVector(
+            0,
+            qubit.disk_cap_shunt.pars.disk_r +
+            qubit.disk_cap_shunt.pars.disk_gap
+        ) + DVector(8.0169e3, 0)
+        resonator = self.resonators[q_idx]
+        ro_line_intersect = (self.resonators[11].get_resonator_ro_connections()[1] +
+                             self.resonators[12].get_resonator_ro_connections()[0]) / 2
+        intersect_seg_l = max(3 * self.ro_line_Z.b, 3 * turn_radii)
+        p_int_ext = ro_line_intersect + resonator.resonator_rotation_trans * DVector(0, intersect_seg_l / 2)
+        p_int_inn = ro_line_intersect + resonator.resonator_rotation_trans * DVector(0, -intersect_seg_l / 2)
+        p_tr_start = DPoint(p_end.x, p_end.y + self.qubits_grid.dy / 4)
+        pts = [p_start, p1, p_int_ext, p_int_inn, p_tr_start, p_end]
+
+        fl_dpath = DPathCPW(
+            points=pts,
+            cpw_parameters=[self.z_fl1],
+            turn_radii=[turn_radii]
+        )
+        self.cpw_fl_lines[q_idx] = fl_dpath
+        
+
+        ''' bottom-left diagonal'''
+        q_idx = 15
+        qubit = self.qubits[q_idx]
+        p_start = self.contact_pads[8].end
+        p1 = p_start + DVector(0, 3 * turn_radii)
+
+        p_end = qubit.origin - DVector(
+            0,
+            qubit.disk_cap_shunt.pars.disk_r +
+            qubit.disk_cap_shunt.pars.disk_gap
+        ) - DVector(8.0169e3, 0)
+        resonator = self.resonators[q_idx]
+        ro_line_intersect = (3*self.resonators[15].get_resonator_ro_connections()[1] +
+                             self.resonators[14].get_resonator_ro_connections()[0]) / 4
+        intersect_seg_l = max(3 * self.ro_line_Z.b, 3 * turn_radii)
+        p_int_ext = ro_line_intersect + resonator.resonator_rotation_trans * DVector(0, intersect_seg_l / 2)
+        p_int_inn = ro_line_intersect + resonator.resonator_rotation_trans * DVector(0, -intersect_seg_l / 2)
+        p_tr_start = DPoint(p_end.x, p_end.y - self.qubits_grid.dy / 4)
+        pts = [p_start, p1, p_int_ext, p_int_inn, p_tr_start, p_end]
+
+        if self.DEBUG:
+            dv = DVector(50e3, 50e3)
+            for pt in pts:
+                self.debug_region.insert(pya.Box(pt - dv, pt + dv))
+
+        fl_dpath = DPathCPW(
+            points=pts,
+            cpw_parameters=[self.z_fl1],
+            turn_radii=[turn_radii]
+        )
+        self.cpw_fl_lines[q_idx] = fl_dpath
+
+        q_idx = 14
+        qubit = self.qubits[q_idx]
+        p_start = self.contact_pads[7].end
+        p1 = p_start + DVector(0, 3 * turn_radii)
+
+        p_end = qubit.origin - DVector(
+            0,
+            qubit.disk_cap_shunt.pars.disk_r +
+            qubit.disk_cap_shunt.pars.disk_gap
+        ) - DVector(8.0169e3, 0)
+        resonator = self.resonators[q_idx]
+        ro_line_intersect = (self.resonators[15].get_resonator_ro_connections()[1] +
+                             3*self.resonators[14].get_resonator_ro_connections()[0]) / 4
+        intersect_seg_l = max(3 * self.ro_line_Z.b, 3 * turn_radii)
+        p_int_ext = ro_line_intersect + resonator.resonator_rotation_trans * DVector(0, intersect_seg_l / 2)
+        p_int_inn = ro_line_intersect + resonator.resonator_rotation_trans * DVector(0, -intersect_seg_l / 2)
+        p_tr_start = DPoint(p_end.x, p_end.y - self.qubits_grid.dy / 4)
+        pts = [p_start, p1, p_int_ext, p_int_inn, p_tr_start, p_end]
+
+        fl_dpath = DPathCPW(
+            points=pts,
+            cpw_parameters=[self.z_fl1],
+            turn_radii=[turn_radii]
+        )
+        self.cpw_fl_lines[q_idx] = fl_dpath
+
+        q_idx = 13
+        qubit = self.qubits[q_idx]
+        p_start = self.contact_pads[6].end
+        p1 = p_start + DVector(0, 3 * turn_radii)
+
+        p_end = qubit.origin - DVector(
+            0,
+            qubit.disk_cap_shunt.pars.disk_r +
+            qubit.disk_cap_shunt.pars.disk_gap
+        ) - DVector(8.0169e3, 0)
+        resonator = self.resonators[q_idx]
+        ro_line_intersect = (self.resonators[14].get_resonator_ro_connections()[1] +
+                             self.resonators[13].get_resonator_ro_connections()[0]) / 2
+        intersect_seg_l = max(3 * self.ro_line_Z.b, 3 * turn_radii)
+        p_int_ext = ro_line_intersect + resonator.resonator_rotation_trans * DVector(0, intersect_seg_l / 2)
+        p_int_inn = ro_line_intersect + resonator.resonator_rotation_trans * DVector(0, -intersect_seg_l / 2)
+        p_tr_start = DPoint(p_end.x, p_end.y  - self.qubits_grid.dy / 4)
+        pts = [p_start, p1, p_int_ext, p_int_inn, p_tr_start, p_end]
+
+        fl_dpath = DPathCPW(
+            points=pts,
+            cpw_parameters=[self.z_fl1],
+            turn_radii=[turn_radii]
+        )
+        self.cpw_fl_lines[q_idx] = fl_dpath
+
+        q_idx = 10
+        qubit = self.qubits[q_idx]
+        p_start = self.contact_pads[5].end
+        p1 = p_start + DVector(0, turn_radii)
+
+        p_end = qubit.origin - DVector(
+            0,
+            qubit.disk_cap_shunt.pars.disk_r +
+            qubit.disk_cap_shunt.pars.disk_gap
+        ) - DVector(8.0169e3, 0)
+        resonator = self.resonators[q_idx]
+        ro_line_intersect = (self.resonators[13].get_resonator_ro_connections()[1] +
+                             3 * self.resonators[10].get_resonator_ro_connections()[0]) / 4
+        intersect_seg_l = max(3 * self.ro_line_Z.b, 3 * turn_radii)
+        p_int_ext = ro_line_intersect + resonator.resonator_rotation_trans * DVector(0, intersect_seg_l / 2)
+        p_int_inn = ro_line_intersect + resonator.resonator_rotation_trans * DVector(0, -intersect_seg_l / 2)
+        p_tr_start = DPoint(p_end.x, p_end.y  - self.qubits_grid.dy / 4)
+        pts = [p_start, p1, p_int_ext, p_int_inn, p_tr_start, p_end]
+
+        fl_dpath = DPathCPW(
+            points=pts,
+            cpw_parameters=[self.z_fl1],
+            turn_radii=[turn_radii]
+        )
+        self.cpw_fl_lines[q_idx] = fl_dpath
+
+        q_idx = 9
+        qubit = self.qubits[q_idx]
+        p_start = self.contact_pads[4].end
+        p1 = p_start + DVector(turn_radii, 0)
+
+        p_end = qubit.origin - DVector(
+            0,
+            qubit.disk_cap_shunt.pars.disk_r +
+            qubit.disk_cap_shunt.pars.disk_gap
+        ) - DVector(8.0169e3, 0)
+        resonator = self.resonators[q_idx]
+        ro_line_intersect = (self.resonators[10].get_resonator_ro_connections()[1] +
+                             self.resonators[9].get_resonator_ro_connections()[0]) / 2
+        intersect_seg_l = max(3 * self.ro_line_Z.b, 3 * turn_radii)
+        p_int_ext = ro_line_intersect + resonator.resonator_rotation_trans * DVector(0, intersect_seg_l / 2)
+        p_int_inn = ro_line_intersect + resonator.resonator_rotation_trans * DVector(0, -intersect_seg_l / 2)
+        p_tr_start = DPoint(p_end.x, p_end.y  - self.qubits_grid.dy / 4)
+        pts = [p_start, p1, p_int_ext, p_int_inn, p_tr_start, p_end]
+
+        fl_dpath = DPathCPW(
+            points=pts,
+            cpw_parameters=[self.z_fl1],
+            turn_radii=[turn_radii]
+        )
+        self.cpw_fl_lines[q_idx] = fl_dpath
+
+        q_idx = 6
+        qubit = self.qubits[q_idx]
+        p_start = self.contact_pads[3].end
+        p1 = p_start + DVector(3 * turn_radii, 0)
+
+        p_end = qubit.origin - DVector(
+            0,
+            qubit.disk_cap_shunt.pars.disk_r +
+            qubit.disk_cap_shunt.pars.disk_gap
+        ) - DVector(8.0169e3, 0)
+        resonator = self.resonators[q_idx]
+        ro_line_intersect = (self.resonators[9].get_resonator_ro_connections()[1] +
+                             self.resonators[6].get_resonator_ro_connections()[0]) / 2
+        intersect_seg_l = max(3 * self.ro_line_Z.b, 3 * turn_radii)
+        p_int_ext = ro_line_intersect + resonator.resonator_rotation_trans * DVector(0, intersect_seg_l / 2)
+        p_int_inn = ro_line_intersect + resonator.resonator_rotation_trans * DVector(0, -intersect_seg_l / 2)
+        p_tr_start = DPoint(p_end.x, p_end.y  - self.qubits_grid.dy / 4)
+        pts = [p_start, p1, p_int_ext, p_int_inn, p_tr_start, p_end]
+
+        fl_dpath = DPathCPW(
+            points=pts,
+            cpw_parameters=[self.z_fl1],
+            turn_radii=[turn_radii]
+        )
+        self.cpw_fl_lines[q_idx] = fl_dpath
+
+        q_idx = 5
+        qubit = self.qubits[q_idx]
+        p_start = self.contact_pads[2].end
+        p1 = p_start + DVector( 3 * turn_radii, 0)
+
+        p_end = qubit.origin - DVector(
+            0,
+            qubit.disk_cap_shunt.pars.disk_r +
+            qubit.disk_cap_shunt.pars.disk_gap
+        ) - DVector(8.0169e3, 0)
+        resonator = self.resonators[q_idx]
+        ro_line_intersect = (self.resonators[6].get_resonator_ro_connections()[1] +
+                             self.resonators[5].get_resonator_ro_connections()[0]) / 2
+        intersect_seg_l = max(3 * self.ro_line_Z.b, 3 * turn_radii)
+        p_int_ext = ro_line_intersect + resonator.resonator_rotation_trans * DVector(0, intersect_seg_l / 2)
+        p_int_inn = ro_line_intersect + resonator.resonator_rotation_trans * DVector(0, -intersect_seg_l / 2)
+        p_tr_start = DPoint(p_end.x, p_end.y  - self.qubits_grid.dy / 4)
+        pts = [p_start, p1, p_int_ext, p_int_inn, p_tr_start, p_end]
+
+        fl_dpath = DPathCPW(
+            points=pts,
+            cpw_parameters=[self.z_fl1],
+            turn_radii=[turn_radii]
+        )
+        self.cpw_fl_lines[q_idx] = fl_dpath
+
+        q_idx = 2
+        qubit = self.qubits[q_idx]
+        p_start = self.contact_pads[1].end
+        p1 = p_start + DVector( 3 * turn_radii, 0)
+
+        p_end = qubit.origin - DVector(
+            0,
+            qubit.disk_cap_shunt.pars.disk_r +
+            qubit.disk_cap_shunt.pars.disk_gap
+        ) - DVector(8.0169e3, 0)
+        resonator = self.resonators[q_idx]
+        ro_line_intersect = (self.resonators[5].get_resonator_ro_connections()[1] +
+                             self.resonators[2].get_resonator_ro_connections()[0]) / 2
+        intersect_seg_l = max(3 * self.ro_line_Z.b, 3 * turn_radii)
+        p_int_ext = ro_line_intersect + resonator.resonator_rotation_trans * DVector(0, intersect_seg_l / 2)
+        p_int_inn = ro_line_intersect + resonator.resonator_rotation_trans * DVector(0, -intersect_seg_l / 2)
+        p_tr_start = DPoint(p_end.x, p_end.y  - self.qubits_grid.dy / 4)
+        pts = [p_start, p1, p_int_ext, p_int_inn, p_tr_start, p_end]
+
+        fl_dpath = DPathCPW(
+            points=pts,
+            cpw_parameters=[self.z_fl1],
+            turn_radii=[turn_radii]
+        )
+        self.cpw_fl_lines[q_idx] = fl_dpath
 
         for flux_line in self.cpw_fl_lines:
             if flux_line is not None:
@@ -906,27 +1064,26 @@ class Design12QStair(ChipDesign):
         flux_line.place(self.region_ph)
 
     def resolve_cpw_intersections(self):
-        for ctr_lines, ro_line in itertools.product(
-                zip(self.cpw_md_lines, self.cpw_fl_lines),
+        for dpathcpw_line, ro_line in itertools.product(
+                self.cpw_fl_lines,
                 self.ro_lines
         ):
-            for dpathcpw_line in ctr_lines:
-                # some qubit do not have control line of the certain type
-                if dpathcpw_line is None:
-                    continue
+            # some qubit do not have control line of the certain type
+            if dpathcpw_line is None:
+                continue
 
-                # ro line is placed later and is to be preserved continuous
-                result = Intersection.get_intersected_cpws(dpathcpw_line, ro_line)
-                if result is not None:
-                    cpw1, cpw2 = result
-                    intersection_pt = Intersection.resolve_cpw_cpw_intersection(
-                        cpw1=cpw1, cpw2=cpw2, cpw_reg=self.region_ph,
-                        bridge_reg1=self.region_bridges1, bridge_reg2=self.region_bridges2,
-                        bridge_reg3=self.region_bridges3,
-                        support_type=self.bridges_support_type,
-                        support_to_gnd=self.bridges_support_to_gnd
-                    )
-                    self.intersection_points.append(intersection_pt)
+            # ro line is placed later and is to be preserved continuous
+            result = Intersection.get_intersected_cpws(dpathcpw_line, ro_line)
+            if result is not None:
+                cpw1, cpw2 = result
+                intersection_pt = Intersection.resolve_cpw_cpw_intersection(
+                    cpw1=cpw1, cpw2=cpw2, cpw_reg=self.region_ph,
+                    bridge_reg1=self.region_bridges1, bridge_reg2=self.region_bridges2,
+                    bridge_reg3=self.region_bridges3,
+                    support_type=self.bridges_support_type,
+                    support_to_gnd=self.bridges_support_to_gnd
+                )
+                self.intersection_points.append(intersection_pt)
 
     def draw_test_structures(self):
         # TODO: fix test structure SQUIDs
@@ -1323,7 +1480,7 @@ class Design12QStair(ChipDesign):
         # TODO: fix this
         self.control_lines_avoid_points += [squid.center for squid in self.squids]
         self.control_lines_avoid_points += self.intersection_points
-        for ctr_line in itertools.chain(self.cpw_md_lines, self.cpw_fl_lines):
+        for ctr_line in self.cpw_fl_lines:
             if ctr_line is None:
                 continue
             else:
@@ -1569,7 +1726,7 @@ class Design12QStair(ChipDesign):
 
 def simulate_res_f_and_Q(q_idx, resolution=(2e3, 2e3), type='freq'):
     ### DRAWING SECTION START ###
-    design = Design12QStair("testScript")
+    design = Design16QStair("testScript")
     crop_box = design.draw_for_res_Q_sim(q_idx)
     design.show()
     ### DRAWING SECTION END ###
@@ -1591,8 +1748,8 @@ def simulate_res_f_and_Q(q_idx, resolution=(2e3, 2e3), type='freq'):
             crop_box=crop_box,
             filename=f'res_{q_idx}_Q_S_pars.csv',
             q_idx=q_idx,
-            min_freq=ROResonatorParams.current_sim_freqs[q_idx] - second_span/2,
-            max_freq=ROResonatorParams.current_sim_freqs[q_idx] + second_span/2,
+            min_freq=ROResonatorParams.current_sim_freqs[q_idx] - second_span / 2,
+            max_freq=ROResonatorParams.current_sim_freqs[q_idx] + second_span / 2,
             resolution=resolution
         )
 
@@ -1693,7 +1850,7 @@ def simulate_Cqq(q1_idx, q2_idx=None, resolution=(5e3, 5e3)):
     # x_distance_dx_list = [0]
     for dl in dl_list:
         ''' DRAWING SECTION START '''
-        design = Design12QStair("testScript")
+        design = Design16QStair("testScript")
         design.draw_chip()
         design.draw_qubits_array(new_disk_r=DiskConn8Pars().disk_r)
         design.draw_qq_couplings(donut_metal_width=CqqCouplingParamsType1().donut_metal_width + dl)
@@ -1764,7 +1921,7 @@ def simulate_Cqr(q_idxs: List[int], resolution=(4e3, 4e3)):
                 )
             )
     ):
-        design = Design12QStair("testScript")
+        design = Design16QStair("testScript")
         ### DRAWING SECTION START ###
         print("simulation #", simulation_i)
         # exclude coils from simulation (sometimes port is placed onto coil (TODO: fix)
@@ -1832,7 +1989,7 @@ def simulate_md_Cg(q_idx: int, resolution=(5e3, 5e3)):
     # dl_list = np.linspace(-20e3, 20e3, 3)
     dl_list = [0]
     for dl in dl_list:
-        design = Design12QStair("testScript")
+        design = Design16QStair("testScript")
 
         design.draw_chip()
         design.draw_qubits_array()
@@ -1857,22 +2014,24 @@ def simulate_md_Cg(q_idx: int, resolution=(5e3, 5e3)):
 
         # rotate design around center of the qubit such that microwave drive end is directed along x-axis.
         md_dv_n = -list(md_line.primitives.values())[-1].dr.dup()  # goes out from qubit towards md line
-        rotated_angle_deg = np.arctan2(md_dv_n.y, md_dv_n.x)*180/np.pi
+        rotated_angle_deg = np.arctan2(md_dv_n.y, md_dv_n.x) * 180 / np.pi
         rotation_center = qubit.origin.dup()
 
-        trans_tmp = ICplxTrans(1, 0, False, DVector(rotation_center))*ICplxTrans(1, -rotated_angle_deg, False, 0, 0)*ICplxTrans(1, 0, False, DVector(-rotation_center))
+        trans_tmp = ICplxTrans(1, 0, False, DVector(rotation_center)) * ICplxTrans(1, -rotated_angle_deg, False, 0,
+                                                                                   0) * ICplxTrans(1, 0, False, DVector(
+            -rotation_center))
         design.region_ph.transform(trans_tmp)
         md_reg.transform(trans_tmp)
         q_reg.transform(trans_tmp)
 
-        md_dv_n = trans_tmp*md_dv_n  # goes out from qubit towards md linex
+        md_dv_n = trans_tmp * md_dv_n  # goes out from qubit towards md linex
         md_dv_n /= md_dv_n.abs()
         md_importance_length = design.md_line_cpw12_smoothhing + 3 / 2 * design.md_line_cpw2_len
         box_region = q_reg.sized(1 * q_reg.bbox().width(), 1 * q_reg.bbox().height()) + \
                      Region(  # add a box-point to region
                          pya.Box(
                              qubit.origin,
-                             qubit.origin + DPoint(3/2*md_importance_length, 2)
+                             qubit.origin + DPoint(3 / 2 * md_importance_length, 2)
                          )
                      )
         # and take their smallest enclosing Region
@@ -1924,7 +2083,7 @@ def simulate_md_Cg(q_idx: int, resolution=(5e3, 5e3)):
 if __name__ == "__main__":
     ''' draw and show design for manual design evaluation '''
     FABRICATION.OVERETCHING = 0.0e3
-    design = Design12QStair("testScript", global_design_params=GlobalDesignParameters())
+    design = Design16QStair("testScript", global_design_params=GlobalDesignParameters())
     design.draw()
     design.show()
 
