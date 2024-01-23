@@ -1,4 +1,4 @@
-__version__ = "16QStair_0.0.0.0_1It"
+__version__ = "16QStair_1It_1"
 
 '''
 NOTE:
@@ -7,6 +7,9 @@ in ascending order to qubit idxs.
 E.g. self.resonators[1] - resonator that belongs to qubit №1 (starting from 0)
 
 Changes log
+16QStair_1It_1
+    Fix designation litography text
+    and test structures positions. 
 16QStair_0.0.0.0_0It
     1. Based on 12QStair_0.0.0.0_0It
 '''
@@ -253,7 +256,7 @@ class Design16QStair(ChipDesign):
         self.draw_el_convertion_regions()
         #
         self.add_chip_marking(
-            text_bl=DPoint(9.2e6, 9.6e6),
+            text_bl=DPoint(11e6, 8e6),
             chip_name=__version__,
             text_scale=200
         )
@@ -1090,8 +1093,8 @@ class Design16QStair(ChipDesign):
         """ Triplet of test structures for separate SQUID's JJ and bridges """
         struct_centers = [
             DPoint(1.8e6, 6.0e6),
-            DPoint(11e6, 10.7e6),
-            DPoint(4.5e6, 3e6)
+            DPoint(11e6, 10e6),
+            DPoint(5.5e6, 2.5e6)
         ]
         test_struct_gnd_gap = 20e3  # TODO: move to designElementsGeometry
         test_struct_pads_gap = 40e3
@@ -1206,7 +1209,7 @@ class Design16QStair(ChipDesign):
         test_dc_el2_centers = [
             DPoint(1.8e6, 7.8e6),
             DPoint(12.5e6, 10.7e6),
-            DPoint(4.5e6, 2e6)
+            DPoint(5.2e6, 3.5e6)
         ]
         for struct_center in test_dc_el2_centers:
             test_struct1 = TestStructurePadsSquare(struct_center)
@@ -2082,21 +2085,21 @@ def simulate_md_Cg(q_idx: int, resolution=(5e3, 5e3)):
 
 if __name__ == "__main__":
     ''' draw and show design for manual design evaluation '''
-    FABRICATION.OVERETCHING = 0.0e3
-    design = Design16QStair("testScript", global_design_params=GlobalDesignParameters())
-    design.draw()
-    design.show()
+    # FABRICATION.OVERETCHING = 0.0e3
+    # design = Design16QStair("testScript", global_design_params=GlobalDesignParameters())
+    # design.draw()
+    # design.show()
 
     # test = Cqq_type2("cellName")
     # test.draw()
     # test.show()
 
-    design.save_as_gds2(
-        os.path.join(
-            PROJECT_DIR,
-            __version__ + "_overetching_0um.gds"
-        )
-    )
+    # design.save_as_gds2(
+    #     os.path.join(
+    #         PROJECT_DIR,
+    #         __version__ + "_overetching_0um.gds"
+    #     )
+    # )
 
     # FABRICATION.OVERETCHING = 0.5e3
     # design = Design12QStair("testScript")
@@ -2119,9 +2122,9 @@ if __name__ == "__main__":
     # for q_idx in range(12):
     #     simulate_md_Cg(q_idx=q_idx, resolution=(1e3, 1e3))
     #
-    # ''' Resonators Q and f sim'''
-    # for q in range(12):
-    #     simulate_res_f_and_Q(q_idx=q, resolution=(2.5e3, 2.5e3), type="Q")
+    ''' Resonators Q and f sim'''
+    for q in range(12):
+        simulate_res_f_and_Q(q_idx=q, resolution=(2.5e3, 2.5e3), type="Q")
 
     ''' Resonators Q and f when placed together'''
     # simulate_resonators_f_and_Q_together()
