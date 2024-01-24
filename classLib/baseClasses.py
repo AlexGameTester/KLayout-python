@@ -388,7 +388,7 @@ class ComplexBase(ElementBase):
     def init_regions(self):
         pass
 
-    def length(self, except_containing=""):
+    def length(self, except_containing=None):
         """
 
         Parameters
@@ -400,19 +400,32 @@ class ComplexBase(ElementBase):
         -------
 
         """
+        '''
+        TODO: Problem with `isinstance(primitive, ComplexBase)` or even `isinstance(primitive, ElementBase)`
+            Idea is that some classes are derived from initially reloaded `baseClasses.py` content. But then, probably, some other class
+            in another module derived from bases but forces `baseClasses.py` to be reloaded in module header.
+            And it happens during the same script assembly process.
+            As a result, newly loaded base classes override their chronologically `older` versions in global scope.
+            FIX: reload every module only once. Need 3rd party solution for reload
+        '''
+        ''' code below doesn't work due to problem above '''
         length = 0
         for name, primitive in self.primitives.items():
             # getting only those who has length
             if hasattr(primitive, "length"):
-                if (except_containing == "") or (except_containing in name):
+                if (except_containing is not None) and (except_containing in name):
                     continue
                 else:
                     dl = 0
                     if isinstance(primitive, ComplexBase):
                         dl = primitive.length(except_containing=except_containing)
+                        print(type(primitive), primitive.length(except_containing=except_containing))
                     elif isinstance(primitive, ElementBase):
+                        print(type(primitive), primitive.length())
                         dl = primitive.length()
                     else:
+                        print('exception raised but wtf\n'
+                              f"{type(primitive)}")
                         raise Exception("unknown primitive found while "
                                         "searching for length. "
                                         "Terminating.")
@@ -420,5 +433,4 @@ class ComplexBase(ElementBase):
                     length += dl
             else:
                 continue
-
         return length

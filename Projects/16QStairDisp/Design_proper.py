@@ -248,40 +248,40 @@ class Design16QStair(ChipDesign):
         if self.DEBUG:
             self.draw_lines_grid()
         #
-        self.resolve_cpw_intersections()
+        # self.resolve_cpw_intersections()
+        # #
+        # self.draw_test_structures()
+        # self.draw_express_test_structures_pads()
+        # self.draw_bandages()
+        # self.draw_el_convertion_regions()
+        # #
+        # self.add_chip_marking(
+        #     text_bl=DPoint(11e6, 8e6),
+        #     chip_name=__version__,
+        #     text_scale=200
+        # )
         #
-        self.draw_test_structures()
-        self.draw_express_test_structures_pads()
-        self.draw_bandages()
-        self.draw_el_convertion_regions()
+        # self.draw_litography_alignment_marks()
+        # self.draw_bridges()
+        # # self.draw_pinning_holes()
+        # # # 4Q_Disp_Xmon v.0.3.0.8 p.12 - ensure that contact pads has no holes
+        # # for contact_pad in self.contact_pads:
+        # #     contact_pad.place(self.region_ph)
+        # #
+        # self.extend_photo_overetching()
+        # self.inverse_destination(self.region_ph)
+        # # convert to gds acceptable polygons (without inner holes)
+        # self.region_ph.merge()
+        # self.resolve_holes()
+        # # convert to litograph readable format. Litograph can't handle
+        # # polygons with more than 200 vertices.
+        # self.split_polygons_in_layers(max_pts=180)
         #
-        self.add_chip_marking(
-            text_bl=DPoint(11e6, 8e6),
-            chip_name=__version__,
-            text_scale=200
-        )
-
-        self.draw_litography_alignment_marks()
-        self.draw_bridges()
-        # self.draw_pinning_holes()
-        # # 4Q_Disp_Xmon v.0.3.0.8 p.12 - ensure that contact pads has no holes
-        # for contact_pad in self.contact_pads:
-        #     contact_pad.place(self.region_ph)
+        # # for processes after litographies
+        # self.draw_cutting_marks()
         #
-        self.extend_photo_overetching()
-        self.inverse_destination(self.region_ph)
-        # convert to gds acceptable polygons (without inner holes)
-        self.region_ph.merge()
-        self.resolve_holes()
-        # convert to litograph readable format. Litograph can't handle
-        # polygons with more than 200 vertices.
-        self.split_polygons_in_layers(max_pts=180)
-
-        # for processes after litographies
-        self.draw_cutting_marks()
-
-        # requested by fabrication team
-        self.draw_additional_boxes()
+        # # requested by fabrication team
+        # self.draw_additional_boxes()
 
     def draw_lines_grid(self):
         dv = DVector(50e3, 50e3)
@@ -1727,7 +1727,7 @@ class Design16QStair(ChipDesign):
         return crop_box
 
 
-def simulate_res_f_and_Q(q_idx, resolution=(2e3, 2e3), type='freq'):
+def simulate_res_f_and_Q(q_idx, resolution=(2e3, 2e3), type='freq', min_freq=4.0, max_freq=8.0):
     ### DRAWING SECTION START ###
     design = Design16QStair("testScript")
     crop_box = design.draw_for_res_Q_sim(q_idx)
@@ -1742,7 +1742,7 @@ def simulate_res_f_and_Q(q_idx, resolution=(2e3, 2e3), type='freq'):
             crop_box=crop_box,
             filename=f'res_{q_idx}_{design.resonators_params.L1_list[q_idx] / 1e3:.01f}_S_pars.csv',
             q_idx=q_idx,
-            min_freq=7.0, max_freq=8.0,
+            min_freq=min_freq, max_freq=max_freq,
             resolution=resolution
         )
     elif type == 'Q':
@@ -2086,9 +2086,12 @@ def simulate_md_Cg(q_idx: int, resolution=(5e3, 5e3)):
 if __name__ == "__main__":
     ''' draw and show design for manual design evaluation '''
     # FABRICATION.OVERETCHING = 0.0e3
-    # design = Design16QStair("testScript", global_design_params=GlobalDesignParameters())
-    # design.draw()
-    # design.show()
+    design = Design16QStair("testScript", global_design_params=GlobalDesignParameters())
+    design.draw()
+    design.show()
+
+    for i, res in enumerate(design.resonators):
+        print(i, res.length())
 
     # test = Cqq_type2("cellName")
     # test.draw()
@@ -2123,8 +2126,8 @@ if __name__ == "__main__":
     #     simulate_md_Cg(q_idx=q_idx, resolution=(1e3, 1e3))
     #
     ''' Resonators Q and f sim'''
-    for q in range(12):
-        simulate_res_f_and_Q(q_idx=q, resolution=(2.5e3, 2.5e3), type="Q")
+    # for q in range(16):
+    #     simulate_res_f_and_Q(q_idx=q, resolution=(2.5e3, 2.5e3), type="freq")
 
     ''' Resonators Q and f when placed together'''
     # simulate_resonators_f_and_Q_together()
