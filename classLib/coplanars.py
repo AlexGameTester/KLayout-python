@@ -6,6 +6,7 @@ from collections import OrderedDict
 import itertools
 import copy
 from math import sqrt, cos, sin, atan2, pi, copysign, tan
+from collections import Counter
 
 # import good 3rd party
 import numpy as np
@@ -559,9 +560,6 @@ class Coil_type_1(ComplexBase):
             "cop1": self.cop1, "arc1": self.arc1,
             "cop2": self.cop2, "arc2": self.arc2
         }
-
-
-from collections import Counter
 
 
 class CPWRLPath(ComplexBase):

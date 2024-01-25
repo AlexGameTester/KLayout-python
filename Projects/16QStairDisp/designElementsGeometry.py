@@ -1,7 +1,9 @@
+# $epilog: --log=DEBUG
 # import built-ins
 from typing import List, Dict
 from importlib import reload
 from dataclasses import dataclass, field
+import logging
 
 # import good 3rd party
 import numpy as np
@@ -16,9 +18,6 @@ from pya import DCplxTrans, DTrans, Trans
 
 # import self-made API
 import classLib
-
-reload(classLib)
-
 from classLib.baseClasses import ComplexBase
 from classLib.coplanars import CPW, CPWParameters
 from classLib.josJ import AsymSquidParams, AsymSquid

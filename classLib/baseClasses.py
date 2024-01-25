@@ -1,16 +1,25 @@
+# import built-ins
 from typing import Hashable, Union, Dict
+import logging
+logging.debug(" baseClasses.py loaded")
+from collections import OrderedDict
+import itertools
+
+# import good 3rd party
+
+# import project specific 3rd party
 import pya
 from math import cos, sin, atan2
 from pya import Point, DPoint, DSimplePolygon, SimplePolygon, DPolygon, Polygon, Region
 from pya import Trans, DTrans, CplxTrans, DCplxTrans, ICplxTrans
 
+# import project lib
 from classLib._PROG_SETTINGS import PROGRAM
 
-from collections import OrderedDict
-import itertools
 
 
 class ElementBase():
+    logging.debug(" class ElementBase loaded")
     def __init__(self, origin, trans_in=None, inverse=False,
                  region_id="default", postpone_drawing=False,
                  region_ids=None):

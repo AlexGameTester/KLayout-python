@@ -22,7 +22,6 @@ from pya import Trans, DTrans, CplxTrans, DCplxTrans, ICplxTrans
 from importlib import reload
 
 import classLib
-reload(classLib)
 from classLib.chipDesign import ChipDesign
 from classLib.shapes import Disk
 

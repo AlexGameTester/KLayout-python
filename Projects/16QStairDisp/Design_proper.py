@@ -14,14 +14,19 @@ Changes log
     1. Based on 12QStair_0.0.0.0_0It
 '''
 
+
 # import built-ins
 from typing import List, Dict
 import os
 import itertools
 import copy
+import logging
+import sys
+logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
+
+DEBUG = True
 
 PROJECT_DIR = os.path.dirname(__file__)
-import sys
 import shutil
 
 sys.path.append(PROJECT_DIR)
@@ -39,8 +44,9 @@ from pya import DCplxTrans, Trans, DTrans, ICplxTrans
 
 # import project lib
 import classLib
-
+logging.debug("import classLib from main")
 reload(classLib)
+logging.debug("reload classLib from main")
 from classLib.coplanars import CPW, CPW2CPW, CPWParameters, DPathCPW, Bridge1, Intersection
 from classLib.chipDesign import ChipDesign, GlobalDesignParameters
 from classLib.chipTemplates import CHIP_14x14_20pads
@@ -71,8 +77,9 @@ reload(globalDefinitions)
 from globalDefinitions import CHIP, VERT_ARR_SHIFT, SQUID_PARS, PROJECT_DIR
 
 import designElementsGeometry
-
+logging.debug("import designElementGeometry from main")
 reload(designElementsGeometry)
+logging.debug("reload designElementGeometry from main")
 from designElementsGeometry import QubitParams, Qubit, QubitsGrid
 from designElementsGeometry import DiskConn8Pars
 from designElementsGeometry import ConnectivityMap
@@ -84,8 +91,6 @@ import Cqq_couplings
 reload(Cqq_couplings)
 from Cqq_couplings import CqqCouplingType2, CqqCouplingParamsType2
 from Cqq_couplings import CqqCouplingType1, CqqCouplingParamsType1
-
-DEBUG = True
 
 
 class Design16QStair(ChipDesign):
@@ -2089,7 +2094,6 @@ if __name__ == "__main__":
     design = Design16QStair("testScript", global_design_params=GlobalDesignParameters())
     design.draw()
     design.show()
-
     for i, res in enumerate(design.resonators):
         print(i, res.length())
 

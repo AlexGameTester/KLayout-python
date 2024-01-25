@@ -9,8 +9,6 @@ from pya import Point, Vector, DPoint, DVector, DEdge, \
 
 # import project libraries
 import classLib
-reload(classLib)
-
 from classLib.baseClasses import ComplexBase
 from classLib.shapes import Rectangle
 
