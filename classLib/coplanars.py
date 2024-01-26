@@ -563,8 +563,6 @@ class Coil_type_1(ComplexBase):
 
 
 class CPWRLPath(ComplexBase):
-    __version__ = "0.1"
-
     def __init__(
             self, origin, shape, cpw_parameters, turn_radiuses,
             segment_lengths, turn_angles, trans_in=None,

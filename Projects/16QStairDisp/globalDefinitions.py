@@ -12,9 +12,6 @@ import pya
 from pya import DVector
 
 # import self-made API
-import classLib
-
-reload(classLib)
 from classLib.josJ import AsymSquidParams
 from classLib.chipTemplates import CHIP_14x14_20pads
 

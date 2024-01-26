@@ -44,9 +44,9 @@ from pya import DCplxTrans, Trans, DTrans, ICplxTrans
 
 # import project lib
 import classLib
-logging.debug("import classLib from main")
+logging.debug("imported classLib from main")
 reload(classLib)
-logging.debug("reload classLib from main")
+logging.debug("reloaded classLib from main")
 from classLib.coplanars import CPW, CPW2CPW, CPWParameters, DPathCPW, Bridge1, Intersection
 from classLib.chipDesign import ChipDesign, GlobalDesignParameters
 from classLib.chipTemplates import CHIP_14x14_20pads
@@ -87,8 +87,6 @@ from designElementsGeometry import ROResonator, ROResonatorParams
 from designElementsGeometry import CqrCouplingParamsType1
 
 import Cqq_couplings
-
-reload(Cqq_couplings)
 from Cqq_couplings import CqqCouplingType2, CqqCouplingParamsType2
 from Cqq_couplings import CqqCouplingType1, CqqCouplingParamsType1
 

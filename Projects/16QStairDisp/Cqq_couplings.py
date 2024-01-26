@@ -20,8 +20,6 @@ from pya import DCplxTrans, Trans
 
 # import project lib
 import classLib
-
-reload(classLib)
 from classLib.baseClasses import ComplexBase
 from classLib.coplanars import CPW, CPWParameters, DPathCPW
 from classLib.helpers import rotate_around

@@ -16,9 +16,6 @@ from pya import Point, DPoint, Vector, DVector, DSimplePolygon, SimplePolygon, D
 # import project lib
 from sonnetSim.matlabClient import MatlabClient
 from sonnetSim.pORT_TYPES import PORT_TYPES
-import classLib
-reload(classLib)
-from classLib.coplanars import CPWParameters, CPWRLPath
 
 
 class SonnetPort:
@@ -205,6 +202,10 @@ class SonnetLab(MatlabClient):
 
 
 if __name__ == "__main__":
+    import classLib
+    reload(classLib)
+    from classLib.coplanars import CPWParameters, CPWRLPath
+
     # getting main references of the application
     app = pya.Application.instance()
     mw = app.main_window()

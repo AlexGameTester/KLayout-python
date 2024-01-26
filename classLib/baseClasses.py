@@ -306,8 +306,12 @@ class ElementBase():
             if merge is True:
                 dest.merge()
 
+    def length(self):
+        return 0
+
 
 class ComplexBase(ElementBase):
+    logging.debug(" class Complex base loaded")
     def __init__(self, origin, trans_in=None, region_id="default",
                  postpone_drawing=False, region_ids=None):
         super().__init__(
@@ -418,23 +422,24 @@ class ComplexBase(ElementBase):
             FIX: reload every module only once. Need 3rd party solution for reload
         '''
         ''' code below doesn't work due to problem above '''
+        if except_containing is None:
+            except_containing = ""
         length = 0
         for name, primitive in self.primitives.items():
             # getting only those who has length
             if hasattr(primitive, "length"):
-                if (except_containing is not None) and (except_containing in name):
+                if except_containing in name:
                     continue
                 else:
                     dl = 0
                     if isinstance(primitive, ComplexBase):
                         dl = primitive.length(except_containing=except_containing)
-                        print(type(primitive), primitive.length(except_containing=except_containing))
+                        print("complex base length {dl}")
                     elif isinstance(primitive, ElementBase):
-                        print(type(primitive), primitive.length())
                         dl = primitive.length()
+                        print("element base length {dl}")
                     else:
-                        print('exception raised but wtf\n'
-                              f"{type(primitive)}")
+                        print(f"{type(primitive)}")
                         raise Exception("unknown primitive found while "
                                         "searching for length. "
                                         "Terminating.")
@@ -442,4 +447,5 @@ class ComplexBase(ElementBase):
                     length += dl
             else:
                 continue
+        print(length)
         return length

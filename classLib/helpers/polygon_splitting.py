@@ -19,8 +19,6 @@ import pya
 from pya import Point, DPoint, Vector, DVector, DSimplePolygon, SimplePolygon, DPolygon, Polygon, Region, Box, DBox
 from pya import Trans, DTrans, CplxTrans, DCplxTrans, ICplxTrans
 
-from importlib import reload
-
 import classLib
 from classLib.chipDesign import ChipDesign
 from classLib.shapes import Disk

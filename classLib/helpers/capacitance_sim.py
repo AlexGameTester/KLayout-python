@@ -10,7 +10,9 @@ import numpy as np
 from pya import Region, DPoint, DTrans, Box
 
 # import project lib
+import sonnetSim
 from sonnetSim import SonnetLab, SonnetPort, SimulationBox
+import classLib
 from classLib.chipDesign import ChipDesign
 
 
