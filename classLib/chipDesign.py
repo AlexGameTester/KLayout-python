@@ -8,7 +8,7 @@ from typing import Union, List
 
 # import project specific 3rd party
 import pya
-from pya import Region, DPoint, Cell, Vector, Trans
+from pya import Region, DPoint, Cell, Vector, Trans, DTrans
 from pya import ICplxTrans
 from pya import SimplePolygon, DSimplePolygon, DBox
 
@@ -60,6 +60,7 @@ class ChipDesign:
         self.photo_overetching = global_design_params.PHOTO_OVERETCHING
         self.region_el: Region = Region()
         self.region_cut: Region = Region()
+        self.regions: List[Regions] = None  # all other regions (initialized by childs)
 
         # this insures that lv and cv are valid objects
         if (self.lv == None):
@@ -211,16 +212,17 @@ class ChipDesign:
             Or any other class which is valid for `Region(box)`
         region : Region
             region that `box` is cropped from.
+            if None - crops all regions
 
         Returns
         -------
         None
         """
         if region is None:
-            self.__crop_box_in_region(self.region_ph, box)
-            self.__crop_box_in_region(self.region_el, box)
+            for reg in self.regions:
+                self.__crop_box_in_region(region=reg, box=box)
         else:
-            self.__crop_box_in_region(region, box)
+            self.__crop_box_in_region(region=region, box=box)
 
     # Erases everything outside the box in width layer
     def __crop_box_in_region(self, region, box):
@@ -273,14 +275,15 @@ class ChipDesign:
             dest.layout().move_layer(temp_layer_i, layer_i)
             dest.layout().delete_layer(temp_layer_i)
 
-    def transform_region(self, reg, trans, trans_ports=False):
+    def transform_region(self, reg=None, trans=DTrans.R0, trans_ports=False):
         """
-        Performs transofmation of the layer desired.
+        Performs transofmation of the desired/all region/s.
 
         Parameters
         ----------
-        reg : rEGiOn
-            layer index, >0
+        reg : Region
+            region class
+            if None - transform all `self.regions`
         trans : Union[DcplxTrans, DTrans]
             transformation to perform
         trans_ports : bool
@@ -291,7 +294,12 @@ class ChipDesign:
         -------
         None
         """
-        reg.transform(trans)
+
+        if reg is None:
+            for region in self.regions:
+                region.transform(trans)
+        else:
+            reg.transform(trans)
 
         if trans_ports:
             self.sonnet_ports = list(

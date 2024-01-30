@@ -1678,7 +1678,8 @@ class Design16QStair(ChipDesign):
         ext_chip_box -= Region(self.chip_box)
         self.region_bridges2 += ext_chip_box
 
-    def draw_for_res_Q_sim(self, q_idx, border_down=360e3, border_up=200e3):
+    def draw_for_res_Q_sim(self, q_idx, border_up=0e3):
+        ''' TODO: make proper code description for this function '''
         self.draw_chip()
         self.draw_qubits_array()
         self.draw_qq_couplings()
@@ -1693,37 +1694,44 @@ class Design16QStair(ChipDesign):
         self.region_ph.transform(ICplxTrans(1, 0, False, DVector(rotation_center)))
 
         to_line = ROResonatorParams.to_line_list[q_idx]
+        qubit = self.qubits[q_idx]
+        res = self.resonators[q_idx]
 
-        p1 = self.qubits[q_idx].origin
-        p2 = self.resonators[q_idx].start
-        p2 = ICplxTrans(1, -rotated_angle_deg, False, 0, 0) * (
-                p2 - rotation_center) + rotation_center
-        p2 += DVector(self.resonators[q_idx].L_coupling, to_line)
-        p2 = DPoint(p2)
+        readline_Z = self.ro_line_Z
+        dx_sized = 3 * max(readline_Z.b, res.Z0.b)
 
-        cent = (p1 + p2) / 2
-        bwidth = abs(p1.x - p2.x)
-        bheight = abs(p1.y - p2.y)
+        q_reg = Region()
+        qubit.place(dest=q_reg, region_id="ph")
+        # enlarge to include environment
+        q_reg.size(qubit.disk_cap_shunt.pars.disk_r/2)
+        res_reg = Region()
+        res.place(dest=res_reg)
 
+        q_box = q_reg.bbox()
+        res_box = res_reg.bbox()
+        res_box.top += dx_sized + border_up
+        res_box.left -= dx_sized
+        res_box.right += dx_sized
+
+        crop_reg = Region().insert(res_box).insert(q_box)
+        readline_p1 =  DVector(crop_reg.bbox().left, res.start.y + res.to_line)
+        readline_p2 = DVector(crop_reg.bbox().right, res.start.y + res.to_line)
         readline = CPW(
-            start=cent + DVector(bwidth / 2 + border_up, bheight / 2),
-            end=cent + DVector(-bwidth / 2 - border_down, bheight / 2),
-            cpw_params=CPWParameters(width=20e3, gap=10e3)
+            start=readline_p1,
+            end=readline_p2,
+            cpw_params=readline_Z
         )
         readline.place(self.region_ph)
 
-        dv = DVector(bwidth, bheight)
-        crop_box = DBox(
-            cent + dv / 2 + DVector(border_up, border_up),
-            cent - dv / 2 - DVector(border_down, border_down)
-        )
+        crop_box = crop_reg.bbox()
         self.crop(crop_box)
 
         self.sonnet_ports.append(readline.start)
         self.sonnet_ports.append(readline.end)
-
+        print(crop_box.p1.x, crop_box.p1.y)
         self.transform_region(
-            self.region_ph, DTrans(-(cent - dv / 2 - DVector(border_down, border_down))),
+            reg=None,
+            trans=DTrans(DVector(-crop_box.p1.x, -crop_box.p1.y)),
             trans_ports=True
         )
 
@@ -1732,42 +1740,50 @@ class Design16QStair(ChipDesign):
 
 def simulate_res_f_and_Q(q_idx, resolution=(2e3, 2e3), type='freq', min_freq=4.0, max_freq=8.0):
     ### DRAWING SECTION START ###
-    design = Design16QStair("testScript")
-    crop_box = design.draw_for_res_Q_sim(q_idx)
-    design.show()
-    ### DRAWING SECTION END ###
+    for dl in [-15e3, 15e3]:
+        design = Design16QStair("testScript")
+        design.resonators_params.L1_list[q_idx] += dl
+        crop_box = design.draw_for_res_Q_sim(q_idx)
+        design.show()
+        ### DRAWING SECTION END ###
 
-    second_span = 0.2
+        second_span = 0.2
 
-    if type == 'freq':
-        simulate_S_pars(
-            design=design,
-            crop_box=crop_box,
-            filename=f'res_{q_idx}_{design.resonators_params.L1_list[q_idx] / 1e3:.01f}_S_pars.csv',
-            q_idx=q_idx,
-            min_freq=min_freq, max_freq=max_freq,
-            resolution=resolution
-        )
-    elif type == 'Q':
-        simulate_S_pars(
-            design=design,
-            crop_box=crop_box,
-            filename=f'res_{q_idx}_Q_S_pars.csv',
-            q_idx=q_idx,
-            min_freq=ROResonatorParams.current_sim_freqs[q_idx] - second_span / 2,
-            max_freq=ROResonatorParams.current_sim_freqs[q_idx] + second_span / 2,
-            resolution=resolution
-        )
+        if type == 'freq':
+            simulate_S_pars(
+                design=design,
+                crop_box=crop_box,
+                q_idx=q_idx,
+                min_freq=min_freq, max_freq=max_freq,
+                resolution=resolution,
+                additional_pars={"dL1": dl}
+            )
+        elif type == 'Q':
+            simulate_S_pars(
+                design=design,
+                crop_box=crop_box,
+                q_idx=q_idx,
+                min_freq=ROResonatorParams.current_sim_freqs[q_idx] - second_span / 2,
+                max_freq=ROResonatorParams.current_sim_freqs[q_idx] + second_span / 2,
+                resolution=resolution
+            )
 
 
-def simulate_S_pars(design, crop_box, filename, q_idx, min_freq=6.0, max_freq=7.0, resolution=(2e3, 2e3)):
-    ''' SAVING PARAMETERS AND FILENAME OF ANTICIPATED EM SOLVER OUTPUT '''
+def simulate_S_pars(design, crop_box, q_idx, min_freq=6.0, max_freq=7.0, resolution=(2e3, 2e3), additional_pars: Dict = None):
+    ''' SAVING PARAMETERS AND FILENAME OF ANTICIPATED EM SOLVER OUTPUT
+    filename: str
+        TODO: Not used at the moment - deal with it in appropriate way
+    '''
     import shutil
     import os
     import csv
 
     # geometry parameters gathering
-    all_params = design.resonators_params.get_resonator_params_by_qubit_idx(q_idx=q_idx)  # TODO: pass q_idx here
+    all_params = design.resonators_params.get_resonator_params_by_qubit_idx(q_idx=q_idx)
+    all_params["q_idx"] = q_idx
+    all_params["freq_idx"] = design.resonators_params.q_idx_ro_freq_idx[q_idx]
+    if additional_pars is not None:
+        all_params.update(additional_pars)
 
     # creating directory with simulation results
     results_dirname = "resonators_S21"
@@ -1786,8 +1802,7 @@ def simulate_S_pars(design, crop_box, filename, q_idx, min_freq=6.0, max_freq=7.
             S-params filename that is located in this directory
         '''
         os.mkdir(results_dirpath)
-        with open(output_metaFile_path, "w+",
-                  newline='') as csv_file:
+        with open(output_metaFile_path, "w+", newline='') as csv_file:
             writer = csv.writer(csv_file)
             # create header of the file
             all_params["filename"] = "result_1.csv"
@@ -1804,9 +1819,9 @@ def simulate_S_pars(design, crop_box, filename, q_idx, min_freq=6.0, max_freq=7.
         with open(output_metaFile_path, "r+",
                   newline='') as csv_file:
             reader = csv.reader(csv_file)
-            existing_entries_n = len(list(reader)) - 1
+            existing_results_entries_n = len(list(reader)) - 1
             all_params["filename"] = "result_" + str(
-                existing_entries_n) + ".csv"
+                existing_results_entries_n) + ".csv"
 
             writer = csv.writer(csv_file)
             # append new values row to file
@@ -1840,12 +1855,13 @@ def simulate_S_pars(design, crop_box, filename, q_idx, min_freq=6.0, max_freq=7.
     ml_terminal.release()
 
     # copy result from sonnet output and rename it in accordance with metafile
-    print("try to copy result", all_params["filename"])
+    print("finished", all_params["filename"])
     print("results dirpath", results_dirpath)
     shutil.copy(
         result_path.decode("ascii"),
         os.path.join(results_dirpath, all_params["filename"])
     )
+    #  all_params["filename"][:-4] - to remove ".csv"
     design.save_as_gds2(os.path.join(results_dirpath, all_params["filename"][:-4]) + ".gds")
     ##
 
@@ -2089,11 +2105,14 @@ def simulate_md_Cg(q_idx: int, resolution=(5e3, 5e3)):
 if __name__ == "__main__":
     ''' draw and show design for manual design evaluation '''
     # FABRICATION.OVERETCHING = 0.0e3
-    design = Design16QStair("testScript", global_design_params=GlobalDesignParameters())
-    design.draw()
-    design.show()
-    for i, res in enumerate(design.resonators):
-        print(i, res.length())
+    # design = Design16QStair("testScript", global_design_params=GlobalDesignParameters())
+    # design.draw()
+    # design.show()
+    # for i, res in enumerate(design.resonators):
+    #     if i in [0,1,2,3,4,5,8,9,10]:
+    #         print("changed!!!:")
+    #     print(i, res.length())
+
 
     # test = Cqq_type2("cellName")
     # test.draw()
@@ -2128,8 +2147,8 @@ if __name__ == "__main__":
     #     simulate_md_Cg(q_idx=q_idx, resolution=(1e3, 1e3))
     #
     ''' Resonators Q and f sim'''
-    # for q in range(16):
-    #     simulate_res_f_and_Q(q_idx=q, resolution=(2.5e3, 2.5e3), type="freq")
+    for q in range(16):  # range(8:)
+        simulate_res_f_and_Q(q_idx=q, resolution=(8e3, 8e3), type="freq", min_freq=6.8, max_freq=7.8)
 
     ''' Resonators Q and f when placed together'''
     # simulate_resonators_f_and_Q_together()

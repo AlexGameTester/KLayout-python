@@ -196,6 +196,8 @@ class SonnetLab(MatlabClient):
         self._visualize_sever()
 
     def release(self):
+        # TODO: destroy socket properly as well as corresponding command line window
+        # every single simulation === separate process and connection to the server
         # print("closing connection...")
         self._close()
         # print("connection closed\n")
