@@ -1808,7 +1808,7 @@ def simulate_S_pars(design, crop_box, q_idx, min_freq=6.0, max_freq=7.0, resolut
         with open(output_metaFile_path, "w+", newline='') as csv_file:
             writer = csv.writer(csv_file)
             # create header of the file
-            all_params["filename"] = "result_1.csv"
+            all_params["filename"] = "result_0.csv"
             writer.writerow(list(all_params.keys()))
             # add first parameters row
             reader = csv.reader(csv_file)
@@ -2151,8 +2151,8 @@ if __name__ == "__main__":
     #
     ''' Resonators Q and f sim'''
     design = None
-    for q in range(16):  # range(8:)
-        design = simulate_res_f_and_Q(q_idx=q, resolution=(8e3, 8e3), type="freq", min_freq=6.8, max_freq=7.8)
+    for q in range(3,4):  # range(8:)
+        design = simulate_res_f_and_Q(q_idx=q, resolution=(8e3, 8e3), type="freq", min_freq=6.8, max_freq=7.4)
 
     ''' Resonators Q and f when placed together'''
     # simulate_resonators_f_and_Q_together()

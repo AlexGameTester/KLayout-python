@@ -428,13 +428,14 @@ class ROResonatorParams:
         Geometry parameters has to be verified by simulation.
         """
     # see parameters details in `Design_fast.py`
-    current_sim_freqs = [7.58338877, 7.34696578, 7.43494798, 7.26783703, 7.44070826,
-                         7.50407024, 7.58251541, 7.50828703, 7.3511825, 7.16000063,
-                         7.18802701, 7.26911275,
-
-                         7.26911275,  7.26911275,  7.26911275,  7.26911275]
+    current_sim_freqs = [
+        6.883, 7.275, 6.972, None,
+        7.169, 7.229, None, 7.198,
+        7.1, None, 6.953, None,
+        7.378, 7.035, 7.04, 7.112
+    ]
     target_freqs = [7.6, 7.36, 7.44, 7.28, 7.44, 7.52, 7.6, 7.52, 7.36, 7.2, 7.2, 7.28,
-                    7.28, 7.28, 7.28, 7.28]
+                    7.28, 7.28, 7.28, 7.28]  # TODO: construct from known topology
     target_qfactor = [10e3] * 16
 
     L_coupling_list = [
@@ -447,7 +448,7 @@ class ROResonatorParams:
             135.68041077160032,
             114.75000254984994,
             174.67609952692922,
-            174.73092406491017,
+            125.73092406491017,
 
             145.19432055474881,
             151.651946572570495,
@@ -467,7 +468,7 @@ class ROResonatorParams:
     ]
     res_r_list = [40e3] * 16  # [60e3] * 16
     tail_turn_radiuses_list = [60e3] * 16  # res_r_list
-    N_coils_list = [3, 3, 3, 2,
+    N_coils_list = [3, 3, 3, 1,
                     3, 3, 2, 2,
                     3, 3, 2, 2,
                     3, 3, 3, 3]
