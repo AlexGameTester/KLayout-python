@@ -174,6 +174,7 @@ class CqqCouplingType2(ComplexBase):
             open_end_gap=self.params.finger_gnd_gap,
             region_id=self.region_id
         )
+        print(angle)
         rotate_around(
             primitive=self.finger1,
             rotation_center=self.params.disk1.origin, angle_deg=angle1 * 180 / np.pi

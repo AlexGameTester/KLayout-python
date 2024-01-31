@@ -24,7 +24,6 @@ logging.debug("reloaded classLib from axillary file")
 from classLib.baseClasses import ComplexBase
 from classLib.coplanars import CPW, CPWParameters
 from classLib.josJ import AsymSquidParams, AsymSquid
-logging.debug("used from classLib.baseClasses import ... | total 3 lines")
 # project specific files
 from globalDefinitions import CHIP
 

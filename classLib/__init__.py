@@ -60,7 +60,7 @@ import classLib.chipDesign
 reload(classLib.chipDesign)
 from classLib import chipDesign
 
-from classLib import helpers
-reload(helpers)
+import classLib.helpers
+reload(classLib.helpers)
 from classLib import helpers
 

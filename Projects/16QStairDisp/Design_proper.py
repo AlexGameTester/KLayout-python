@@ -69,7 +69,7 @@ from sonnetSim.pORT_TYPES import PORT_TYPES
 
 # import local dependencies in case project file is too big
 from classLib.baseClasses import ComplexBase
-from classLib.helpers import FABRICATION
+from classLib.helpers import FABRICATION_INFO
 
 import globalDefinitions
 
@@ -77,9 +77,9 @@ reload(globalDefinitions)
 from globalDefinitions import CHIP, VERT_ARR_SHIFT, SQUID_PARS, PROJECT_DIR
 
 import designElementsGeometry
-logging.debug("import designElementGeometry from main")
+logging.debug("imported designElementGeometry from main")
 reload(designElementsGeometry)
-logging.debug("reload designElementGeometry from main")
+logging.debug("reloaded designElementGeometry from main")
 from designElementsGeometry import QubitParams, Qubit, QubitsGrid
 from designElementsGeometry import DiskConn8Pars
 from designElementsGeometry import ConnectivityMap
@@ -89,7 +89,6 @@ from designElementsGeometry import CqrCouplingParamsType1
 import Cqq_couplings
 from Cqq_couplings import CqqCouplingType2, CqqCouplingParamsType2
 from Cqq_couplings import CqqCouplingType1, CqqCouplingParamsType1
-
 
 class Design16QStair(ChipDesign):
     def __init__(
@@ -1689,14 +1688,14 @@ class Design16QStair(ChipDesign):
         rotated_angle_deg = ROResonatorParams.resonator_rotation_angles[q_idx]
         rotation_center = self.qubits[q_idx].origin.dup()
 
-        self.region_ph.transform(ICplxTrans(1, 0, False, DVector(-rotation_center)))
-        self.region_ph.transform(ICplxTrans(1, -rotated_angle_deg, False, 0, 0))
-        self.region_ph.transform(ICplxTrans(1, 0, False, DVector(rotation_center)))
+        from classLib import helpers
+        helpers.rotate_around(self.region_ph, rotation_center=rotation_center, angle_deg=-rotated_angle_deg)
 
         to_line = ROResonatorParams.to_line_list[q_idx]
         qubit = self.qubits[q_idx]
         res = self.resonators[q_idx]
-
+        helpers.rotate_around(qubit, rotation_center=rotation_center, angle_deg=-rotated_angle_deg)
+        helpers.rotate_around(res, rotation_center=rotation_center, angle_deg=-rotated_angle_deg)
         readline_Z = self.ro_line_Z
         dx_sized = 3 * max(readline_Z.b, res.Z0.b)
 
@@ -1707,6 +1706,7 @@ class Design16QStair(ChipDesign):
         res_reg = Region()
         res.place(dest=res_reg)
 
+
         q_box = q_reg.bbox()
         res_box = res_reg.bbox()
         res_box.top += dx_sized + border_up
@@ -1714,7 +1714,7 @@ class Design16QStair(ChipDesign):
         res_box.right += dx_sized
 
         crop_reg = Region().insert(res_box).insert(q_box)
-        readline_p1 =  DVector(crop_reg.bbox().left, res.start.y + res.to_line)
+        readline_p1 = DVector(crop_reg.bbox().left, res.start.y + res.to_line)
         readline_p2 = DVector(crop_reg.bbox().right, res.start.y + res.to_line)
         readline = CPW(
             start=readline_p1,
@@ -1722,6 +1722,9 @@ class Design16QStair(ChipDesign):
             cpw_params=readline_Z
         )
         readline.place(self.region_ph)
+
+        self.debug_region += res_reg + q_reg
+        readline.place(self.debug_region)
 
         crop_box = crop_reg.bbox()
         self.crop(crop_box)
@@ -1740,7 +1743,7 @@ class Design16QStair(ChipDesign):
 
 def simulate_res_f_and_Q(q_idx, resolution=(2e3, 2e3), type='freq', min_freq=4.0, max_freq=8.0):
     ### DRAWING SECTION START ###
-    for dl in [-15e3, 15e3]:
+    for dl in [0]:
         design = Design16QStair("testScript")
         design.resonators_params.L1_list[q_idx] += dl
         crop_box = design.draw_for_res_Q_sim(q_idx)
@@ -2147,8 +2150,9 @@ if __name__ == "__main__":
     #     simulate_md_Cg(q_idx=q_idx, resolution=(1e3, 1e3))
     #
     ''' Resonators Q and f sim'''
+    design = None
     for q in range(16):  # range(8:)
-        simulate_res_f_and_Q(q_idx=q, resolution=(8e3, 8e3), type="freq", min_freq=6.8, max_freq=7.8)
+        design = simulate_res_f_and_Q(q_idx=q, resolution=(8e3, 8e3), type="freq", min_freq=6.8, max_freq=7.8)
 
     ''' Resonators Q and f when placed together'''
     # simulate_resonators_f_and_Q_together()

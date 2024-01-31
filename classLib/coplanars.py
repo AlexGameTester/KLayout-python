@@ -7,6 +7,7 @@ import itertools
 import copy
 from math import sqrt, cos, sin, atan2, pi, copysign, tan
 from collections import Counter
+import logging
 
 # import good 3rd party
 import numpy as np
@@ -19,8 +20,7 @@ from pya import Trans, DTrans, CplxTrans, DCplxTrans, ICplxTrans
 
 # import project lib
 from classLib.baseClasses import ElementBase, ComplexBase
-
-
+logging.debug(" classLib.coplanar module loading")
 class CPWParameters(ElementBase, ABC):
     def __init__(self, width=0, gap=0, smoothing=False):
         # smoothing `True` value means that this CPW is designated
@@ -490,7 +490,8 @@ class CPW2CPWArc(ElementBase):
                 dr_arr = self._gaps / 2
                 r_arr = r + (self._widths + self._gaps) / 2
             else:
-                raise ValueError(
+                logging.error(
+                    "ValueError:\n"
                     "`segment` argument has invalid value.\n"
                     "See docstring for details"
                 )
@@ -616,7 +617,7 @@ class CPWRLPath(ComplexBase):
         self._N_straights = self._shape_string_counter['L']
         if hasattr(cpw_parameters, "__len__"):
             if len(cpw_parameters) != self._N_elements:
-                raise ValueError("CPW parameters dimension mismatch")
+                logging.error("CPW parameters dimension mismatch")
             else:
                 self._cpw_parameters = copy.deepcopy(cpw_parameters)
         else:
@@ -625,7 +626,7 @@ class CPWRLPath(ComplexBase):
 
         if hasattr(turn_radiuses, "__len__"):
             if len(turn_radiuses) != self._N_turns:
-                raise ValueError("Turn raduises dimension mismatch")
+                logging.error("Turn raduises dimension mismatch")
             else:
                 self._turn_radiuses = copy.deepcopy(turn_radiuses)
         else:
@@ -634,7 +635,7 @@ class CPWRLPath(ComplexBase):
         self._segment_lengths: List[float] = [0.0]
         if hasattr(segment_lengths, "__len__"):
             if len(segment_lengths) != self._N_straights:
-                raise ValueError("Straight segments dimension mismatch")
+                logging.error("Straight segments dimension mismatch")
             else:
                 self._segment_lengths = copy.deepcopy(segment_lengths)
         else:
@@ -642,7 +643,7 @@ class CPWRLPath(ComplexBase):
 
         if hasattr(turn_angles, "__len__"):
             if len(turn_angles) != self._N_turns:
-                raise ValueError("Turn angles dimension mismatch")
+                logging.error("Turn angles dimension mismatch")
             self._turn_angles = turn_angles
         else:
             self._turn_angles = [turn_angles] * self._N_turns
@@ -666,7 +667,7 @@ class CPWRLPath(ComplexBase):
                 turn_angle = self._turn_angles[idx_r]
 
                 if abs(turn_radius) < self._cpw_parameters[i].b / 2:
-                    raise Warning(
+                    logging.warning(
                         f"for round segment with index {idx_r}:\n"
                         "turn radius may be depicted incorrectly due to "
                         "the fact that curvature radius is lesser that "
@@ -686,7 +687,7 @@ class CPWRLPath(ComplexBase):
                     if i > 0:
                         cpw1_params = self._cpw_parameters[i - 1]
                     else:
-                        raise ValueError(
+                        logging.error(
                             "No previous segment to smooth into"
                         )
 
@@ -743,7 +744,7 @@ class CPWRLPath(ComplexBase):
                         self._turn_radiuses[idx_r - 1] * coeff
 
                 if (self._segment_lengths[idx_l] < 0):
-                    raise Warning(
+                    logging.warning(
                         f"{self.__class__.__name__} warning: segment №"
                         f"{idx_l} length is less than zero\n:"
                         f"length = {self._segment_lengths[idx_l]} \t"
@@ -787,6 +788,7 @@ class CPWRLPath(ComplexBase):
 
 
 class DPathCPW(ComplexBase):
+    logging.debug("DPathCPW loading")
     def __init__(
             self, points: Union[List[DPoint], np.ndarray],
             cpw_parameters: List[CPWParameters],
@@ -832,7 +834,7 @@ class DPathCPW(ComplexBase):
         """
         # TODO: remove shape strings
         # if len(points) < 3:
-        #     raise Warning("DPathCPW received < 3 points. Use `CPW` class "
+        #     logging.warning("DPathCPW received < 3 points. Use `CPW` class "
         #                   "or increase anchor points number ")
         self.points: List[DPoint] = points
         # force conversion since "DVector" has no method "distance()"
@@ -889,7 +891,7 @@ class DPathCPW(ComplexBase):
             self._cpw_parameters = [cpw_parameters[0]] * self._N_elements
         else:
             if len(cpw_parameters) != self._N_elements:
-                raise ValueError(
+                logging.error(
                     "CPW parameters dimension mismatch\n"
                     f"N_elements = {self._N_elements} != cpwpars given = "
                     f"{len(cpw_parameters)}"
@@ -905,14 +907,14 @@ class DPathCPW(ComplexBase):
             # number of radii has to match number of detected
             # turns
             if len(turn_radii) != self._N_turns:
-                raise ValueError("`turn_raduii` dimension mismatch")
+                logging.error("`turn_raduii` dimension mismatch")
             else:
                 self._turn_radii = np.array(turn_radii, dtype=float)
 
         for p1, p2 in zip(points, points[1:]):
             self._segment_lengths += [p1.distance(p2)]
         if len(self._segment_lengths) != self._N_straights:
-            raise ValueError(
+            logging.error(
                 "DPathCPW internal parsing error:\n"
                 "Straight segments dimension mismatch\n"
                 f"self._N_straights = {self._N_straights}\n"
@@ -941,7 +943,7 @@ class DPathCPW(ComplexBase):
                 turn_angle = self._turn_angles[idx_r]
 
                 if abs(turn_radius) < self._cpw_parameters[i].b / 2:
-                    raise Warning(
+                    logging.warning(
                         f"for round segment with index {idx_r}:\n"
                         "turn radius may be depicted incorrectly due to "
                         "the fact that curvature radius is lesser that "
@@ -959,7 +961,7 @@ class DPathCPW(ComplexBase):
                     if i > 0:
                         cpw1_params = self._cpw_parameters[i - 1]
                     else:
-                        raise ValueError(
+                        logging.error(
                             "No previous segment to smooth into"
                         )
 
@@ -1014,7 +1016,7 @@ class DPathCPW(ComplexBase):
                                                         idx_r - 1] * coeff
 
                 if (self._segment_lengths[idx_l] < 0):
-                    raise Warning(
+                    logging.warning(
                         "CPWDPath warning: segment length "
                         "is less than zero\n"
                         f"idx_l = {idx_l}\tlength = "
@@ -1025,7 +1027,7 @@ class DPathCPW(ComplexBase):
                     if i > 0:
                         cpw1_params = self._cpw_parameters[i - 1]
                     else:
-                        raise ValueError(
+                        logging.error(
                             "No previous segment to smooth into"
                         )
 

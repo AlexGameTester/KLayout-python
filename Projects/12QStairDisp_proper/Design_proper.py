@@ -72,7 +72,7 @@ from sonnetSim.pORT_TYPES import PORT_TYPES
 
 # import local dependencies in case project file is too big
 from classLib.baseClasses import ComplexBase
-from classLib.helpers import FABRICATION
+from classLib.helpers import FABRICATION_INFO
 
 import globalDefinitions
 
@@ -2076,7 +2076,7 @@ def simulate_md_Cg(q_idx: int, resolution=(5e3, 5e3)):
 
 if __name__ == "__main__":
     ''' draw and show design for manual design evaluation '''
-    FABRICATION.OVERETCHING = 0.0e3
+    FABRICATION_INFO.OVERETCHING = 0.0e3
     design = Design12QStair("testScript", global_design_params=GlobalDesignParameters())
     design.draw()
     design.show()
@@ -2092,7 +2092,7 @@ if __name__ == "__main__":
         )
     )
 
-    FABRICATION.OVERETCHING = 0.5e3
+    FABRICATION_INFO.OVERETCHING = 0.5e3
     design = Design12QStair("testScript")
     design.draw()
     design.show()

@@ -54,7 +54,7 @@ from classLib.shapes import Rectangle
 
 # import local dependencies in case project file is too big
 from classLib.baseClasses import ComplexBase
-from classLib.helpers import FABRICATION
+from classLib.helpers import FABRICATION_INFO
 
 import globalDefinitions
 
@@ -1605,7 +1605,7 @@ def simulate_S_pars(design, crop_box, filename, min_freq=6.0, max_freq=7.0, reso
 
 if __name__ == "__main__":
     ''' draw and show design for manual design evaluation '''
-    FABRICATION.OVERETCHING = 0.0e3
+    FABRICATION_INFO.OVERETCHING = 0.0e3
     design = Design12QStair("testScript")
     design.draw()
     design.show()

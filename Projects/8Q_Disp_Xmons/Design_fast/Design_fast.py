@@ -40,7 +40,7 @@ from classLib.resonators import EMResonatorTL3QbitWormRLTailXmonFork
 from classLib.josJ import AsymSquid, AsymSquidParams
 from classLib.chipTemplates import CHIP_16p5x16p5_20pads, \
     CHIP_14x14_20pads
-from classLib.helpers import FABRICATION
+from classLib.helpers import FABRICATION_INFO
 from classLib.chipDesign import ChipDesign
 from classLib.marks import MarkBolgar
 from classLib.contactPads import ContactPad
@@ -56,7 +56,7 @@ import copy
 # 0.0 - for development
 # 0.8e3 - estimation for fabrication by Bolgar photolytography etching
 # recipe
-FABRICATION.OVERETCHING = 0.5e3
+FABRICATION_INFO.OVERETCHING = 0.5e3
 PROJECT_DIR = os.path.dirname(__file__)
 
 
@@ -2852,7 +2852,7 @@ def simulate_md_Cg(md_idx, q_idx, resolution=(5e3, 5e3)):
 
 if __name__ == "__main__":
     ''' draw and show design for manual design evaluation '''
-    FABRICATION.OVERETCHING = 0.0e3
+    FABRICATION_INFO.OVERETCHING = 0.0e3
     design = Design8Q("testScript")
     design.draw()
     design.show()
@@ -2863,7 +2863,7 @@ if __name__ == "__main__":
         )
     )
 
-    FABRICATION.OVERETCHING = 0.5e3
+    FABRICATION_INFO.OVERETCHING = 0.5e3
     design = Design8Q("testScript")
     design.draw()
     design.show()
