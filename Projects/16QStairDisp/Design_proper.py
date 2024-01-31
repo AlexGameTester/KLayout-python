@@ -2151,8 +2151,8 @@ if __name__ == "__main__":
     #
     ''' Resonators Q and f sim'''
     design = None
-    for q in range(3,4):  # range(8:)
-        design = simulate_res_f_and_Q(q_idx=q, resolution=(8e3, 8e3), type="freq", min_freq=6.8, max_freq=7.4)
+    for q in range(16):  # range(8:)
+        design = simulate_res_f_and_Q(q_idx=q, resolution=(4e3, 4e3), type="freq", min_freq=6.8, max_freq=7.4)
 
     ''' Resonators Q and f when placed together'''
     # simulate_resonators_f_and_Q_together()
