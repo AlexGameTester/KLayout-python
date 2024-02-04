@@ -1677,11 +1677,11 @@ class Design16QStair(ChipDesign):
         ext_chip_box -= Region(self.chip_box)
         self.region_bridges2 += ext_chip_box
 
-    def draw_for_res_Q_sim(self, q_idx, border_up=0e3):
+    def draw_for_res_Q_sim(self, q_idx, border_up=2e3):
         ''' TODO: make proper code description for this function '''
         self.draw_chip()
         self.draw_qubits_array()
-        self.draw_qq_couplings()
+        # self.draw_qq_couplings()
 
         self.draw_readout_resonators(q_idx_direct=q_idx)
 
@@ -1741,23 +1741,36 @@ class Design16QStair(ChipDesign):
         return crop_box
 
 
-def simulate_res_f_and_Q(q_idx, resolution=(2e3, 2e3), type='freq', min_freq=4.0, max_freq=8.0):
+def simulate_res_f_and_Q(
+        q_idx,
+        resolution=(2e3, 2e3), type='freq',
+        individual_res_freqs_current: bool = False,
+        individual_res_freqs_target: bool = False,
+        freq_span=0.6, min_freq=4.0, max_freq=8.0
+):
     ### DRAWING SECTION START ###
-    for dl in [0]:
+    if individual_res_freqs_current:
+        min_freq = ROResonatorParams.current_sim_freqs[q_idx] - freq_span / 2
+        max_freq = ROResonatorParams.current_sim_freqs[q_idx] + freq_span / 2
+    elif individual_res_freqs_target:
+        min_freq = ROResonatorParams.target_freqs[q_idx] - freq_span / 2
+        max_freq = ROResonatorParams.target_freqs[q_idx] + freq_span / 2
+
+    for dl in [15e3, 0, -15e3]:
         design = Design16QStair("testScript")
         design.resonators_params.L1_list[q_idx] += dl
         crop_box = design.draw_for_res_Q_sim(q_idx)
+        # logging.info(f"{q_idx} resonator's length = {int(design.resonators[q_idx].length(except_containing='coup')/1e3)}")
         design.show()
         ### DRAWING SECTION END ###
-
-        second_span = 0.2
 
         if type == 'freq':
             simulate_S_pars(
                 design=design,
                 crop_box=crop_box,
                 q_idx=q_idx,
-                min_freq=min_freq, max_freq=max_freq,
+                min_freq=min_freq,
+                max_freq=max_freq,
                 resolution=resolution,
                 additional_pars={"dL1": dl}
             )
@@ -1766,10 +1779,11 @@ def simulate_res_f_and_Q(q_idx, resolution=(2e3, 2e3), type='freq', min_freq=4.0
                 design=design,
                 crop_box=crop_box,
                 q_idx=q_idx,
-                min_freq=ROResonatorParams.current_sim_freqs[q_idx] - second_span / 2,
-                max_freq=ROResonatorParams.current_sim_freqs[q_idx] + second_span / 2,
+                min_freq=ROResonatorParams.current_sim_freqs[q_idx] - freq_span / 2,
+                max_freq=ROResonatorParams.current_sim_freqs[q_idx] + freq_span / 2,
                 resolution=resolution
             )
+        return design  # for debug purposes
 
 
 def simulate_S_pars(design, crop_box, q_idx, min_freq=6.0, max_freq=7.0, resolution=(2e3, 2e3), additional_pars: Dict = None):
@@ -1797,7 +1811,35 @@ def simulate_S_pars(design, crop_box, q_idx, min_freq=6.0, max_freq=7.0, resolut
         "resonator_waveguide_Q_freq_meta.csv"
     )
 
-    # creating directory
+    ### SIMULATION SECTION START ###
+    ml_terminal = SonnetLab()
+
+    resolution_dx = resolution[0]
+    resolution_dy = resolution[1]
+
+    # check for client->server sanity
+    ml_terminal._send(CMD.SAY_HELLO)
+    ml_terminal.clear()
+    simBox = SimulationBox(
+        crop_box.width(), crop_box.height(),
+        crop_box.width() / resolution_dx,
+        crop_box.height() / resolution_dy
+    )
+
+    ml_terminal.set_boxProps(simBox)
+
+    ports = [
+        SonnetPort(prt, PORT_TYPES.AUTOGROUNDED) for prt in design.sonnet_ports
+    ]
+    ml_terminal.set_ports(ports)
+    ml_terminal.send_polygons(design.cell, design.layer_ph)
+    ml_terminal.set_ABS_sweep(min_freq, max_freq)
+    # print(f"simulating...{resonator_idx}")
+    result_path = ml_terminal.start_simulation(wait=True)
+    ml_terminal.release()
+
+    ''' save results '''
+    # creating directory if not exists
     if not os.path.exists(results_dirpath):
         '''
             Directory did not exist. We create it, then we create fresh meta-file.
@@ -1829,34 +1871,6 @@ def simulate_S_pars(design, crop_box, q_idx, min_freq=6.0, max_freq=7.0, resolut
             writer = csv.writer(csv_file)
             # append new values row to file
             writer.writerow(list(all_params.values()))
-
-    ### SIMULATION SECTION START ###
-    ml_terminal = SonnetLab()
-
-    resolution_dx = resolution[0]
-    resolution_dy = resolution[1]
-
-    # check for client->server sanity
-    ml_terminal._send(CMD.SAY_HELLO)
-    ml_terminal.clear()
-    simBox = SimulationBox(
-        crop_box.width(), crop_box.height(),
-        crop_box.width() / resolution_dx,
-        crop_box.height() / resolution_dy
-    )
-
-    ml_terminal.set_boxProps(simBox)
-
-    ports = [
-        SonnetPort(prt, PORT_TYPES.AUTOGROUNDED) for prt in design.sonnet_ports
-    ]
-    ml_terminal.set_ports(ports)
-    ml_terminal.send_polygons(design.cell, design.layer_ph)
-    ml_terminal.set_ABS_sweep(min_freq, max_freq)
-    # print(f"simulating...{resonator_idx}")
-    result_path = ml_terminal.start_simulation(wait=True)
-    ml_terminal.release()
-
     # copy result from sonnet output and rename it in accordance with metafile
     print("finished", all_params["filename"])
     print("results dirpath", results_dirpath)
@@ -2151,8 +2165,10 @@ if __name__ == "__main__":
     #
     ''' Resonators Q and f sim'''
     design = None
-    for q in range(16):  # range(8:)
-        design = simulate_res_f_and_Q(q_idx=q, resolution=(4e3, 4e3), type="freq", min_freq=6.8, max_freq=7.4)
+    for q in range(16):
+        design = simulate_res_f_and_Q(
+            q_idx=q, resolution=(4e3, 4e3), type="freq", individual_res_freqs_target=True, freq_span=0.6
+        )
 
     ''' Resonators Q and f when placed together'''
     # simulate_resonators_f_and_Q_together()

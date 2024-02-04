@@ -28,6 +28,8 @@ from classLib.josJ import AsymSquidParams, AsymSquid
 from globalDefinitions import CHIP
 
 
+# TODO: get rid of dataclasses, or learn how to reload them
+
 @dataclass  # dataclass is used for simplicity of class declaration and readability only
 class QubitsGrid:
     # in fractions of chip dimensions
@@ -421,50 +423,40 @@ class ConnectivityMap:
             )
 
 
-@dataclass()
+@dataclass
 class ROResonatorParams:
     """
         Static class that contains information on readout resonators geometry parameters.
         Geometry parameters has to be verified by simulation.
         """
     # see parameters details in `Design_fast.py`
-    current_sim_freqs = [
-        6.883, 7.275,
-        6.972, None, 7.169,
-        7.229, None, 7.198, 7.1, None,
-               6.953, None, 7.378,
-                      7.035, 7.04, 7.112
-    ]
-    target_freqs = [7.6, 7.36, 7.44, 7.28, 7.44, 7.52, 7.6, 7.52, 7.36, 7.2, 7.2, 7.28,
-                    7.28, 7.28, 7.28, 7.28]  # TODO: construct from known topology
+    current_sim_freqs= [
+            7.05, 7.37, 7.36, 8.48, 7.419, 7.444, 8.448, 8.54, 7.28, 7.32, 8.444, 8.55, 7.452, 7.2, 7.112, 7.23
+        ]
+    target_freqs: np.ndarray = field(default_factory=list, init=False)
     target_qfactor = [10e3] * 16
 
     L_coupling_list = [
         1e3 * x for x in [310, 310, 310, 310] * 4
     ]
     L0_list = [986e3] * 16
-    L1_list = [
-        1e3 * x for x in
-        [
-            135, 114,
-            174, 70, 145,
-            151, 70, 70, 142,
-                147, 70, 70, 125,
-                     125, 125, 125
-        ]
-    ]
+    L1_list: List[float] = field(
+        default_factory=list,
+        init=False
+    )
     res_r_list = [40e3] * 16  # [60e3] * 16
     tail_turn_radiuses_list = [60e3] * 16  # res_r_list
     N_coils_list = [3, 3,
-                    3, 1, 3,
-                    3, 1, 1, 3,
-                        3, 1, 1, 3,
+                    4, 1, 3,
+                    3, 2, 2, 3,
+                        3, 1, 2, 3,
                             3, 3, 3]
+    ro_freqs_list: np.ndarray = field(default_factory=list, init=False)
     L2_list = [60e3] * 16  # res_r_list
     L3_list = []  # get numericals from Design_fast
     L4_list = [60e3] * 16  # res_r_list
     Z_res_list = [CPWParameters(width=20e3, gap=10e3)] * 16
-    to_line_list = [54e3] * 16
+    to_line_list = [49e3] * 16  # 53e3 initial
 
     tail_segments_list = [[60000.0, 215000.0, 60000.0]] * 16
     res_tail_shapes_list = ["LRLRL"] * 16
@@ -516,6 +508,17 @@ class ROResonatorParams:
     NQUBITS = None
 
     def __post_init__(self):
+        # it 1
+        self.L1_list = [
+            1e3 * x for x in
+            [
+                109., 99.,
+                120., 207., 117.,
+                165., 82., 134., 107.,
+                      122., 221., 92., 136.,
+                            77., 114., 81.
+            ]
+        ]
         self.NQUBITS = len(self.qubits_grid.pts_grid)
 
         # see correspondence of q_idx and freq_idx in the working journal
@@ -530,6 +533,7 @@ class ROResonatorParams:
                5, 4, 3, 2,
                   6, 1, 7
         ]
+
 
         self.q_res_coupling_params = [None] * self.NQUBITS
 
@@ -546,6 +550,9 @@ class ROResonatorParams:
                     donut_metal_width=self._donut_metal_width_LSS[freq_idx],
                     donut_disk_d=self._donut_disk_d_LSS[freq_idx]
                 )
+
+        self.ro_freqs_list: np.ndarray = np.linspace(7.2, 7.74, 8)
+        self.target_freqs = self.ro_freqs_list[self.q_idx_ro_freq_idx]
 
     def get_resonator_params_by_qubit_idx(self, q_idx: int):
         return {
