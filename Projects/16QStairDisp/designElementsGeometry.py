@@ -512,9 +512,9 @@ class ROResonatorParams:
         self.L1_list = [
             1e3 * x for x in
             [
-                109., 99.,
-                120., 207., 117.,
-                165., 82., 134., 107.,
+                109., 113.,
+                82., 207., 117.,
+                165., 82., 134., 104.,
                       122., 221., 92., 136.,
                             77., 114., 81.
             ]
@@ -533,7 +533,6 @@ class ROResonatorParams:
                5, 4, 3, 2,
                   6, 1, 7
         ]
-
 
         self.q_res_coupling_params = [None] * self.NQUBITS
 

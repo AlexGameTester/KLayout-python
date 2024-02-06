@@ -1748,21 +1748,21 @@ def simulate_res_f_and_Q(
         individual_res_freqs_target: bool = False,
         freq_span=0.6, min_freq=4.0, max_freq=8.0
 ):
-    ### DRAWING SECTION START ###
-    if individual_res_freqs_current:
-        min_freq = ROResonatorParams.current_sim_freqs[q_idx] - freq_span / 2
-        max_freq = ROResonatorParams.current_sim_freqs[q_idx] + freq_span / 2
-    elif individual_res_freqs_target:
-        min_freq = ROResonatorParams.target_freqs[q_idx] - freq_span / 2
-        max_freq = ROResonatorParams.target_freqs[q_idx] + freq_span / 2
-
-    for dl in [15e3, 0, -15e3]:
+    for dl in [0]:
+        ### DRAWING SECTION START ###
         design = Design16QStair("testScript")
         design.resonators_params.L1_list[q_idx] += dl
         crop_box = design.draw_for_res_Q_sim(q_idx)
         # logging.info(f"{q_idx} resonator's length = {int(design.resonators[q_idx].length(except_containing='coup')/1e3)}")
         design.show()
         ### DRAWING SECTION END ###
+
+        if individual_res_freqs_current:
+            min_freq = design.resonators_params.current_sim_freqs[q_idx] - freq_span / 2
+            max_freq = design.resonators_params.current_sim_freqs[q_idx] + freq_span / 2
+        elif individual_res_freqs_target:
+            min_freq = design.resonators_params.target_freqs[q_idx] - freq_span / 2
+            max_freq = design.resonators_params.target_freqs[q_idx] + freq_span / 2
 
         if type == 'freq':
             simulate_S_pars(
@@ -1783,7 +1783,7 @@ def simulate_res_f_and_Q(
                 max_freq=ROResonatorParams.current_sim_freqs[q_idx] + freq_span / 2,
                 resolution=resolution
             )
-        return design  # for debug purposes
+    return design  # for debug purposes
 
 
 def simulate_S_pars(design, crop_box, q_idx, min_freq=6.0, max_freq=7.0, resolution=(2e3, 2e3), additional_pars: Dict = None):
@@ -2166,9 +2166,10 @@ if __name__ == "__main__":
     ''' Resonators Q and f sim'''
     design = None
     for q in range(16):
-        design = simulate_res_f_and_Q(
-            q_idx=q, resolution=(4e3, 4e3), type="freq", individual_res_freqs_target=True, freq_span=0.6
-        )
+        if q in [2, 8]:
+            design = simulate_res_f_and_Q(
+                q_idx=q, resolution=(2e3, 2e3), type="freq", individual_res_freqs_target=True, freq_span=0.6)
+            )
 
     ''' Resonators Q and f when placed together'''
     # simulate_resonators_f_and_Q_together()
