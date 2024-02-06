@@ -160,8 +160,9 @@ PROJECT_DIR = r"C:\klayout_dev\kmon-calculations\Cq_Cqr"
 
 
 class ProductionParams:
-    start_mode = 2
-    par_d = 25e3
+    start_mode = 1
+    par_d = 40e3
+    qubit_indexes = [2]
 
     # 10
     _cross_gnd_gap_x = 60e3
@@ -195,13 +196,13 @@ class ProductionParams:
 
     _cross_len_y_list = np.array(
         [1e3 * x for x in
-        [115.0, 225.0, 211.0, 154.0, 154.0, 258.0, 267.0, 267.0]]
+        [170.0, 215.0, 234.0, 287.0, 314.0, 107.0, 267.0, 267.0]]
     )
 
     _fork_y_span_list = np.array(
         [
             x * 1e3 for x in
-        [53.6, 31.5, 13.7, 14.0, 14.0, 71.2, 75.3, 76.2]
+        [40.0, 31.5, 13.7, 14.0, 14.0, 71.2, 75.3, 76.2]
         ]
     )
 
@@ -2040,7 +2041,7 @@ def simulate_resonators_f_and_Q(resolution=(4e3, 4e3)):
     for dl, (resonator_idx, predef_freq) in list(product(
             dl_list,
             # zip(range(8), estimated_freqs),
-            zip([0, 1, 2, 3], estimated_freqs),
+            zip(ProductionParams.qubit_indexes, estimated_freqs),
     )):
         print()
         print("res №", resonator_idx)
@@ -2488,32 +2489,29 @@ def simulate_Cqr(resolution=(4e3, 4e3), mode="Cq", pts=3, par_d=10e3, output_fna
     # lhs border of the interval
     dl_list = np.linspace(-par_d / 2, par_d / 2, pts)
     # dl_list = [0e3]
+
     from itertools import product
 
     for dl, res_idx in list(
             product(
-                dl_list, range(8)
+                dl_list, ProductionParams.qubit_indexes
             )
     ):
-        # if res_idx != 0:
-        #     continue
-        if res_idx != 0:
-            continue
-
         print(f"Calculation for dl={dl}")
         ### DRAWING SECTION START ###
 
         design = DesignDmon("testScript")
         # adjusting `self.fork_y_span_list` for C_qr
         if mode == "Cqr":
-            # design.fork_y_span_list += dl
-            design.cross_len_y_list += dl
+            design.fork_y_span_list += dl
+            # design.cross_len_y_list += dl
 
-            if design.cross_len_y_list[res_idx] < ALMOST_ZERO:
-                print("Value is negative: ", design.cross_len_y_list)
-                design.cross_len_y_list = np.ones_like(design.cross_len_y_list) * ALMOST_ZERO
+            if design.fork_y_span_list[res_idx] < ALMOST_ZERO:
+                print("Value is negative: ", design.fork_y_span_list)
+                design.fork_y_span_list = np.ones_like(design.fork_y_span_list) * ALMOST_ZERO
 
             # design.fork_x_span_list += 2*dl
+            print(f"idx = {res_idx}, par val = {design.fork_y_span_list[res_idx]}")
             save_fname = "Cqr_Cqr_results.csv"
         elif mode == "Cq":
             # adjusting `cross_len_x` to gain proper E_C
@@ -2521,9 +2519,16 @@ def simulate_Cqr(resolution=(4e3, 4e3), mode="Cq", pts=3, par_d=10e3, output_fna
             # design.cross_width_x_list += dl
             # design.cross_len_x_list += dl
 
+            design.cross_len_y_list += dl
+
+            if design.cross_len_y_list[res_idx] < ALMOST_ZERO:
+                print("Value is negative: ", design.cross_len_y_list)
+                design.cross_len_y_list = np.ones_like(design.cross_len_y_list) * ALMOST_ZERO
+
+            print(f"idx = {res_idx}, par val = {design.cross_len_y_list[res_idx]}")
+
             save_fname = "Cqr_Cq_results.csv"
 
-        print(f"idx = {res_idx}, par val = {design.cross_len_y_list[res_idx]}")
 
         # exclude coils from simulation (sometimes port is placed onto coil (TODO: fix)
         design.N_coils = [0] * design.NQUBITS
@@ -3131,7 +3136,7 @@ if __name__ == "__main__":
         print("Simulation mode: C_qr sim")
     # simulate_Cqr(resolution=(3e3, 3e3), mode="Cq", pts=3, par_d=10e3)
     # import ctypes  # An included library with Python install.
-        simulate_Cqr(resolution=(4e3, 4e3), mode="Cqr", pts=3, par_d=ProductionParams.par_d)
+        simulate_Cqr(resolution=(3e3, 3e3), mode="Cq", pts=3, par_d=ProductionParams.par_d)
     # ctypes.windll.user32.MessageBoxW(0, "Simulation completed", "KLayout simulator", 0)
     # simulate_Cqr(resolution=(1e3, 1e3), mode="Cqr")
 
