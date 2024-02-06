@@ -183,7 +183,7 @@ class ProductionParams:
         18706.04,
     ]
     _L1_list = np.array(
-        [137e3, 164868.03911521, 160855.81321218, 156955.03802868,
+        [137e3, 132.6e3, 125.9e3, 109.8e3,
          153161.13339815, 149469.7667306,  145876.83650753, 142378.4570798]
     )
     _to_line_list = np.array([45e3] * 8)
@@ -2012,6 +2012,20 @@ class DesignDmon(ChipDesign):
 
 
 def simulate_resonators_f_and_Q(resolution=(4e3, 4e3)):
+    from datetime import datetime
+    # SAVING PREVIOUS DATA SECTION START
+    source_dir = os.path.join(PROJECT_DIR, "resonators_S21")
+    source_dir_files = os.listdir(source_dir)
+    archive_dir = os.path.join(PROJECT_DIR, "resonators_S21_archive", datetime.now().strftime("%Y-%m-%d %H-%M"))
+    if not os.path.isdir(archive_dir):
+        os.makedirs(archive_dir)
+        for f in source_dir_files:
+            src_path = os.path.join(source_dir, f)
+            dst_path = os.path.join(archive_dir, f)
+            os.rename(src_path, dst_path)
+    else:
+        print("Archiving error. Directory already exists.")
+
     def myround(x, base=2):
         return base * round(x / base)
 
@@ -2226,7 +2240,7 @@ def simulate_resonators_f_and_Q(resolution=(4e3, 4e3)):
                 "resonator_waveguide_Q_freq_meta.csv"
             )
             if not os.path.isdir(results_dirpath):
-                os.mkdir(results_dirpath)
+                os.makedirs(results_dirpath)
             if os.path.isfile(output_metaFile_path):
                 with open(output_metaFile_path, "r+",
                           newline='') as csv_file:
