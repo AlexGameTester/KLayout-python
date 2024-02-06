@@ -14,7 +14,6 @@ Changes log
     1. Based on 12QStair_0.0.0.0_0It
 '''
 
-
 # import built-ins
 from typing import List, Dict
 import os
@@ -22,6 +21,7 @@ import itertools
 import copy
 import logging
 import sys
+
 logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
 
 DEBUG = True
@@ -44,6 +44,7 @@ from pya import DCplxTrans, Trans, DTrans, ICplxTrans
 
 # import project lib
 import classLib
+
 logging.debug("imported classLib from main")
 reload(classLib)
 logging.debug("reloaded classLib from main")
@@ -77,6 +78,7 @@ reload(globalDefinitions)
 from globalDefinitions import CHIP, VERT_ARR_SHIFT, SQUID_PARS, PROJECT_DIR
 
 import designElementsGeometry
+
 logging.debug("imported designElementGeometry from main")
 reload(designElementsGeometry)
 logging.debug("reloaded designElementGeometry from main")
@@ -89,6 +91,7 @@ from designElementsGeometry import CqrCouplingParamsType1
 import Cqq_couplings
 from Cqq_couplings import CqqCouplingType2, CqqCouplingParamsType2
 from Cqq_couplings import CqqCouplingType1, CqqCouplingParamsType1
+
 
 class Design16QStair(ChipDesign):
     def __init__(
@@ -214,9 +217,9 @@ class Design16QStair(ChipDesign):
         self.contact_pads: List[ContactPad] = self.chip.get_contact_pads(
             chip_Z_list=[
                 self.ro_line_Z, self.z_fl1, self.z_fl1, self.z_fl1, self.z_fl1,  # left side
-                self.z_fl1, self.z_fl1, self.ro_line_Z, self.z_fl1, self.z_fl1,  # bottom
+                self.z_fl1, self.z_fl1, self.ro_line_Z, self.z_fl1, self.ro_line_Z,  # bottom
                 self.ro_line_Z, self.z_fl1, self.z_fl1, self.z_fl1, self.z_fl1,  # right
-                self.ro_line_Z, self.z_fl1, self.z_fl1, self.z_fl1, self.z_fl1  # top
+                self.z_fl1, self.z_fl1, self.z_fl1, self.z_fl1, self.ro_line_Z  # top
             ],
             back_metal_gap=200e3,
             back_metal_width=0e3,
@@ -777,7 +780,6 @@ class Design16QStair(ChipDesign):
             turn_radii=[turn_radii]
         )
         self.cpw_fl_lines[q_idx] = fl_dpath
-        
 
         ''' bottom-left diagonal'''
         q_idx = 15
@@ -791,7 +793,7 @@ class Design16QStair(ChipDesign):
             qubit.disk_cap_shunt.pars.disk_gap
         ) - DVector(8.0169e3, 0)
         resonator = self.resonators[q_idx]
-        ro_line_intersect = (3*self.resonators[15].get_resonator_ro_connections()[1] +
+        ro_line_intersect = (3 * self.resonators[15].get_resonator_ro_connections()[1] +
                              self.resonators[14].get_resonator_ro_connections()[0]) / 4
         intersect_seg_l = max(3 * self.ro_line_Z.b, 3 * turn_radii)
         p_int_ext = ro_line_intersect + resonator.resonator_rotation_trans * DVector(0, intersect_seg_l / 2)
@@ -823,7 +825,7 @@ class Design16QStair(ChipDesign):
         ) - DVector(8.0169e3, 0)
         resonator = self.resonators[q_idx]
         ro_line_intersect = (self.resonators[15].get_resonator_ro_connections()[1] +
-                             3*self.resonators[14].get_resonator_ro_connections()[0]) / 4
+                             3 * self.resonators[14].get_resonator_ro_connections()[0]) / 4
         intersect_seg_l = max(3 * self.ro_line_Z.b, 3 * turn_radii)
         p_int_ext = ro_line_intersect + resonator.resonator_rotation_trans * DVector(0, intersect_seg_l / 2)
         p_int_inn = ro_line_intersect + resonator.resonator_rotation_trans * DVector(0, -intersect_seg_l / 2)
@@ -853,7 +855,7 @@ class Design16QStair(ChipDesign):
         intersect_seg_l = max(3 * self.ro_line_Z.b, 3 * turn_radii)
         p_int_ext = ro_line_intersect + resonator.resonator_rotation_trans * DVector(0, intersect_seg_l / 2)
         p_int_inn = ro_line_intersect + resonator.resonator_rotation_trans * DVector(0, -intersect_seg_l / 2)
-        p_tr_start = DPoint(p_end.x, p_end.y  - self.qubits_grid.dy / 4)
+        p_tr_start = DPoint(p_end.x, p_end.y - self.qubits_grid.dy / 4)
         pts = [p_start, p1, p_int_ext, p_int_inn, p_tr_start, p_end]
 
         fl_dpath = DPathCPW(
@@ -879,7 +881,7 @@ class Design16QStair(ChipDesign):
         intersect_seg_l = max(3 * self.ro_line_Z.b, 3 * turn_radii)
         p_int_ext = ro_line_intersect + resonator.resonator_rotation_trans * DVector(0, intersect_seg_l / 2)
         p_int_inn = ro_line_intersect + resonator.resonator_rotation_trans * DVector(0, -intersect_seg_l / 2)
-        p_tr_start = DPoint(p_end.x, p_end.y  - self.qubits_grid.dy / 4)
+        p_tr_start = DPoint(p_end.x, p_end.y - self.qubits_grid.dy / 4)
         pts = [p_start, p1, p_int_ext, p_int_inn, p_tr_start, p_end]
 
         fl_dpath = DPathCPW(
@@ -905,7 +907,7 @@ class Design16QStair(ChipDesign):
         intersect_seg_l = max(3 * self.ro_line_Z.b, 3 * turn_radii)
         p_int_ext = ro_line_intersect + resonator.resonator_rotation_trans * DVector(0, intersect_seg_l / 2)
         p_int_inn = ro_line_intersect + resonator.resonator_rotation_trans * DVector(0, -intersect_seg_l / 2)
-        p_tr_start = DPoint(p_end.x, p_end.y  - self.qubits_grid.dy / 4)
+        p_tr_start = DPoint(p_end.x, p_end.y - self.qubits_grid.dy / 4)
         pts = [p_start, p1, p_int_ext, p_int_inn, p_tr_start, p_end]
 
         fl_dpath = DPathCPW(
@@ -931,7 +933,7 @@ class Design16QStair(ChipDesign):
         intersect_seg_l = max(3 * self.ro_line_Z.b, 3 * turn_radii)
         p_int_ext = ro_line_intersect + resonator.resonator_rotation_trans * DVector(0, intersect_seg_l / 2)
         p_int_inn = ro_line_intersect + resonator.resonator_rotation_trans * DVector(0, -intersect_seg_l / 2)
-        p_tr_start = DPoint(p_end.x, p_end.y  - self.qubits_grid.dy / 4)
+        p_tr_start = DPoint(p_end.x, p_end.y - self.qubits_grid.dy / 4)
         pts = [p_start, p1, p_int_ext, p_int_inn, p_tr_start, p_end]
 
         fl_dpath = DPathCPW(
@@ -944,7 +946,7 @@ class Design16QStair(ChipDesign):
         q_idx = 5
         qubit = self.qubits[q_idx]
         p_start = self.contact_pads[2].end
-        p1 = p_start + DVector( 3 * turn_radii, 0)
+        p1 = p_start + DVector(3 * turn_radii, 0)
 
         p_end = qubit.origin - DVector(
             0,
@@ -957,7 +959,7 @@ class Design16QStair(ChipDesign):
         intersect_seg_l = max(3 * self.ro_line_Z.b, 3 * turn_radii)
         p_int_ext = ro_line_intersect + resonator.resonator_rotation_trans * DVector(0, intersect_seg_l / 2)
         p_int_inn = ro_line_intersect + resonator.resonator_rotation_trans * DVector(0, -intersect_seg_l / 2)
-        p_tr_start = DPoint(p_end.x, p_end.y  - self.qubits_grid.dy / 4)
+        p_tr_start = DPoint(p_end.x, p_end.y - self.qubits_grid.dy / 4)
         pts = [p_start, p1, p_int_ext, p_int_inn, p_tr_start, p_end]
 
         fl_dpath = DPathCPW(
@@ -970,7 +972,7 @@ class Design16QStair(ChipDesign):
         q_idx = 2
         qubit = self.qubits[q_idx]
         p_start = self.contact_pads[1].end
-        p1 = p_start + DVector( 3 * turn_radii, 0)
+        p1 = p_start + DVector(3 * turn_radii, 0)
 
         p_end = qubit.origin - DVector(
             0,
@@ -983,7 +985,7 @@ class Design16QStair(ChipDesign):
         intersect_seg_l = max(3 * self.ro_line_Z.b, 3 * turn_radii)
         p_int_ext = ro_line_intersect + resonator.resonator_rotation_trans * DVector(0, intersect_seg_l / 2)
         p_int_inn = ro_line_intersect + resonator.resonator_rotation_trans * DVector(0, -intersect_seg_l / 2)
-        p_tr_start = DPoint(p_end.x, p_end.y  - self.qubits_grid.dy / 4)
+        p_tr_start = DPoint(p_end.x, p_end.y - self.qubits_grid.dy / 4)
         pts = [p_start, p1, p_int_ext, p_int_inn, p_tr_start, p_end]
 
         fl_dpath = DPathCPW(
@@ -1702,10 +1704,9 @@ class Design16QStair(ChipDesign):
         q_reg = Region()
         qubit.place(dest=q_reg, region_id="ph")
         # enlarge to include environment
-        q_reg.size(qubit.disk_cap_shunt.pars.disk_r/2)
+        q_reg.size(qubit.disk_cap_shunt.pars.disk_r / 2)
         res_reg = Region()
         res.place(dest=res_reg)
-
 
         q_box = q_reg.bbox()
         res_box = res_reg.bbox()
@@ -1786,7 +1787,8 @@ def simulate_res_f_and_Q(
     return design  # for debug purposes
 
 
-def simulate_S_pars(design, crop_box, q_idx, min_freq=6.0, max_freq=7.0, resolution=(2e3, 2e3), additional_pars: Dict = None):
+def simulate_S_pars(design, crop_box, q_idx, min_freq=6.0, max_freq=7.0, resolution=(2e3, 2e3),
+                    additional_pars: Dict = None):
     ''' SAVING PARAMETERS AND FILENAME OF ANTICIPATED EM SOLVER OUTPUT
     filename: str
         TODO: Not used at the moment - deal with it in appropriate way
@@ -2129,7 +2131,6 @@ if __name__ == "__main__":
     #     if i in [0,1,2,3,4,5,8,9,10]:
     #         print("changed!!!:")
     #     print(i, res.length())
-
 
     # test = Cqq_type2("cellName")
     # test.draw()
