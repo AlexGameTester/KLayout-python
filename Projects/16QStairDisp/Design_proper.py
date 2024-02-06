@@ -119,9 +119,9 @@ class Design16QStair(ChipDesign):
         self.region_bridges2 = Region()
         self.layer_bridges2 = self.layout.layer(info_bridges2)
 
-        info_bridges2 = pya.LayerInfo(6, 0)  # bridge photo layer 3
+        info_bridges3 = pya.LayerInfo(6, 0)  # bridge photo layer 3
         self.region_bridges3 = Region()
-        self.layer_bridges3 = self.layout.layer(info_bridges2)
+        self.layer_bridges3 = self.layout.layer(info_bridges3)
         self.bridges_support_type = "concave"
         self.bridges_support_to_gnd = -5e3
 
@@ -217,7 +217,7 @@ class Design16QStair(ChipDesign):
         self.contact_pads: List[ContactPad] = self.chip.get_contact_pads(
             chip_Z_list=[
                 self.ro_line_Z, self.z_fl1, self.z_fl1, self.z_fl1, self.z_fl1,  # left side
-                self.z_fl1, self.z_fl1, self.ro_line_Z, self.z_fl1, self.ro_line_Z,  # bottom
+                self.z_fl1, self.z_fl1, self.z_fl1, self.z_fl1, self.ro_line_Z,  # bottom
                 self.ro_line_Z, self.z_fl1, self.z_fl1, self.z_fl1, self.z_fl1,  # right
                 self.z_fl1, self.z_fl1, self.z_fl1, self.z_fl1, self.ro_line_Z  # top
             ],
@@ -252,41 +252,41 @@ class Design16QStair(ChipDesign):
         self.draw_readout_lines()
         if self.DEBUG:
             self.draw_lines_grid()
+
+        self.resolve_cpw_intersections()
         #
-        # self.resolve_cpw_intersections()
-        # #
-        # self.draw_test_structures()
-        # self.draw_express_test_structures_pads()
-        # self.draw_bandages()
-        # self.draw_el_convertion_regions()
-        # #
-        # self.add_chip_marking(
-        #     text_bl=DPoint(11e6, 8e6),
-        #     chip_name=__version__,
-        #     text_scale=200
-        # )
+        self.draw_test_structures()
+        self.draw_express_test_structures_pads()
+        self.draw_bandages()
+        self.draw_el_convertion_regions()
         #
-        # self.draw_litography_alignment_marks()
-        # self.draw_bridges()
-        # # self.draw_pinning_holes()
-        # # # 4Q_Disp_Xmon v.0.3.0.8 p.12 - ensure that contact pads has no holes
-        # # for contact_pad in self.contact_pads:
-        # #     contact_pad.place(self.region_ph)
-        # #
-        # self.extend_photo_overetching()
-        # self.inverse_destination(self.region_ph)
-        # # convert to gds acceptable polygons (without inner holes)
-        # self.region_ph.merge()
-        # self.resolve_holes()
-        # # convert to litograph readable format. Litograph can't handle
-        # # polygons with more than 200 vertices.
-        # self.split_polygons_in_layers(max_pts=180)
-        #
-        # # for processes after litographies
-        # self.draw_cutting_marks()
-        #
-        # # requested by fabrication team
-        # self.draw_additional_boxes()
+        self.add_chip_marking(
+            text_bl=DPoint(11e6, 8e6),
+            chip_name=__version__,
+            text_scale=200
+        )
+
+        self.draw_litography_alignment_marks()
+        self.draw_bridges()
+        self.draw_pinning_holes()
+        # 4Q_Disp_Xmon v.0.3.0.8 p.12 - ensure that contact pads has no holes
+        for contact_pad in self.contact_pads:
+            contact_pad.place(self.region_ph)
+
+        self.extend_photo_overetching()
+        self.inverse_destination(self.region_ph)
+        # convert to gds acceptable polygons (without inner holes)
+        self.region_ph.merge()
+        self.resolve_holes()
+        # convert to litograph readable format. Litograph can't handle
+        # polygons with more than 200 vertices.
+        self.split_polygons_in_layers(max_pts=180)
+
+        # for processes after litographies
+        self.draw_cutting_marks()
+
+        # requested by fabrication team
+        self.draw_additional_boxes()
 
     def draw_lines_grid(self):
         dv = DVector(50e3, 50e3)
@@ -1569,11 +1569,20 @@ class Design16QStair(ChipDesign):
 
     def draw_pinning_holes(self):
         # points that select polygons of interest as if they were clicked at
+        # TODO: make it automatical
         selection_pts = [
             Point(0.1e6, 0.1e6),
             Point(self.chip.dx - 0.1e6, self.chip.dy - 0.1e6),
             DPoint(9.7e6, 2.5e6),
-            DPoint(0.3e6, 13.7e6)
+            DPoint(0.3e6, 13.7e6),
+            DPoint(6e6, 8e6),
+            DPoint(6e6, 7e6),
+            DPoint(7e6, 7e6),
+            DPoint(7e6, 6e6),
+            DPoint(8e6, 6e6),
+            DPoint(7e6, 6e6),
+            DPoint(8e6, 5e6),
+            DPoint(9e6, 5e6)
         ]
 
         # append grounded polygons inside qubits grid
@@ -2123,36 +2132,28 @@ def simulate_md_Cg(q_idx: int, resolution=(5e3, 5e3)):
 
 if __name__ == "__main__":
     ''' draw and show design for manual design evaluation '''
-    # FABRICATION.OVERETCHING = 0.0e3
-    # design = Design16QStair("testScript", global_design_params=GlobalDesignParameters())
-    # design.draw()
-    # design.show()
-    # for i, res in enumerate(design.resonators):
-    #     if i in [0,1,2,3,4,5,8,9,10]:
-    #         print("changed!!!:")
-    #     print(i, res.length())
+    FABRICATION_INFO.OVERETCHING = 0.0e3
+    design = Design16QStair("testScript", global_design_params=GlobalDesignParameters())
+    design.draw()
+    design.show()
+    design.save_as_gds2(
+        os.path.join(
+            PROJECT_DIR,
+            __version__ + "_overetching_0um.gds"
+        )
+    )
 
-    # test = Cqq_type2("cellName")
-    # test.draw()
-    # test.show()
+    FABRICATION_INFO.OVERETCHING = 0.5e3
+    design = Design16QStair("testScript")
+    design.draw()
+    design.show()
+    design.save_as_gds2(
+        os.path.join(
+            PROJECT_DIR,
+            __version__ + "_overetching_0um5.gds"
+        )
+    )
 
-    # design.save_as_gds2(
-    #     os.path.join(
-    #         PROJECT_DIR,
-    #         __version__ + "_overetching_0um.gds"
-    #     )
-    # )
-
-    # FABRICATION.OVERETCHING = 0.5e3
-    # design = Design12QStair("testScript")
-    # design.draw()
-    # design.show()
-    # design.save_as_gds2(
-    #     os.path.join(
-    #         PROJECT_DIR,
-    #         __version__ + "_overetching_0um5.gds"
-    #     )
-    # )
 
     # ''' C_qr sim '''
     # simulate_Cqr(q_idxs=range(8,12), resolution=(2e3, 2e3))
@@ -2165,14 +2166,22 @@ if __name__ == "__main__":
     #     simulate_md_Cg(q_idx=q_idx, resolution=(1e3, 1e3))
     #
     ''' Resonators Q and f sim'''
-    design = None
-    for q in range(16):
-        if q in [2, 8]:
-            design = simulate_res_f_and_Q(
-                q_idx=q, resolution=(2e3, 2e3), type="freq", individual_res_freqs_target=True, freq_span=0.6)
-            )
+    # design = None
+    # for q in range(16):
+    #     design = simulate_res_f_and_Q(
+    #         q_idx=q, resolution=(2e3, 2e3), type="freq", individual_res_freqs_target=True, freq_span=0.6
+    #     )
 
     ''' Resonators Q and f when placed together'''
     # simulate_resonators_f_and_Q_together()
     # for i in [0, 1, 2, 3]:
     #    simulate_res_f_and_Q(i)
+    ''' some misc checks '''
+        # for i, res in enumerate(design.resonators):
+        #     if i in [0,1,2,3,4,5,8,9,10]:
+        #         print("changed!!!:")
+        #     print(i, res.length())
+        #
+        # test = Cqq_type2("cellName")
+        # test.draw()
+        # test.show()
