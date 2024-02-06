@@ -160,20 +160,20 @@ PROJECT_DIR = r"C:\klayout_dev\kmon-calculations\Cq_Cqr"
 
 
 class ProductionParams:
-    start_mode = 0
-    par_d = 6e3
+    start_mode = 2
+    par_d = 25e3
 
     # 10
-    _cross_gnd_gap_x = 10e3
+    _cross_gnd_gap_x = 60e3
 
     _cross_gnd_gap_y_list = np.array([60e3] * 8)
 
-    _xmon_fork_gnd_gap = 5e3
+    _xmon_fork_gnd_gap = 10e3
 
     _fork_gnd_gap = 10e3
 
     _meander_length_list = [
-        4.3e5, # Max ~4.3e5
+        2.7e5, # Max ~4.3e5
         30924.72,
         18140.92,
         11783.04,
@@ -182,20 +182,26 @@ class ProductionParams:
         35802.65,
         18706.04,
     ]
+    _L1_list = np.array(
+        [137e3, 164868.03911521, 160855.81321218, 156955.03802868,
+         153161.13339815, 149469.7667306,  145876.83650753, 142378.4570798]
+    )
+    _to_line_list = np.array([45e3] * 8)
+    # 45e3 initially
 
     _cross_width_y_list = np.array(
-        [1e3 * x for x in [13.2, 8, 6, 36, 50, 4, 19, 3]]
+        [1e3 * x for x in [16, 16, 16, 16, 16, 32, 56, 56]]
     )
 
     _cross_len_y_list = np.array(
         [1e3 * x for x in
-         [360, 205.0, 211.0, 154.0, 154.0, 258.0, 267.0, 267.0]]
+        [115.0, 225.0, 211.0, 154.0, 154.0, 258.0, 267.0, 267.0]]
     )
 
     _fork_y_span_list = np.array(
         [
             x * 1e3 for x in
-            [327, 31.5, 13.7, 14.0, 14.0, 71.2, 75.3, 76.2]
+        [53.6, 31.5, 13.7, 14.0, 14.0, 71.2, 75.3, 76.2]
         ]
     )
 
@@ -312,12 +318,20 @@ class ProductionParams:
     def get_TC_dy():
         return ProductionParams._TC_dy
 
+    @staticmethod
+    def get_L1_list():
+        return np.copy(ProductionParams._L1_list)
+
+    @staticmethod
+    def get_to_line_list():
+        return np.copy(ProductionParams._to_line_list)
+
 
 class DefaultParams:
     meander_params_dict = {
         'dr': DPoint(0, 0),
-        'line_width_dx': 0.120e3,
-        'line_width_dy': 0.100e3,
+        'line_width_dx': 0.130e3,
+        'line_width_dy': 0.130e3,
         'add_dx_mid': 8e3,
         'line_gap': 0.4e3
     }
@@ -326,7 +340,7 @@ class DefaultParams:
         'MC_dy': None,
         'MC_dx': None,
         'KI_bridge_width': 1e3,
-        'KI_bridge_height': 0.9e3,
+        'KI_bridge_height': 3e3,
         'KI_pad_y_offset': 0.2e3,
         'KI_pad_width': 3e3,
         'KI_ledge_y_offset': 0.3e3,
@@ -729,10 +743,7 @@ class DesignDmon(ChipDesign):
         self.L0_list = [self.L0] * self.NQUBITS
         # from f_res, Q_res simulations
         # horizontal coil line length
-        self.L1_list = [
-            1e3 * x for x in
-            [119.0, 114.0, 112.0, 108.0, 103.0, 80.0, 71.0, 66.0]
-        ]
+        self.L1_list = ProductionParams.get_L1_list()
         # curvature radius of resonators CPW turns
         self.res_r = 60e3
         # coil consist of L1, 2r, L1, 2r segment
@@ -745,7 +756,8 @@ class DesignDmon(ChipDesign):
         self.L4_list = [self.res_r] * len(self.L1_list)
         # Z = 51.0, E_eff = 6.29
         self.Z_res = CPWParameters(10e3, 6e3)
-        self.to_line_list = [45e3] * len(self.L1_list)
+        self.to_line_list = ProductionParams.get_to_line_list()
+        # self.to_line_list = [45e3] * len(self.L1_list)
         # fork at the end of resonator parameters
         self.fork_metal_width_list = ProductionParams.get_fork_metal_width_list()
         self.fork_gnd_gap = ProductionParams.get_fork_gnd_gap()
@@ -2005,17 +2017,17 @@ def simulate_resonators_f_and_Q(resolution=(4e3, 4e3)):
 
     resolution_dx = resolution[0]
     resolution_dy = resolution[1]
-    freqs_span_corase = 1  # GHz
-    corase_only = False
+    freqs_span_corase = 0.8 # GHz
+    corase_only = True
     freqs_span_fine = 0.050
     dl_list = [15e3, 0, -15e3]
-    estimated_freqs = np.linspace(7.2, 7.76, 8)
-    # dl_list = [0e3]
+    estimated_freqs = np.linspace(6.9, 7.6, 8) - 0.2
     from itertools import product
     for dl, (resonator_idx, predef_freq) in list(product(
             dl_list,
-            zip(range(8), estimated_freqs),
-    ))[20:]:
+            # zip(range(8), estimated_freqs),
+            zip([0, 1, 2, 3], estimated_freqs),
+    )):
         print()
         print("res №", resonator_idx)
         fine_resonance_success = False
@@ -2030,7 +2042,8 @@ def simulate_resonators_f_and_Q(resolution=(4e3, 4e3)):
             design.resonators[resonator_idx].get_approx_frequency(
                 refractive_index=np.sqrt(6.26423)
             )
-        # print(f"formula estimated freq: {an_estimated_freq:3.5} GHz")
+        print(f"formula estimated freq: {an_estimated_freq:3.5} GHz")
+        print(f"Desired freq: {predef_freq:.2f} GHz")
         estimated_freq = predef_freq
         # print("start drawing")
         # print(f"previous result estimated freq: {estimated_freq:3.5} GHz")
@@ -2162,7 +2175,7 @@ def simulate_resonators_f_and_Q(resolution=(4e3, 4e3)):
                                                 key=lambda x: x[1])
                 min_freq = freqs[min_freq_idx]
                 # min_freq_idx = len(s12_abs_list) / 2  # Note: FOR DEBUG
-            print("min freq idx: ", min_freq_idx, "/", len(freqs))
+            print("min freq idx: ", min_freq_idx, "/", len(freqs) - 1)
             # processing the results
             if min_freq_idx == 0:
                 # local minimum is located to the left of current interval
@@ -2212,11 +2225,9 @@ def simulate_resonators_f_and_Q(resolution=(4e3, 4e3)):
                 results_dirpath,
                 "resonator_waveguide_Q_freq_meta.csv"
             )
-            try:
-                # creating directory
+            if not os.path.isdir(results_dirpath):
                 os.mkdir(results_dirpath)
-            except FileExistsError:
-                # directory already exists
+            if os.path.isfile(output_metaFile_path):
                 with open(output_metaFile_path, "r+",
                           newline='') as csv_file:
                     reader = csv.reader(csv_file)
@@ -2228,12 +2239,6 @@ def simulate_resonators_f_and_Q(resolution=(4e3, 4e3)):
                     # append new values row to file
                     writer.writerow(list(all_params.values()))
             else:
-                '''
-                    Directory did not exist and has been created sucessfully.
-                    So we create fresh meta-file.
-                    Meta-file contain simulation parameters and corresponding
-                    S-params filename that is located in this directory
-                '''
                 with open(output_metaFile_path, "w+",
                           newline='') as csv_file:
                     writer = csv.writer(csv_file)
@@ -2243,12 +2248,13 @@ def simulate_resonators_f_and_Q(resolution=(4e3, 4e3)):
                     # add first parameters row
                     reader = csv.reader(csv_file)
                     writer.writerow(list(all_params.values()))
-            finally:
-                # copy result from sonnet folder and rename it accordingly
-                shutil.copy(
-                    result_path.decode("ascii"),
-                    os.path.join(results_dirpath, all_params["filename"])
-                )
+
+            # Not sure it is actually required. This field will be nonempty anyway
+            # all_params["filename"] = "result_1.csv"
+            shutil.copy(
+                result_path.decode("ascii"),
+                os.path.join(results_dirpath, all_params["filename"])
+            )
             ### RESULT SAVING SECTION END ###
 
 
@@ -2458,6 +2464,7 @@ def simulate_Cqr(resolution=(4e3, 4e3), mode="Cq", pts=3, par_d=10e3, output_fna
     #  2. make 3d geometry optimization inside kLayout for simultaneous finding of C_qr, C_q and C_qq
 
     simulation_id = int(10 * time.time())
+    print("Simulation id: ", simulation_id)
     ALMOST_ZERO = 1.5e3
 
 
@@ -2486,11 +2493,11 @@ def simulate_Cqr(resolution=(4e3, 4e3), mode="Cq", pts=3, par_d=10e3, output_fna
         # adjusting `self.fork_y_span_list` for C_qr
         if mode == "Cqr":
             # design.fork_y_span_list += dl
-            design.fork_y_span_list += dl
+            design.cross_len_y_list += dl
 
-            if design.fork_y_span_list[res_idx] < ALMOST_ZERO:
-                print("Value is negative: ", design.fork_y_span_list)
-                design.fork_y_span_list = np.ones_like(design.fork_y_span_list) * ALMOST_ZERO
+            if design.cross_len_y_list[res_idx] < ALMOST_ZERO:
+                print("Value is negative: ", design.cross_len_y_list)
+                design.cross_len_y_list = np.ones_like(design.cross_len_y_list) * ALMOST_ZERO
 
             # design.fork_x_span_list += 2*dl
             save_fname = "Cqr_Cqr_results.csv"
@@ -2502,7 +2509,7 @@ def simulate_Cqr(resolution=(4e3, 4e3), mode="Cq", pts=3, par_d=10e3, output_fna
 
             save_fname = "Cqr_Cq_results.csv"
 
-        print(f"idx = {res_idx}, par val = {design.fork_y_span_list[res_idx]}")
+        print(f"idx = {res_idx}, par val = {design.cross_len_y_list[res_idx]}")
 
         # exclude coils from simulation (sometimes port is placed onto coil (TODO: fix)
         design.N_coils = [0] * design.NQUBITS
@@ -3107,23 +3114,25 @@ if __name__ == "__main__":
     # )
     # ''' C_qr sim '''
     elif start_mode == 1:
-        print("Simulation mode")
+        print("Simulation mode: C_qr sim")
     # simulate_Cqr(resolution=(3e3, 3e3), mode="Cq", pts=3, par_d=10e3)
     # import ctypes  # An included library with Python install.
         simulate_Cqr(resolution=(4e3, 4e3), mode="Cqr", pts=3, par_d=ProductionParams.par_d)
     # ctypes.windll.user32.MessageBoxW(0, "Simulation completed", "KLayout simulator", 0)
     # simulate_Cqr(resolution=(1e3, 1e3), mode="Cqr")
 
-    ''' Simulation of C_{q1,q2} in fF '''
+    # ''' Simulation of C_{q1,q2} in fF '''
     # simulate_Cqq(2, 3, resolution=(1e3, 1e3))
 
-    ''' MD line C_qd for md1,..., md6 '''
+    # ''' MD line C_qd for md1,..., md6 '''
     # for md_idx in [0,1]:
     #     for q_idx in range(2):
     #         simulate_md_Cg(md_idx=md_idx, q_idx=q_idx, resolution=(1e3, 1e3))
 
-    ''' Resonators Q and f sim'''
-    # simulate_resonators_f_and_Q(resolution=(2e3, 2e3))
+    # ''' Resonators Q and f sim''
+    elif start_mode == 2:
+        print("Simulation mode: Resonators Q and f sim")
+        simulate_resonators_f_and_Q(resolution=(4e3, 4e3))
 
     ''' Resonators Q and f when placed together'''
     # simulate_resonators_f_and_Q_together()
