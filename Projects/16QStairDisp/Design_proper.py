@@ -254,39 +254,39 @@ class Design16QStair(ChipDesign):
             self.draw_lines_grid()
 
         self.resolve_cpw_intersections()
+        # #
+        # self.draw_test_structures()
+        # self.draw_express_test_structures_pads()
+        # self.draw_bandages()
+        # self.draw_el_convertion_regions()
+        # #
+        # self.add_chip_marking(
+        #     text_bl=DPoint(11e6, 8e6),
+        #     chip_name=__version__,
+        #     text_scale=200
+        # )
         #
-        self.draw_test_structures()
-        self.draw_express_test_structures_pads()
-        self.draw_bandages()
-        self.draw_el_convertion_regions()
+        # self.draw_litography_alignment_marks()
+        # self.draw_bridges()
+        # self.draw_pinning_holes()
+        # # 4Q_Disp_Xmon v.0.3.0.8 p.12 - ensure that contact pads has no holes
+        # for contact_pad in self.contact_pads:
+        #     contact_pad.place(self.region_ph)
         #
-        self.add_chip_marking(
-            text_bl=DPoint(11e6, 8e6),
-            chip_name=__version__,
-            text_scale=200
-        )
-
-        self.draw_litography_alignment_marks()
-        self.draw_bridges()
-        self.draw_pinning_holes()
-        # 4Q_Disp_Xmon v.0.3.0.8 p.12 - ensure that contact pads has no holes
-        for contact_pad in self.contact_pads:
-            contact_pad.place(self.region_ph)
-
-        self.extend_photo_overetching()
-        self.inverse_destination(self.region_ph)
-        # convert to gds acceptable polygons (without inner holes)
-        self.region_ph.merge()
-        self.resolve_holes()
-        # convert to litograph readable format. Litograph can't handle
-        # polygons with more than 200 vertices.
-        self.split_polygons_in_layers(max_pts=180)
-
-        # for processes after litographies
-        self.draw_cutting_marks()
-
-        # requested by fabrication team
-        self.draw_additional_boxes()
+        # self.extend_photo_overetching()
+        # self.inverse_destination(self.region_ph)
+        # # convert to gds acceptable polygons (without inner holes)
+        # self.region_ph.merge()
+        # self.resolve_holes()
+        # # convert to litograph readable format. Litograph can't handle
+        # # polygons with more than 200 vertices.
+        # self.split_polygons_in_layers(max_pts=180)
+        #
+        # # for processes after litographies
+        # self.draw_cutting_marks()
+        #
+        # # requested by fabrication team
+        # self.draw_additional_boxes()
 
     def draw_lines_grid(self):
         dv = DVector(50e3, 50e3)
@@ -2143,16 +2143,16 @@ if __name__ == "__main__":
         )
     )
 
-    FABRICATION_INFO.OVERETCHING = 0.5e3
-    design = Design16QStair("testScript")
-    design.draw()
-    design.show()
-    design.save_as_gds2(
-        os.path.join(
-            PROJECT_DIR,
-            __version__ + "_overetching_0um5.gds"
-        )
-    )
+    # FABRICATION_INFO.OVERETCHING = 0.5e3
+    # design = Design16QStair("testScript")
+    # design.draw()
+    # design.show()
+    # design.save_as_gds2(
+    #     os.path.join(
+    #         PROJECT_DIR,
+    #         __version__ + "_overetching_0um5.gds"
+    #     )
+    # )
 
 
     # ''' C_qr sim '''

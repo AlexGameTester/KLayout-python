@@ -1606,7 +1606,13 @@ class Intersection:
         # shorted angle to rotate from `s1` to `s2` that lies in (-np.pi/2, np.pi/2)
         # `intersection_angle` > 0 if rotation from s1 to s2 is clockwise
         # and < 0 if anti-clockwise
-        intersection_angle = np.arcsin(np.cross((s1.x, s1.y, 0), (s2.x, s2.y, 0))[-1])
+        intersection_angle = np.arcsin(
+            np.clip(
+                np.cross((s1.x, s1.y, 0), (s2.x, s2.y, 0))[-1],
+                a_min=-1,
+                a_max=1
+            )
+        )
 
         cut_repair_p1 = intersection - clearance_mul * cpw2.b / np.sin(intersection_angle) * s1
         cut_repair_p2 = intersection + clearance_mul * cpw2.b / np.sin(intersection_angle) * s1
