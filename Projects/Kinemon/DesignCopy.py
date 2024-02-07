@@ -1,6 +1,7 @@
 # <editor-fold desc="Imports and initialization of variables">
 __version__ = "v.0.0.5.13.1"
 
+import ctypes
 import logging
 import sys
 import time
@@ -161,8 +162,8 @@ PROJECT_DIR = r"C:\klayout_dev\kmon-calculations\Cq_Cqr"
 
 class ProductionParams:
     start_mode = 1
-    par_d = 40e3
-    qubit_indexes = [2]
+    par_d = 60e3
+    qubit_indexes = [5, 6, 7]
 
     # 10
     _cross_gnd_gap_x = 60e3
@@ -184,7 +185,7 @@ class ProductionParams:
         18706.04,
     ]
     _L1_list = np.array(
-        [137e3, 132.6e3, 125.9e3, 109.8e3,
+        [141080.2779,132432.5366,125948.9511,106176.2057,
          153161.13339815, 149469.7667306,  145876.83650753, 142378.4570798]
     )
     _to_line_list = np.array([45e3] * 8)
@@ -196,7 +197,12 @@ class ProductionParams:
 
     _cross_len_y_list = np.array(
         [1e3 * x for x in
-        [170.0, 215.0, 234.0, 287.0, 314.0, 107.0, 267.0, 267.0]]
+        [170.0, 232.0, 281.0, 256.0, 267.0, 260, 340.0, 300.0]]
+    )
+
+    _cross_len_x_list = np.array(
+        [1e3 * x for x in [129.905, 65.602, 35.098, 0, 0, 200.603,
+                           200.873, 200.415]]
     )
 
     _fork_y_span_list = np.array(
@@ -208,11 +214,6 @@ class ProductionParams:
 
     _fork_metal_width_list = np.array(
         [1e3 * x for x in ([10] * 3 + [6] * 2 + [10] * 3)]
-    )
-
-    _cross_len_x_list = np.array(
-        [1e3 * x for x in [129.905, 65.602, 35.098, 0, 0, 196.603,
-                           233.873, 233.415]]
     )
 
     _big_jj_dx_list = np.array([120] * 8)
@@ -2035,13 +2036,13 @@ def simulate_resonators_f_and_Q(resolution=(4e3, 4e3)):
     freqs_span_corase = 0.8 # GHz
     corase_only = True
     freqs_span_fine = 0.050
-    dl_list = [15e3, 0, -15e3]
+    dl_list = [ProductionParams.par_d / 2, 0, -ProductionParams.par_d / 2]
     estimated_freqs = np.linspace(6.9, 7.6, 8) - 0.2
     from itertools import product
-    for dl, (resonator_idx, predef_freq) in list(product(
-            dl_list,
+    for (resonator_idx, predef_freq), dl in list(product(
             # zip(range(8), estimated_freqs),
             zip(ProductionParams.qubit_indexes, estimated_freqs),
+            dl_list
     )):
         print()
         print("res №", resonator_idx)
@@ -2498,6 +2499,7 @@ def simulate_Cqr(resolution=(4e3, 4e3), mode="Cq", pts=3, par_d=10e3, output_fna
             )
     ):
         print(f"Calculation for dl={dl}")
+        continue
         ### DRAWING SECTION START ###
 
         design = DesignDmon("testScript")
@@ -2519,13 +2521,14 @@ def simulate_Cqr(resolution=(4e3, 4e3), mode="Cq", pts=3, par_d=10e3, output_fna
             # design.cross_width_x_list += dl
             # design.cross_len_x_list += dl
 
-            design.cross_len_y_list += dl
 
-            if design.cross_len_y_list[res_idx] < ALMOST_ZERO:
-                print("Value is negative: ", design.cross_len_y_list)
-                design.cross_len_y_list = np.ones_like(design.cross_len_y_list) * ALMOST_ZERO
+            design.cross_len_x_list += dl
 
-            print(f"idx = {res_idx}, par val = {design.cross_len_y_list[res_idx]}")
+            if design.cross_len_x_list[res_idx] < ALMOST_ZERO:
+                print("Value is negative: ", design.cross_len_x_list)
+                design.cross_len_x_list = np.ones_like(design.cross_len_x_list) * ALMOST_ZERO
+
+            print(f"idx = {res_idx}, par val = {design.cross_len_x_list[res_idx]}")
 
             save_fname = "Cqr_Cq_results.csv"
 
@@ -3136,8 +3139,8 @@ if __name__ == "__main__":
         print("Simulation mode: C_qr sim")
     # simulate_Cqr(resolution=(3e3, 3e3), mode="Cq", pts=3, par_d=10e3)
     # import ctypes  # An included library with Python install.
-        simulate_Cqr(resolution=(3e3, 3e3), mode="Cq", pts=3, par_d=ProductionParams.par_d)
-    # ctypes.windll.user32.MessageBoxW(0, "Simulation completed", "KLayout simulator", 0)
+        simulate_Cqr(resolution=(2e3, 2e3), mode="Cq", pts=3, par_d=ProductionParams.par_d)
+        # ctypes.windll.user32.MessageBoxW(0, "Simulation completed", "KLayout simulator", 0)
     # simulate_Cqr(resolution=(1e3, 1e3), mode="Cqr")
 
     # ''' Simulation of C_{q1,q2} in fF '''
