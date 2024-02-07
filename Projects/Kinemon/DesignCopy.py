@@ -162,7 +162,7 @@ PROJECT_DIR = r"C:\klayout_dev\kmon-calculations\Cq_Cqr"
 
 class ProductionParams:
     start_mode = 1
-    par_d = 60e3
+    par_d = 40e3
     qubit_indexes = [5, 6, 7]
 
     # 10
@@ -186,10 +186,9 @@ class ProductionParams:
     ]
     _L1_list = np.array(
         [141080.2779,132432.5366,125948.9511,106176.2057,
-         153161.13339815, 149469.7667306,  145876.83650753, 142378.4570798]
+         153161.13339815, 112964.1222,92207.4703,46724.314]
     )
     _to_line_list = np.array([45e3] * 8)
-    # 45e3 initially
 
     _cross_width_y_list = np.array(
         [1e3 * x for x in [16, 16, 16, 16, 16, 32, 56, 56]]
@@ -201,8 +200,8 @@ class ProductionParams:
     )
 
     _cross_len_x_list = np.array(
-        [1e3 * x for x in [129.905, 65.602, 35.098, 0, 0, 200.603,
-                           200.873, 200.415]]
+        [1e3 * x for x in [129.905, 65.602, 35.098, 0, 0, 60,
+                           60, 60]]
     )
 
     _fork_y_span_list = np.array(
@@ -2493,9 +2492,9 @@ def simulate_Cqr(resolution=(4e3, 4e3), mode="Cq", pts=3, par_d=10e3, output_fna
 
     from itertools import product
 
-    for dl, res_idx in list(
+    for res_idx, dl  in list(
             product(
-                dl_list, ProductionParams.qubit_indexes
+                ProductionParams.qubit_indexes, dl_list
             )
     ):
         print(f"Calculation for dl={dl}")
