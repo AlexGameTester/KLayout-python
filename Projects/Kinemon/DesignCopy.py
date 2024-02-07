@@ -2499,7 +2499,6 @@ def simulate_Cqr(resolution=(4e3, 4e3), mode="Cq", pts=3, par_d=10e3, output_fna
             )
     ):
         print(f"Calculation for dl={dl}")
-        continue
         ### DRAWING SECTION START ###
 
         design = DesignDmon("testScript")
