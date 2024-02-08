@@ -1546,7 +1546,7 @@ class Design16QStair(ChipDesign):
 
         ro_lines_avoid_points = self.resonator_avoid_points + self.intersection_points
         # 150 um from intersectoins
-        resonator_avoid_distances += [150e3] * len(self.intersection_points)
+        resonator_avoid_distances += [110e3] * len(self.intersection_points)
         for ro_line in self.ro_lines:
             Bridge1.bridgify_CPW(
                 cpw=ro_line,
