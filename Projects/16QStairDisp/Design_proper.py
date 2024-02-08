@@ -1,4 +1,4 @@
-__version__ = "16QStair_1It_1"
+__version__ = "16QStair_1It_2"
 
 '''
 NOTE:
@@ -24,7 +24,7 @@ import sys
 
 logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
 
-DEBUG = True
+DEBUG = False
 
 PROJECT_DIR = os.path.dirname(__file__)
 import shutil
@@ -250,43 +250,43 @@ class Design16QStair(ChipDesign):
 
         self.draw_flux_control_lines()
         self.draw_readout_lines()
-        # if self.DEBUG:
-        #     self.draw_lines_grid()
+        if self.DEBUG:
+            self.draw_lines_grid()
 
         self.resolve_cpw_intersections()
-        #
-        # self.draw_test_structures()
-        # self.draw_express_test_structures_pads()
-        # self.draw_bandages()
-        # self.draw_el_convertion_regions()
-        #
-        # self.add_chip_marking(
-        #     text_bl=DPoint(11e6, 8e6),
-        #     chip_name=__version__,
-        #     text_scale=200
-        # )
+
+        self.draw_test_structures()
+        self.draw_express_test_structures_pads()
+        self.draw_bandages()
+        self.draw_el_convertion_regions()
+
+        self.add_chip_marking(
+            text_bl=DPoint(11e6, 8e6),
+            chip_name=__version__,
+            text_scale=200
+        )
 
         self.draw_litography_alignment_marks()
         self.draw_bridges()
-        # self.draw_pinning_holes()
+        self.draw_pinning_holes()
         # 4Q_Disp_Xmon v.0.3.0.8 p.12 - ensure that contact pads has no holes
         for contact_pad in self.contact_pads:
             contact_pad.place(self.region_ph)
 
-        # self.extend_photo_overetching()
-        # self.inverse_destination(self.region_ph)
+        self.extend_photo_overetching()
+        self.inverse_destination(self.region_ph)
         # convert to gds acceptable polygons (without inner holes)
-        # self.region_ph.merge()
-        # self.resolve_holes()
+        self.region_ph.merge()
+        self.resolve_holes()
         # convert to litograph readable format. Litograph can't handle
         # polygons with more than 200 vertices.
-        # self.split_polygons_in_layers(max_pts=180)
+        self.split_polygons_in_layers(max_pts=180)
 
         # for processes after litographies
-        # self.draw_cutting_marks()
+        self.draw_cutting_marks()
 
         # requested by fabrication team
-        # self.draw_additional_boxes()
+        self.draw_additional_boxes()
 
     def draw_lines_grid(self):
         dv = DVector(50e3, 50e3)
@@ -1547,10 +1547,12 @@ class Design16QStair(ChipDesign):
         ro_lines_avoid_points = self.resonator_avoid_points + self.intersection_points
         # 150 um from intersectoins
         resonator_avoid_distances += [110e3] * len(self.intersection_points)
-        for ro_line in self.ro_lines:
+        for i, ro_line in enumerate(self.ro_lines):
+            if i == 0:
+                gnd2gnd_dy = 70e3
             Bridge1.bridgify_CPW(
                 cpw=ro_line,
-                bridges_step=bridges_step, gnd2gnd_dy=100e3,
+                bridges_step=bridges_step, gnd2gnd_dy=gnd2gnd_dy,
                 dest=self.region_bridges1, dest2=self.region_bridges2, dest3=self.region_bridges3,
                 support_type=self.bridges_support_type,
                 support_to_gnd=self.bridges_support_to_gnd,
@@ -1641,9 +1643,10 @@ class Design16QStair(ChipDesign):
         self.cell.shapes(self.layer_el_protection).insert(
             self.region_el_protection
         )
-        self.cell.shapes(self.layer_debug).insert(
-            self.debug_region
-        )
+        if self.DEBUG:
+            self.cell.shapes(self.layer_debug).insert(
+                self.debug_region
+            )
         self.lv.zoom_fit()
 
     def draw_additional_boxes(self):
@@ -2138,27 +2141,27 @@ def simulate_md_Cg(q_idx: int, resolution=(5e3, 5e3)):
 
 if __name__ == "__main__":
     ''' draw and show design for manual design evaluation '''
-    FABRICATION_INFO.OVERETCHING = 0.0e3
-    design = Design16QStair("testScript", global_design_params=GlobalDesignParameters())
-    design.draw()
-    design.show()
-    design.save_as_gds2(
-        os.path.join(
-            PROJECT_DIR,
-            __version__ + "_overetching_0um.gds"
-        )
-    )
-
-    # FABRICATION_INFO.OVERETCHING = 0.5e3
-    # design = Design16QStair("testScript")
+    # FABRICATION_INFO.OVERETCHING = 0.0e3
+    # design = Design16QStair("testScript", global_design_params=GlobalDesignParameters())
     # design.draw()
     # design.show()
     # design.save_as_gds2(
     #     os.path.join(
     #         PROJECT_DIR,
-    #         __version__ + "_overetching_0um5.gds"
+    #         __version__ + "_overetching_0um.gds"
     #     )
     # )
+
+    FABRICATION_INFO.OVERETCHING = 0.5e3
+    design = Design16QStair("testScript")
+    design.draw()
+    design.show()
+    design.save_as_gds2(
+        os.path.join(
+            PROJECT_DIR,
+            __version__ + "_overetching_0um5.gds"
+        )
+    )
 
 
     # ''' C_qr sim '''
