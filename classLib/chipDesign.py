@@ -150,7 +150,7 @@ class ChipDesign:
             self.cutting_marks.append(
                 CutMark(origin=point)
             )
-            self.cutting_marks[-1].place(self.region_cut)
+            self.cutting_marks[-1].place(self.region_ph)
 
     # Call this m
     def show(self, design_params=None):

@@ -250,42 +250,42 @@ class Design16QStair(ChipDesign):
 
         self.draw_flux_control_lines()
         self.draw_readout_lines()
-        if self.DEBUG:
-            self.draw_lines_grid()
+        # if self.DEBUG:
+        #     self.draw_lines_grid()
 
         self.resolve_cpw_intersections()
-        # #
+        #
         # self.draw_test_structures()
         # self.draw_express_test_structures_pads()
         # self.draw_bandages()
         # self.draw_el_convertion_regions()
-        # #
+        #
         # self.add_chip_marking(
         #     text_bl=DPoint(11e6, 8e6),
         #     chip_name=__version__,
         #     text_scale=200
         # )
-        #
-        # self.draw_litography_alignment_marks()
-        # self.draw_bridges()
+
+        self.draw_litography_alignment_marks()
+        self.draw_bridges()
         # self.draw_pinning_holes()
-        # # 4Q_Disp_Xmon v.0.3.0.8 p.12 - ensure that contact pads has no holes
-        # for contact_pad in self.contact_pads:
-        #     contact_pad.place(self.region_ph)
-        #
+        # 4Q_Disp_Xmon v.0.3.0.8 p.12 - ensure that contact pads has no holes
+        for contact_pad in self.contact_pads:
+            contact_pad.place(self.region_ph)
+
         # self.extend_photo_overetching()
         # self.inverse_destination(self.region_ph)
-        # # convert to gds acceptable polygons (without inner holes)
+        # convert to gds acceptable polygons (without inner holes)
         # self.region_ph.merge()
         # self.resolve_holes()
-        # # convert to litograph readable format. Litograph can't handle
-        # # polygons with more than 200 vertices.
+        # convert to litograph readable format. Litograph can't handle
+        # polygons with more than 200 vertices.
         # self.split_polygons_in_layers(max_pts=180)
-        #
-        # # for processes after litographies
+
+        # for processes after litographies
         # self.draw_cutting_marks()
-        #
-        # # requested by fabrication team
+
+        # requested by fabrication team
         # self.draw_additional_boxes()
 
     def draw_lines_grid(self):
@@ -1444,7 +1444,7 @@ class Design16QStair(ChipDesign):
         bridges_step = 130e3
 
         # for readout resonators
-        for resonator in self.resonators:
+        for q_idx, resonator in enumerate(self.resonators):
             for name, res_primitive in resonator.primitives.items():
                 if "coil" in name:
                     subprimitives = res_primitive.primitives
@@ -1471,6 +1471,10 @@ class Design16QStair(ChipDesign):
                             for primitive_type in ["DPathCPW", "CPW", "CPWArc"]
                         ]
                 ):
+                    if q_idx == 3:
+                        bridges_step = 160e3
+                    elif q_idx == 9:
+                        bridges_step = 160e3
                     # bridgify the rest
                     Bridge1.bridgify_CPW(
                         cpw=res_primitive,
@@ -1485,7 +1489,8 @@ class Design16QStair(ChipDesign):
 
         ''' contact wires '''
         # TODO: fix this
-        self.control_lines_avoid_points += [squid.center for squid in self.squids]
+        squid_avoid_points = [squid.center for squid in self.squids]
+        self.control_lines_avoid_points += squid_avoid_points
         self.control_lines_avoid_points += self.intersection_points
         for ctr_line in self.cpw_fl_lines:
             if ctr_line is None:
@@ -1500,7 +1505,8 @@ class Design16QStair(ChipDesign):
                     support_type=self.bridges_support_type,
                     support_to_gnd=self.bridges_support_to_gnd,
                     avoid_points=self.control_lines_avoid_points,
-                    avoid_distances=[200e3]
+                    avoid_distances=[200e3]*len(squid_avoid_points) +
+                                    [100e3]*len(self.intersection_points)
                 )
 
         # close bridges for flux contact wires
