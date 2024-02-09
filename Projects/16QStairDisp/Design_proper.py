@@ -1506,7 +1506,7 @@ class Design16QStair(ChipDesign):
                     support_to_gnd=self.bridges_support_to_gnd,
                     avoid_points=self.control_lines_avoid_points,
                     avoid_distances=[200e3]*len(squid_avoid_points) +
-                                    [100e3]*len(self.intersection_points)
+                                    [130e3]*len(self.intersection_points)
                 )
 
         # close bridges for flux contact wires
@@ -1574,6 +1574,10 @@ class Design16QStair(ChipDesign):
                     avoid_points=[cpw_to_bridgify.start, cpw_to_bridgify.end],
                     avoid_distances=[30e3]
                 )
+
+        ''' round bridge sharp corners '''
+        self.region_bridges2.round_corners(r_inner=5e3, r_outer=0, n=50)
+
 
     def draw_pinning_holes(self):
         # points that select polygons of interest as if they were clicked at
