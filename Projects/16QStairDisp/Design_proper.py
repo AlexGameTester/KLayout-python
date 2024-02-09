@@ -124,6 +124,7 @@ class Design16QStair(ChipDesign):
         self.layer_bridges3 = self.layout.layer(info_bridges3)
         self.bridges_support_type = "concave"
         self.bridges_support_to_gnd = -5e3
+        self.round_corners = True
 
         # layer with rectangles that will be converted to the CABL format
         info_el_protection = pya.LayerInfo(7, 0)
@@ -1088,7 +1089,8 @@ class Design16QStair(ChipDesign):
                     bridge_reg1=self.region_bridges1, bridge_reg2=self.region_bridges2,
                     bridge_reg3=self.region_bridges3,
                     support_type=self.bridges_support_type,
-                    support_to_gnd=self.bridges_support_to_gnd
+                    support_to_gnd=self.bridges_support_to_gnd,
+                    round_corners=self.round_corners
                 )
                 self.intersection_points.append(intersection_pt)
 
@@ -1202,6 +1204,7 @@ class Design16QStair(ChipDesign):
                     test_struct3.center + DPoint(50e3 * (i - 1), 0),
                     gnd2gnd_dy=100e3,
                     gnd_touch_dx=20e3,
+                    round_corners=self.round_corners,
                     support_type=self.bridges_support_type
                 )
                 test_bridges.append(bridge)
@@ -1458,7 +1461,7 @@ class Design16QStair(ChipDesign):
                                 cpw=primitive,
                                 bridges_step=bridges_step, gnd2gnd_dy=70e3,
                                 dest=self.region_bridges1, dest2=self.region_bridges2,
-                                dest3=self.region_bridges3,
+                                dest3=self.region_bridges3, round_corners=self.round_corners,
                                 support_type=self.bridges_support_type,
                                 support_to_gnd=self.bridges_support_to_gnd
                             )
@@ -1483,6 +1486,7 @@ class Design16QStair(ChipDesign):
                         dest3=self.region_bridges3,
                         support_type=self.bridges_support_type,
                         support_to_gnd=self.bridges_support_to_gnd,
+                        round_corners=self.round_corners,
                         avoid_points=[resonator.res_coulingArc_cpw_path.end],
                         avoid_distances=[30e3]
                     )
@@ -1504,6 +1508,7 @@ class Design16QStair(ChipDesign):
                     dest3=self.region_bridges3,
                     support_type=self.bridges_support_type,
                     support_to_gnd=self.bridges_support_to_gnd,
+                    round_corners=self.round_corners,
                     avoid_points=self.control_lines_avoid_points,
                     avoid_distances=[200e3]*len(squid_avoid_points) +
                                     [130e3]*len(self.intersection_points)
@@ -1525,6 +1530,7 @@ class Design16QStair(ChipDesign):
                     center=bridge_center1, gnd2gnd_dy=70e3,
                     support_type=self.bridges_support_type,
                     support_to_gnd=self.bridges_support_to_gnd,
+                    round_corners=self.round_corners,
                     trans_in=Trans.R90
                 )
                 br.place(dest=self.region_bridges1, region_id="bridges_1")
@@ -1556,6 +1562,7 @@ class Design16QStair(ChipDesign):
                 dest=self.region_bridges1, dest2=self.region_bridges2, dest3=self.region_bridges3,
                 support_type=self.bridges_support_type,
                 support_to_gnd=self.bridges_support_to_gnd,
+                round_corners=self.round_corners,
                 avoid_points=ro_lines_avoid_points,
                 avoid_distances=resonator_avoid_distances
             )
@@ -1571,12 +1578,10 @@ class Design16QStair(ChipDesign):
                     dest3=self.region_bridges3,
                     support_type=self.bridges_support_type,
                     support_to_gnd=self.bridges_support_to_gnd,
+                    round_corners=self.round_corners,
                     avoid_points=[cpw_to_bridgify.start, cpw_to_bridgify.end],
                     avoid_distances=[30e3]
                 )
-
-        ''' round bridge sharp corners '''
-        self.region_bridges2.round_corners(r_inner=5e3, r_outer=0, n=50)
 
 
     def draw_pinning_holes(self):

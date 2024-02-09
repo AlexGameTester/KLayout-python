@@ -1113,10 +1113,11 @@ class Bridge1(ElementBase):
     gnd_touch_dy = 10e3
     transition_len = 12e3
     gnd2gnd_dy = 70e3
+    round_pts_num = 10
 
     def __init__(
             self, center, gnd_touch_dx=20e3, gnd2gnd_dy=70e3, support_type: str = "no_support", support_width=3e3,
-            support_to_gnd=10e3,
+            support_to_gnd=10e3, round_corners: bool = True,
             trans_in=None
     ):
         """
@@ -1143,6 +1144,7 @@ class Bridge1(ElementBase):
         self.support_type = support_type
         self.support_width = support_width
         self.support_to_gnd = support_to_gnd
+        self.round_corners = round_corners
         super().__init__(center, trans_in)
 
         self._geometry_parameters = OrderedDict(
@@ -1199,18 +1201,44 @@ class Bridge1(ElementBase):
 
         # init empty region for second layout layer
         # points start from left-bottom corner and goes in clockwise direction
-        p1 = bot_gnd_touch_box.p1 + DPoint(
-            -self.surround_gap,
-            -self.surround_gap
-        )
-        p2 = p1 + DPoint(
-            0, self.surround_gap + self.gnd_touch_dy +
-               self.transition_len - self.surround_gap
-        )
-        # top left corner + `surrounding_gap` + `transition_length`
-        p3 = bot_gnd_touch_box.p1 + DPoint(0, bot_gnd_touch_box.height()) + \
-             DPoint(-(20e3 - self.gnd_touch_dx) / 2, self.transition_len)
-        bl_pts_list = [p1, p2, p3]  # bl stands for bottom-left
+        if self.round_corners:
+            p1 = bot_gnd_touch_box.p1 + DPoint(0, -self.surround_gap)
+            p2 = bot_gnd_touch_box.p1 + DPoint(-self.surround_gap, 0)
+            p5 = bot_gnd_touch_box.p1 + DPoint(0, bot_gnd_touch_box.height()) + \
+                 DPoint(-(20e3 - self.gnd_touch_dx) / 2, self.transition_len)
+            p3 = p5 + DPoint(-self.surround_gap, -np.sqrt(2) * self.surround_gap)
+            p4 = p5 + DPoint(-np.sqrt(2) / 2 * self.surround_gap, -np.sqrt(2) / 2 * self.surround_gap)
+
+            # centers of angles rounding with radius r = self.surround_gap
+            c1 = bot_gnd_touch_box.p1
+            c2 = p5 + DPoint(0, -np.sqrt(2) * self.surround_gap)
+            c1_pts_list = [
+                c1 + DPoint(
+                    -sin(pi / 2 * idx / self.round_pts_num) * self.surround_gap,
+                    -cos(pi / 2 * idx / self.round_pts_num) * self.surround_gap
+                ) for idx in range(1, self.round_pts_num)
+            ]
+            c2_pts_list = [
+                c2 + DPoint(
+                    -cos(pi / 4 * idx / (self.round_pts_num // 2)) * self.surround_gap,
+                    sin(pi / 4 * idx / (self.round_pts_num // 2)) * self.surround_gap
+                ) for idx in range(1, self.round_pts_num // 2)
+            ]
+
+            bl_pts_list = [p1] + c1_pts_list + [p2, p3] + c2_pts_list + [p4, p5]
+        else:
+            p1 = bot_gnd_touch_box.p1 + DPoint(
+                -self.surround_gap,
+                -self.surround_gap
+            )
+            p2 = p1 + DPoint(
+                0, self.surround_gap + self.gnd_touch_dy +
+                   self.transition_len - self.surround_gap
+            )
+            # top left corner + `surrounding_gap` + `transition_length`
+            p3 = bot_gnd_touch_box.p1 + DPoint(0, bot_gnd_touch_box.height()) + \
+                 DPoint(-(20e3 - self.gnd_touch_dx) / 2, self.transition_len)
+            bl_pts_list = [p1, p2, p3]  # bl stands for bottom-left
         ''' exploiting symmetry of reflection at x and y axes for etching shape '''
         # reflecting at x-axis
         tl_pts_list = list(
@@ -1292,7 +1320,8 @@ class Bridge1(ElementBase):
             bridge_layer3=-1,
             support_type: str = "no_support",
             support_width=3e3,
-            support_to_gnd=10e3,
+            support_to_gnd=10e3, 
+            round_corners: bool = True,
             avoid_points: List[DPoint] = None,
             avoid_distances: List[float] = None
     ):
@@ -1341,7 +1370,7 @@ class Bridge1(ElementBase):
         -------
         None
         """
-        bridge_tmp = Bridge1(DPoint(0, 0), gnd2gnd_dy=gnd2gnd_dy, support_type=support_type)
+        bridge_tmp = Bridge1(DPoint(0, 0), gnd2gnd_dy=gnd2gnd_dy, support_type=support_type, round_corners=round_corners)
         bridge_tmp.__bridgify_CPW(
             cpw=cpw, bridges_step=bridges_step,
             dest=dest, bridge_layer1=bridge_layer1,
@@ -1351,6 +1380,7 @@ class Bridge1(ElementBase):
             support_width=support_width,
             support_to_gnd=support_to_gnd,
             gnd2gnd_dy=gnd2gnd_dy,
+            round_corners=round_corners,
             avoid_points=avoid_points,
             avoid_distances=avoid_distances,
         )
@@ -1363,7 +1393,8 @@ class Bridge1(ElementBase):
             support_type: str = "no_support",
             support_width=3e3,
             support_to_gnd=10e3,
-            gnd2gnd_dy=70e3,
+            gnd2gnd_dy=70e3, 
+            round_corners: bool = True,
             avoid_points: List[DPoint] = None, avoid_distances: List[float] = None
     ):
         """
@@ -1428,7 +1459,7 @@ class Bridge1(ElementBase):
             cpw_dir_unit_vector = cpw.dr / cpw.dr.abs()
 
             # bridge with some initial dimensions
-            tmp_bridge = Bridge1(DPoint(0, 0), gnd2gnd_dy=gnd2gnd_dy, support_type=support_type)
+            tmp_bridge = Bridge1(DPoint(0, 0), gnd2gnd_dy=gnd2gnd_dy, support_type=support_type, round_corners=round_corners)
             bridge_width = tmp_bridge.gnd_touch_dx + 2 * tmp_bridge.surround_gap
 
             # number of additional bridges on either side of center
@@ -1463,6 +1494,7 @@ class Bridge1(ElementBase):
                         support_type=support_type,
                         support_width=support_width,
                         support_to_gnd=support_to_gnd,
+                        round_corners=round_corners,
                         trans_in=DCplxTrans(
                             1, alpha / pi * 180, False, 0,
                             0
@@ -1491,6 +1523,7 @@ class Bridge1(ElementBase):
                 support_type=support_type,
                 support_width=support_width,
                 support_to_gnd=support_to_gnd,
+                round_corners=round_corners,
                 trans_in=DCplxTrans(1, alpha / pi * 180, False, 0, 0)
             )
 
@@ -1512,6 +1545,7 @@ class Bridge1(ElementBase):
                         support_type=support_type,
                         support_width=support_width,
                         support_to_gnd=support_to_gnd,
+                        round_corners=round_corners,
                         avoid_points=avoid_points,
                         avoid_distances=avoid_distances
                     )
@@ -1548,7 +1582,7 @@ class Intersection:
     def resolve_cpw_cpw_intersection(
             cpw1, cpw2, cpw_reg, bridge_reg1: Region, bridge_reg2: Region,
             bridge_reg3: Region, support_type: str = "no_support",  support_width=3e3,
-            support_to_gnd=10e3,
+            support_to_gnd=10e3, round_corners=True,
             clearance_mul=1
     ):
         """
@@ -1639,6 +1673,7 @@ class Intersection:
             support_type=support_type,
             support_width=support_width,
             support_to_gnd=support_to_gnd,
+            round_corners=round_corners,
             trans_in=DCplxTrans(1, -90 + 180 * np.arctan2(s1.y, s1.x) / np.pi, False, 0, 0)
         )
         bridge1.place(bridge_reg1, region_id="bridges_1")
@@ -1651,6 +1686,7 @@ class Intersection:
             gnd2gnd_dy=ground_filling_cpw1.dr.abs() + 2 * cpw1.gap + cpw1.gap,
             support_type=support_type,
             support_to_gnd=support_to_gnd,
+            round_corners=round_corners,
             trans_in=DCplxTrans(1, -90 + 180 * np.arctan2(s1.y, s1.x) / np.pi, False, 0, 0)
         )
         bridge2.place(bridge_reg1, region_id="bridges_1")
@@ -1662,6 +1698,7 @@ class Intersection:
             gnd2gnd_dy=ground_filling_cpw1.dr.abs() + 2 * cpw1.gap + cpw1.gap,
             support_type=support_type,
             support_to_gnd=support_to_gnd,
+            round_corners=round_corners,
             trans_in=DCplxTrans(1, -90 + 180 * np.arctan2(s1.y, s1.x) / np.pi, False, 0, 0)
         )
         bridge3.place(bridge_reg1, region_id="bridges_1")
