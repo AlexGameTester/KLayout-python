@@ -5,6 +5,7 @@ import ctypes
 import logging
 import sys
 import time
+from datetime import datetime
 from importlib import reload
 from random import Random
 
@@ -162,8 +163,8 @@ PROJECT_DIR = r"C:\klayout_dev\kmon-calculations\Cq_Cqr"
 
 class ProductionParams:
     start_mode = 1
-    par_d = 40e3
-    qubit_indexes = [5, 6, 7]
+    par_d = 10e3
+    qubit_indexes = [3, 4]
 
     # 10
     _cross_gnd_gap_x = 60e3
@@ -175,7 +176,7 @@ class ProductionParams:
     _fork_gnd_gap = 10e3
 
     _meander_length_list = [
-        2.7e5, # Max ~4.3e5
+        4e5, # Max ~4.3e5
         30924.72,
         18140.92,
         11783.04,
@@ -185,29 +186,29 @@ class ProductionParams:
         18706.04,
     ]
     _L1_list = np.array(
-        [141080.2779,132432.5366,125948.9511,106176.2057,
-         153161.13339815, 112964.1222,92207.4703,46724.314]
+        [141080.2779,132432.5366,125948.9511, 106176.2057,
+         115540.3816, 89988.1556, 77104.8224, 46724.314]
     )
     _to_line_list = np.array([45e3] * 8)
 
     _cross_width_y_list = np.array(
-        [1e3 * x for x in [16, 16, 16, 16, 16, 32, 56, 56]]
+        [1e3 * x for x in [16, 16, 16, 16, 16, 32, 32, 32]]
     )
 
     _cross_len_y_list = np.array(
         [1e3 * x for x in
-        [170.0, 232.0, 281.0, 256.0, 267.0, 260, 340.0, 300.0]]
+        [170.0, 232.0, 281.0, 256.0, 267.0, 186.0, 195.0, 223.0]]
     )
 
     _cross_len_x_list = np.array(
-        [1e3 * x for x in [129.905, 65.602, 35.098, 0, 0, 60,
-                           60, 60]]
+        [1e3 * x for x in [129.905, 65.602, 35.098, 0, 0, 0,
+                           0, 0]]
     )
 
     _fork_y_span_list = np.array(
         [
             x * 1e3 for x in
-        [40.0, 31.5, 13.7, 14.0, 14.0, 71.2, 75.3, 76.2]
+        [42.0, 47, 52.0, 64.0, 70.0, 62.0, 68.0, 81.0]
         ]
     )
 
@@ -331,8 +332,8 @@ class ProductionParams:
 class DefaultParams:
     meander_params_dict = {
         'dr': DPoint(0, 0),
-        'line_width_dx': 0.130e3,
-        'line_width_dy': 0.130e3,
+        'line_width_dx': 0.260e3,
+        'line_width_dy': 0.120e3,
         'add_dx_mid': 8e3,
         'line_gap': 0.4e3
     }
@@ -341,7 +342,7 @@ class DefaultParams:
         'MC_dy': None,
         'MC_dx': None,
         'KI_bridge_width': 1e3,
-        'KI_bridge_height': 3e3,
+        'KI_bridge_height': 0.9e3,
         'KI_pad_y_offset': 0.2e3,
         'KI_pad_width': 3e3,
         'KI_ledge_y_offset': 0.3e3,
@@ -2044,7 +2045,7 @@ def simulate_resonators_f_and_Q(resolution=(4e3, 4e3)):
             dl_list
     )):
         print()
-        print("res №", resonator_idx)
+        print(f"{datetime.now().strftime('%H:%M:%S')} - res №", resonator_idx)
         fine_resonance_success = False
         freqs_span = freqs_span_corase
 
@@ -2057,8 +2058,7 @@ def simulate_resonators_f_and_Q(resolution=(4e3, 4e3)):
             design.resonators[resonator_idx].get_approx_frequency(
                 refractive_index=np.sqrt(6.26423)
             )
-        print(f"formula estimated freq: {an_estimated_freq:3.5} GHz")
-        print(f"Desired freq: {predef_freq:.2f} GHz")
+        print(f"Formula estimated freq: {an_estimated_freq:3.5} GHz, desired freq: {predef_freq:.2f} GHz")
         estimated_freq = predef_freq
         # print("start drawing")
         # print(f"previous result estimated freq: {estimated_freq:3.5} GHz")
@@ -2126,7 +2126,7 @@ def simulate_resonators_f_and_Q(resolution=(4e3, 4e3)):
             DTrans(dr.x, dr.y),
             trans_ports=True
         )
-        [print(port) for port in design.sonnet_ports]
+        print("Ports: ", design.sonnet_ports)
         # transfer design`s regions shapes to the corresponding layers in layout
         design.show()
         # show layout in UI window
@@ -2497,7 +2497,7 @@ def simulate_Cqr(resolution=(4e3, 4e3), mode="Cq", pts=3, par_d=10e3, output_fna
                 ProductionParams.qubit_indexes, dl_list
             )
     ):
-        print(f"Calculation for dl={dl}")
+        print(f"{datetime.now().strftime('%H:%M:%S')} - Calculation for dl={dl}")
         ### DRAWING SECTION START ###
 
         design = DesignDmon("testScript")
@@ -2520,13 +2520,13 @@ def simulate_Cqr(resolution=(4e3, 4e3), mode="Cq", pts=3, par_d=10e3, output_fna
             # design.cross_len_x_list += dl
 
 
-            design.cross_len_x_list += dl
+            design.cross_len_y_list += dl
 
-            if design.cross_len_x_list[res_idx] < ALMOST_ZERO:
-                print("Value is negative: ", design.cross_len_x_list)
-                design.cross_len_x_list = np.ones_like(design.cross_len_x_list) * ALMOST_ZERO
+            if design.cross_len_y_list[res_idx] < ALMOST_ZERO:
+                print("Value is negative: ", design.cross_len_y_list)
+                design.cross_len_y_list = np.ones_like(design.cross_len_y_list) * ALMOST_ZERO
 
-            print(f"idx = {res_idx}, par val = {design.cross_len_x_list[res_idx]}")
+            print(f"idx = {res_idx}, par val = {design.cross_len_y_list[res_idx]}")
 
             save_fname = "Cqr_Cq_results.csv"
 
@@ -3137,7 +3137,7 @@ if __name__ == "__main__":
         print("Simulation mode: C_qr sim")
     # simulate_Cqr(resolution=(3e3, 3e3), mode="Cq", pts=3, par_d=10e3)
     # import ctypes  # An included library with Python install.
-        simulate_Cqr(resolution=(2e3, 2e3), mode="Cq", pts=3, par_d=ProductionParams.par_d)
+        simulate_Cqr(resolution=(1e3, 1e3), mode="Cqr", pts=3, par_d=ProductionParams.par_d)
         # ctypes.windll.user32.MessageBoxW(0, "Simulation completed", "KLayout simulator", 0)
     # simulate_Cqr(resolution=(1e3, 1e3), mode="Cqr")
 
