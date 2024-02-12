@@ -7,11 +7,21 @@ from classLib.chipTemplates import CHIP_14x14_20pads
 
 
 class StartMode(Enum):
-   SHOW = 0
+    """
+    This class represents different script execution modes
+    """
+    SHOW = 0
+
 class ProductionParams:
+    """
+    This class contains all variable parameters of the design and script execution parameters.
+    """
     start_mode = StartMode.SHOW
 
 class DesignKmon(ChipDesign):
+    """
+    This class represents a 14x14 chip with kinemons that are grouped into one, two and three qubit schemes.
+    """
     def __init__(self, cell_name="testScript"):
         super().__init__(cell_name)
 
