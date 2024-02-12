@@ -1,14 +1,21 @@
 import os
 import sys
+import logging
 from datetime import datetime
 from enum import Enum
+from importlib import reload
+from typing import List
 
 from pya import Region, DBox
 
-from classLib import ChipDesign
+import classLib
+
+logging.debug("imported classLib from main")
+reload(classLib)
+logging.debug("reloaded classLib from main")
+from classLib.chipDesign import ChipDesign
 from classLib.chipTemplates import CHIP_14x14_20pads
 
-import logging
 
 # Configuring logging
 LOGS_FILEPATH = "c:/klayout_dev/logs/Design20pad/"
@@ -64,6 +71,11 @@ class DesignKmon(ChipDesign):
         self.region_kinInd = Region()
         self.layer_kinInd = self.layout.layer(info_kinInd_layer)
 
+        self.regions: List[Region] = [
+            self.region_ph, self.region_bridges1, self.region_bridges2,
+            self.region_el, self.dc_bandage_reg,
+            self.region_el_protection, self.region_cut, self.region_kinInd
+        ]
         # has to call it once more to add new layers
         self.lv.add_missing_layers()
 
@@ -71,8 +83,11 @@ class DesignKmon(ChipDesign):
         self.chip = CHIP_14x14_20pads
         self.chip_box = self.chip.box
 
+        # None parameters initialization
         self.contact_pads = None
         self._init_contact_pads()
+
+
 
     def _init_contact_pads(self):
         logging.debug("Creating contact pads")
