@@ -302,9 +302,11 @@ class ChipDesign:
             reg.transform(trans)
 
         if trans_ports:
-            self.sonnet_ports = list(
-                DSimplePolygon(self.sonnet_ports).transform(trans).each_point()
-            )
+            for i, port in enumerate(self.sonnet_ports):
+                if port is None:
+                    continue
+                self.sonnet_ports[i] = list(DSimplePolygon([port]).transform((trans)).each_point())[0]
+
 
     # Save your design as GDS-II
     def save_as_gds2(self, filename):
