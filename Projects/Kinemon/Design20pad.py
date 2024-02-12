@@ -1,3 +1,6 @@
+import os
+import sys
+from datetime import datetime
 from enum import Enum
 
 from pya import Region, DBox
@@ -5,6 +8,16 @@ from pya import Region, DBox
 from classLib import ChipDesign
 from classLib.chipTemplates import CHIP_14x14_20pads
 
+import logging
+
+# Configuring logging
+LOGS_FILEPATH = "c:/klayout_dev/logs/Design20pad/"
+stdout_handler = logging.StreamHandler(sys.stdout)
+file_handler = logging.FileHandler(filename=os.path.join(LOGS_FILEPATH, datetime.now().strftime("%Y-%m-%d %H-%M-%S") + ".log"), mode='w')
+logging.basicConfig(level=logging.DEBUG,
+                    handlers=[stdout_handler, file_handler],
+                    format="%(asctime)s %(levelname)s: %(message)s",
+                    force=True)
 
 class StartMode(Enum):
     """
@@ -12,16 +25,19 @@ class StartMode(Enum):
     """
     SHOW = 0
 
+
 class ProductionParams:
     """
     This class contains all variable parameters of the design and script execution parameters.
     """
     start_mode = StartMode.SHOW
 
+
 class DesignKmon(ChipDesign):
     """
     This class represents a 14x14 chip with kinemons that are grouped into one, two and three qubit schemes.
     """
+
     def __init__(self, cell_name="testScript"):
         super().__init__(cell_name)
 
@@ -55,17 +71,29 @@ class DesignKmon(ChipDesign):
         self.chip = CHIP_14x14_20pads
         self.chip_box = self.chip.box
 
+        self.contact_pads = None
+        self._init_contact_pads()
+
+    def _init_contact_pads(self):
+        logging.debug("Creating contact pads")
+        self.contact_pads = CHIP_14x14_20pads.get_contact_pads()
+
     def draw(self, design_params=None):
         self.draw_chip()
 
         self.draw_contact_pads()
 
+        logging.debug("Drawing completed")
+
     def draw_chip(self):
+        logging.debug("Drawing chip box")
         self.region_bridges2.insert(self.chip_box)
         self.region_ph.insert(self.chip_box)
 
     def draw_contact_pads(self):
-        pass
+        logging.debug("Drawing contact pads")
+        for i, contact_pad in enumerate(self.contact_pads):
+            contact_pad.place(self.region_ph)
 
     def _transfer_regs2cell(self):
         # this too methods assumes that all previous drawing
@@ -86,9 +114,7 @@ class DesignKmon(ChipDesign):
 
 if __name__ == "__main__":
     if ProductionParams.start_mode == StartMode.SHOW:
+        logging.info("Executing script in showing mode")
         design = DesignKmon()
         design.draw()
         design.show()
-
-
-
