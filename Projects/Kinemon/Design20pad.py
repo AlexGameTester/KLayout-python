@@ -1,6 +1,7 @@
 import os
 import sys
 import logging
+import numpy as np
 from datetime import datetime
 from enum import Enum
 from importlib import reload
@@ -15,16 +16,18 @@ reload(classLib)
 logging.debug("reloaded classLib from main")
 from classLib.chipDesign import ChipDesign
 from classLib.chipTemplates import CHIP_14x14_20pads
-
+from classLib.coplanars import CPWParameters
 
 # Configuring logging
 LOGS_FILEPATH = "c:/klayout_dev/logs/Design20pad/"
 stdout_handler = logging.StreamHandler(sys.stdout)
-file_handler = logging.FileHandler(filename=os.path.join(LOGS_FILEPATH, datetime.now().strftime("%Y-%m-%d %H-%M-%S") + ".log"), mode='w')
+file_handler = logging.FileHandler(
+    filename=os.path.join(LOGS_FILEPATH, datetime.now().strftime("%Y-%m-%d %H-%M-%S") + ".log"), mode='w')
 logging.basicConfig(level=logging.DEBUG,
                     handlers=[stdout_handler, file_handler],
                     format="%(asctime)s %(levelname)s: %(message)s",
                     force=True)
+
 
 class StartMode(Enum):
     """
@@ -33,11 +36,36 @@ class StartMode(Enum):
     SHOW = 0
 
 
+class DefaultParams:
+    """
+    This class contains design parameters that are expected not to be changed during simulations, etc.
+    """
+    ro_line_Z = CPWParameters(width=18e3, gap=10e3)
+    z_fl1 = CPWParameters(width=30e3, gap=15e3)
+
+    contact_pad_params = {"back_metal_gap": 200e3,
+                              "back_metal_width": 0e3,
+                              "pad_length": 700e3,
+                              "transition_len": 250e3
+                          }
+
+
 class ProductionParams:
     """
     This class contains all variable parameters of the design and script execution parameters.
     """
     start_mode = StartMode.SHOW
+
+    @classmethod
+    def get_chip_Z_list(cls):
+        return np.copy(cls._chip_Z_list)
+
+    _chip_Z_list = [
+        DefaultParams.ro_line_Z, DefaultParams.z_fl1, DefaultParams.z_fl1, DefaultParams.z_fl1, DefaultParams.z_fl1,  # left side
+        DefaultParams.z_fl1, DefaultParams.z_fl1, DefaultParams.z_fl1, DefaultParams.z_fl1, DefaultParams.ro_line_Z,  # bottom
+        DefaultParams.ro_line_Z, DefaultParams.z_fl1, DefaultParams.z_fl1, DefaultParams.z_fl1, DefaultParams.z_fl1,  # right
+        DefaultParams.z_fl1, DefaultParams.z_fl1, DefaultParams.z_fl1, DefaultParams.z_fl1, DefaultParams.ro_line_Z  # top
+    ]
 
 
 class DesignKmon(ChipDesign):
@@ -87,11 +115,10 @@ class DesignKmon(ChipDesign):
         self.contact_pads = None
         self._init_contact_pads()
 
-
-
     def _init_contact_pads(self):
         logging.debug("Creating contact pads")
-        self.contact_pads = CHIP_14x14_20pads.get_contact_pads()
+        self.contact_pads = CHIP_14x14_20pads.get_contact_pads(ProductionParams.get_chip_Z_list(),
+                                                               **DefaultParams.contact_pad_params)
 
     def draw(self, design_params=None):
         self.draw_chip()
