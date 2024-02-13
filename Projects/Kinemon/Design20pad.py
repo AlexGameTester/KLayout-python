@@ -10,10 +10,12 @@ from typing import List
 from pya import Region, DBox, DPoint
 
 import Projects.Kinemon.KmonDesign
+
 logging.debug("Imported KmonDesign")
 reload(Projects.Kinemon.KmonDesign)
 logging.debug("Reloaded KmonDesign")
 from Projects.Kinemon.KmonDesign import MeanderParams, KinemonParams
+from Projects.Kinemon.KmonDesign import Kinemon
 
 import classLib
 from classLib.josJ import AsymSquidParams
@@ -23,7 +25,7 @@ reload(classLib)
 logging.debug("Reloaded classLib from main")
 from classLib.chipDesign import ChipDesign
 from classLib.chipTemplates import CHIP_14x14_20pads
-from classLib.coplanars import CPWParameters
+from classLib.coplanars import CPWParameters, CPW
 
 # Configuring logging
 LOGS_FOLDER = "c:/klayout_dev/logs/Design20pad/"
@@ -117,6 +119,7 @@ class ProductionParams:
     @property
     def big_jj_dx_list(self):
         return np.copy(self._big_jj_dx_list)
+
     @property
     def big_jj_dy_list(self):
         return np.copy(self._big_jj_dy_list)
@@ -124,14 +127,19 @@ class ProductionParams:
     @property
     def small_jj_dx_list(self):
         return np.copy(self._small_jj_dx_list)
+
     @property
     def small_jj_dy_list(self):
         return np.copy(self._small_jj_dy_list)
 
+    @property
+    def ro_lines_ends_indexes(self):
+        return np.copy(self._ro_lines_ends_indexes)
 
     def __init__(self):
         self.start_mode = StartMode.SHOW
 
+        '''General geometry params'''
         self.NQUBITS = 8
 
         self._chip_Z_list = [
@@ -145,9 +153,14 @@ class ProductionParams:
             # top
         ]
 
+        # Indexes of contact pads that are connected to readout waveguides, grouped in pairs - start and end of each waveguide
+        self._ro_lines_ends_indexes = np.array([(1, 13), (3, 11)])
+
+        '''KinInd Meander params'''
         meander_length = 262949.689
         self._meander_length_list = np.array([meander_length] * self.NQUBITS)
 
+        '''Josephson junction params'''
         self._big_jj_dx_list = np.array([120] * 8)
         self._big_jj_dy_list = np.array([
             287.65,
@@ -179,6 +192,7 @@ class ProductionParams:
             109.66,
             109.66,
         ])
+
 
 
 class DesignKmon(ChipDesign):
@@ -230,9 +244,14 @@ class DesignKmon(ChipDesign):
         self.contact_pads = None
         self._init_contact_pads()
 
-        self.qubit_params = None
+        self.readout_lines = None
+        self._init_readout_lines()
+
+        self.qubit_params_list = None
+        self.qubit_origins = None
+        self.qubit_trans = None
         self._init_qubit_params()
-        self.qubit_grid = None
+
         self.qubits = None
         self._init_qubits()
 
@@ -240,6 +259,17 @@ class DesignKmon(ChipDesign):
         logging.debug("Initializing contact pads")
         self.contact_pads = CHIP_14x14_20pads.get_contact_pads(ProductionParams.instance().chip_Z_list,
                                                                **DefaultParams.contact_pad_params)
+
+    def _init_readout_lines(self):
+        logging.debug("Initializing readout lines")
+        self.readout_lines = []
+        for idx1, idx2 in ProductionParams.instance().ro_lines_ends_indexes:
+            self.readout_lines.append(CPW(start=self.contact_pads[idx1].end,
+                                          end=self.contact_pads[idx2].end,
+                                          cpw_params=self.chip.chip_Z))
+
+        if len(self.readout_lines) != len(ProductionParams.instance().ro_lines_ends_indexes):
+            raise ValueError('')
 
     def _init_qubit_params(self):
         logging.debug("Initializing qubit parameters")
@@ -264,33 +294,40 @@ class DesignKmon(ChipDesign):
             asquid_params.BC_dx = [asquid_params.BC_dx[0]] * 2
             asquid_params.BCW_dx = [asquid_params.BCW_dx[0]] * 2
 
-
         if len(asquid_params_list) != ProductionParams.instance().NQUBITS:
-            raise ValueError(f'Incorrect asquid_params_list length {len(asquid_params_list)}. NQUBITS = {ProductionParams.instance().NQUBITS}')
-
-        # if len(rfsq_params_list) != ProductionParams.instance().NQUBITS:
-        #     raise ValueError(f'Incorrect rfsq_params_list length {len(rfsq_params_list)}. NQUBITS = {ProductionParams.instance().NQUBITS}')
+            raise ValueError(
+                f'Incorrect asquid_params_list length {len(asquid_params_list)}. NQUBITS = {ProductionParams.instance().NQUBITS}')
 
         if len(meander_params_list) != ProductionParams.instance().NQUBITS:
-            raise ValueError(f'Incorrect meander_params_list length {len(meander_params_list)}. NQUBITS = {ProductionParams.instance().NQUBITS}')
+            raise ValueError(
+                f'Incorrect meander_params_list length {len(meander_params_list)}. NQUBITS = {ProductionParams.instance().NQUBITS}')
 
         logging.debug("Preliminary list initialization finished. Creating qubit_params list")
 
-        self.qubit_params = [
+        self.qubit_params_list = [
             KinemonParams(asym_squid_params=asquid_params,
                           meander_params=meander_params_list,
                           **DefaultParams.kinemon_params)
             for (asquid_params, meander_params_list) in zip(asquid_params_list, meander_params_list)]
 
+        # TODO: Calculate qubit origins and trans here
+        self.qubit_origins = [DPoint(0,0)] * ProductionParams.instance().NQUBITS
+
     def _init_qubits(self):
         logging.debug("Initializing qubits")
-        pass
+        self.qubits = [Kinemon(origin, kinemon_params)
+                       for (origin, kinemon_params) in
+                       zip(self.qubit_origins, self.qubit_params_list)]
 
     def draw(self, design_params=None):
         logging.debug("Drawing started")
         self.draw_chip()
 
         self.draw_contact_pads()
+
+        self.draw_readout_lines()
+
+        self.draw_qubits()
 
         logging.debug("Drawing completed")
 
@@ -303,6 +340,17 @@ class DesignKmon(ChipDesign):
         logging.debug("Drawing contact pads")
         for i, contact_pad in enumerate(self.contact_pads):
             contact_pad.place(self.region_ph)
+
+    def draw_readout_lines(self):
+        for ro_line in self.readout_lines:
+            ro_line.place(self.region_ph)
+
+    def draw_qubits(self):
+        logging.debug("Drawing qubits")
+        for qubit in self.qubits:
+            qubit.place(self.region_el, region_id="default")
+            qubit.place(self.region_el, region_id="default_empty")
+            qubit.place(self.region_kinInd, region_id="kinInd")
 
     def _transfer_regs2cell(self):
         # this too methods assumes that all previous drawing

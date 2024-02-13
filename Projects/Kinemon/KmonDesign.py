@@ -173,11 +173,11 @@ class KinemonParams():
 
 
 class Kinemon(AsymSquid):
-    def __init__(self, origin: DPoint, squid_params: KinemonParams, trans_in=None):
+    def __init__(self, origin: DPoint, kinemon_params: KinemonParams, trans_in=None):
         self.center = origin
 
-        self.r_curve = max(squid_params.line_width_dx,
-                           squid_params.line_width_dy)
+        self.r_curve = max(kinemon_params.meander_params.line_width_dx,
+                           kinemon_params.meander_params.line_width_dy)
         self.TCBC_round_r = 500  # nm
         self.TCBC_round_n = 50
         self.JJ_wire_width_offset = 1e3
@@ -185,7 +185,7 @@ class Kinemon(AsymSquid):
         self.kin_ind_meander: KinIndMeander = None
         self.squid_params: KinemonParams = None
 
-        super().__init__(origin=origin, params=squid_params,
+        super().__init__(origin=origin, params=kinemon_params,
                          trans_in=trans_in)
 
     def init_regions(self):
