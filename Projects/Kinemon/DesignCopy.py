@@ -137,10 +137,13 @@ reload(classLib)
 from classLib.baseClasses import ElementBase, ComplexBase
 from classLib.coplanars import CPWParameters, CPW, DPathCPW, \
     CPWRLPath, Bridge1, CPW2CPW
-from classLib.shapes import XmonCross, Rectangle, CutMark
+from classLib.shapes import Rectangle
+from classLib.capacitors import XmonCross
+from classLib.marks import CutMark
 from classLib.resonators import EMResonatorTL3QbitWormRLTailXmonFork
 from classLib.josJ import AsymSquidParams, AsymSquid
-from classLib.chipTemplates import CHIP_10x5_8pads, FABRICATION
+from classLib.chipTemplates import CHIP_10x5_8pads
+from classLib.helpers import FABRICATION_INFO as FABRICATION
 from classLib.chipDesign import ChipDesign
 from classLib.marks import MarkBolgar
 from classLib.contactPads import ContactPad
