@@ -1,8 +1,9 @@
 from pya import DPoint, DVector, DPolygon, DCplxTrans, Region
 
 from Projects.Dmon.Design import RFSquidParams, DesignDmon
-from classLib import ElementBase, CPW
-from classLib.josJ import AsymSquid
+from classLib.baseClasses import ElementBase
+from classLib.coplanars import CPW
+from classLib.josJ import AsymSquid, AsymSquidParams
 
 
 def check_positive(val, full_name, short_name):
@@ -123,8 +124,9 @@ class KinIndMeander(ElementBase):
         return DPolygon(points)
 
 
-class KinemonParams(RFSquidParams):
-    def __init__(self, rf_sq_params: RFSquidParams, meander_params: MeanderParams, area_ratio=1 / 2,
+class KinemonParams():
+    def __init__(self, asym_squid_params: AsymSquidParams, meander_params: MeanderParams,
+                 area_ratio=1 / 2,
                  MC_dy=None,
                  MC_dx=None,
                  KI_bridge_width=1e3,
@@ -135,7 +137,7 @@ class KinemonParams(RFSquidParams):
                  KI_JJ_ledge_height=4e3,
                  KI_JJ_ledge_width=2e3):
         """
-        @param rf_sq_params:
+        @param asym_squid_params:
         @param meander_params: Object that contains parameters of kinetic inductance meander
         @param area_ratio:
         @param MC_dy:
@@ -154,7 +156,7 @@ class KinemonParams(RFSquidParams):
         self.KI_JJ_ledge_width = KI_JJ_ledge_width
 
         # Squid params object have a priority over direct input of params
-        self.__dict__.update(rf_sq_params.__dict__)
+        self.__dict__.update(asym_squid_params.__dict__)
         self.meander_params = meander_params
         # TODO: Implement variable area_ratio
         self.area_ratio = area_ratio
