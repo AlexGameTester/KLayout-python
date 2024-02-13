@@ -7,22 +7,29 @@ from enum import Enum
 from importlib import reload
 from typing import List
 
-from pya import Region, DBox
+from pya import Region, DBox, DPoint
+
+import Projects.Kinemon.KmonDesign
+logging.debug("Imported KmonDesign")
+reload(Projects.Kinemon.KmonDesign)
+logging.debug("Reloaded KmonDesign")
+from Projects.Kinemon.KmonDesign import MeanderParams, KinemonParams
 
 import classLib
+from classLib.josJ import AsymSquidParams
 
-logging.debug("imported classLib from main")
+logging.debug("Imported classLib from main")
 reload(classLib)
-logging.debug("reloaded classLib from main")
+logging.debug("Reloaded classLib from main")
 from classLib.chipDesign import ChipDesign
 from classLib.chipTemplates import CHIP_14x14_20pads
 from classLib.coplanars import CPWParameters
 
 # Configuring logging
-LOGS_FILEPATH = "c:/klayout_dev/logs/Design20pad/"
+LOGS_FOLDER = "c:/klayout_dev/logs/Design20pad/"
 stdout_handler = logging.StreamHandler(sys.stdout)
 file_handler = logging.FileHandler(
-    filename=os.path.join(LOGS_FILEPATH, datetime.now().strftime("%Y-%m-%d %H-%M-%S") + ".log"), mode='w')
+    filename=os.path.join(LOGS_FOLDER, datetime.now().strftime("%Y-%m-%d %H-%M-%S") + ".log"), mode='w')
 logging.basicConfig(level=logging.DEBUG,
                     handlers=[stdout_handler, file_handler],
                     format="%(asctime)s %(levelname)s: %(message)s",
@@ -43,29 +50,135 @@ class DefaultParams:
     ro_line_Z = CPWParameters(width=18e3, gap=10e3)
     z_fl1 = CPWParameters(width=30e3, gap=15e3)
 
+    asquid_dx = 35e3 / 2
+
+    asquid_params = {
+        # "band_ph_tol": 1e3,
+        "squid_dx": 2 * asquid_dx,
+        "squid_dy": 13e3,
+        "TC_dx": 2.5e3 * np.sqrt(2) + 1e3,
+        "TC_dy": 4e3,
+        "TCW_dy": 0,
+        "BCW_dy": 0e3,
+        "BC_dx": [2.5e3 * np.sqrt(2) + 1e3],
+        "BC_dy": 4e3,
+    }
+
     contact_pad_params = {"back_metal_gap": 200e3,
-                              "back_metal_width": 0e3,
-                              "pad_length": 700e3,
-                              "transition_len": 250e3
+                          "back_metal_width": 0e3,
+                          "pad_length": 700e3,
+                          "transition_len": 250e3
                           }
+    meander_params = {
+        'dr': DPoint(0, 0),
+        'line_width_dx': 0.260e3,
+        'line_width_dy': 0.120e3,
+        'add_dx_mid': 8e3,
+        'line_gap': 0.4e3
+    }
+
+    kinemon_params = {
+        'area_ratio': 0.99,
+        'MC_dy': None,
+        'MC_dx': None,
+        'KI_bridge_width': 1e3,
+        'KI_bridge_height': 0.9e3,
+        'KI_pad_y_offset': 0.2e3,
+        'KI_pad_width': 3e3,
+        'KI_ledge_y_offset': 0.3e3,
+        'KI_JJ_ledge_height': 4e3,
+        'KI_JJ_ledge_width': 2e3,
+    }
 
 
 class ProductionParams:
     """
     This class contains all variable parameters of the design and script execution parameters.
     """
-    start_mode = StartMode.SHOW
+
+    _instance = None
 
     @classmethod
-    def get_chip_Z_list(cls):
-        return np.copy(cls._chip_Z_list)
+    def instance(cls):
+        if cls._instance is None:
+            cls._instance = ProductionParams()
+            logging.debug("ProductionParams instance is created")
 
-    _chip_Z_list = [
-        DefaultParams.ro_line_Z, DefaultParams.z_fl1, DefaultParams.z_fl1, DefaultParams.z_fl1, DefaultParams.z_fl1,  # left side
-        DefaultParams.z_fl1, DefaultParams.z_fl1, DefaultParams.z_fl1, DefaultParams.z_fl1, DefaultParams.ro_line_Z,  # bottom
-        DefaultParams.ro_line_Z, DefaultParams.z_fl1, DefaultParams.z_fl1, DefaultParams.z_fl1, DefaultParams.z_fl1,  # right
-        DefaultParams.z_fl1, DefaultParams.z_fl1, DefaultParams.z_fl1, DefaultParams.z_fl1, DefaultParams.ro_line_Z  # top
-    ]
+        return cls._instance
+
+    @property
+    def chip_Z_list(self):
+        return np.copy(self._chip_Z_list)
+
+    @property
+    def meander_length_list(self):
+        return np.copy(self._meander_length_list)
+
+    @property
+    def big_jj_dx_list(self):
+        return np.copy(self._big_jj_dx_list)
+    @property
+    def big_jj_dy_list(self):
+        return np.copy(self._big_jj_dy_list)
+
+    @property
+    def small_jj_dx_list(self):
+        return np.copy(self._small_jj_dx_list)
+    @property
+    def small_jj_dy_list(self):
+        return np.copy(self._small_jj_dy_list)
+
+
+    def __init__(self):
+        self.start_mode = StartMode.SHOW
+
+        self.NQUBITS = 8
+
+        self._chip_Z_list = [
+            DefaultParams.ro_line_Z, DefaultParams.z_fl1, DefaultParams.z_fl1, DefaultParams.z_fl1, DefaultParams.z_fl1,
+            # left side
+            DefaultParams.z_fl1, DefaultParams.z_fl1, DefaultParams.z_fl1, DefaultParams.z_fl1, DefaultParams.ro_line_Z,
+            # bottom
+            DefaultParams.ro_line_Z, DefaultParams.z_fl1, DefaultParams.z_fl1, DefaultParams.z_fl1, DefaultParams.z_fl1,
+            # right
+            DefaultParams.z_fl1, DefaultParams.z_fl1, DefaultParams.z_fl1, DefaultParams.z_fl1, DefaultParams.ro_line_Z
+            # top
+        ]
+
+        meander_length = 262949.689
+        self._meander_length_list = np.array([meander_length] * self.NQUBITS)
+
+        self._big_jj_dx_list = np.array([120] * 8)
+        self._big_jj_dy_list = np.array([
+            287.65,
+            168.00,
+            236.45,
+            311.81,
+            264.64,
+            377.67,
+            170.30,
+            292.83,
+        ])
+        self._small_jj_dx_list = np.array([
+            114.85,
+            114.85,
+            114.85,
+            114.85,
+            119.66,
+            141.90,
+            119.66,
+            119.66,
+        ])
+        self._small_jj_dy_list = np.array([
+            104.85,
+            104.85,
+            104.85,
+            104.85,
+            109.66,
+            131.90,
+            109.66,
+            109.66,
+        ])
 
 
 class DesignKmon(ChipDesign):
@@ -105,6 +218,8 @@ class DesignKmon(ChipDesign):
             self.region_el_protection, self.region_cut, self.region_kinInd
         ]
         # has to call it once more to add new layers
+
+        logging.debug("Finished region initialization")
         self.lv.add_missing_layers()
 
         # Unchangeable parameters
@@ -115,12 +230,64 @@ class DesignKmon(ChipDesign):
         self.contact_pads = None
         self._init_contact_pads()
 
+        self.qubit_params = None
+        self._init_qubit_params()
+        self.qubit_grid = None
+        self.qubits = None
+        self._init_qubits()
+
     def _init_contact_pads(self):
-        logging.debug("Creating contact pads")
-        self.contact_pads = CHIP_14x14_20pads.get_contact_pads(ProductionParams.get_chip_Z_list(),
+        logging.debug("Initializing contact pads")
+        self.contact_pads = CHIP_14x14_20pads.get_contact_pads(ProductionParams.instance().chip_Z_list,
                                                                **DefaultParams.contact_pad_params)
 
+    def _init_qubit_params(self):
+        logging.debug("Initializing qubit parameters")
+        meander_params_list = [MeanderParams(**DefaultParams.meander_params,
+                                             line_length=length) for length in
+                               ProductionParams.instance().meander_length_list]
+
+        jj_params_iter = zip(ProductionParams.instance().big_jj_dx_list,
+                             ProductionParams.instance().big_jj_dy_list,
+                             ProductionParams.instance().small_jj_dx_list,
+                             ProductionParams.instance().small_jj_dy_list)
+
+        asquid_params_list = [AsymSquidParams(SQLTJJ_dx=big_jj_dx,
+                                              SQLBJJ_dy=big_jj_dy,
+                                              SQRTJJ_dx=small_jj_dx,
+                                              SQRBJJ_dy=small_jj_dy,
+                                              **DefaultParams.asquid_params)
+                              for (big_jj_dx, big_jj_dy, small_jj_dx, small_jj_dy) in jj_params_iter]
+
+        for asquid_params in asquid_params_list:
+            asquid_params.bot_wire_x = [-DefaultParams.asquid_dx, DefaultParams.asquid_dx]
+            asquid_params.BC_dx = [asquid_params.BC_dx[0]] * 2
+            asquid_params.BCW_dx = [asquid_params.BCW_dx[0]] * 2
+
+
+        if len(asquid_params_list) != ProductionParams.instance().NQUBITS:
+            raise ValueError(f'Incorrect asquid_params_list length {len(asquid_params_list)}. NQUBITS = {ProductionParams.instance().NQUBITS}')
+
+        # if len(rfsq_params_list) != ProductionParams.instance().NQUBITS:
+        #     raise ValueError(f'Incorrect rfsq_params_list length {len(rfsq_params_list)}. NQUBITS = {ProductionParams.instance().NQUBITS}')
+
+        if len(meander_params_list) != ProductionParams.instance().NQUBITS:
+            raise ValueError(f'Incorrect meander_params_list length {len(meander_params_list)}. NQUBITS = {ProductionParams.instance().NQUBITS}')
+
+        logging.debug("Preliminary list initialization finished. Creating qubit_params list")
+
+        self.qubit_params = [
+            KinemonParams(asym_squid_params=asquid_params,
+                          meander_params=meander_params_list,
+                          **DefaultParams.kinemon_params)
+            for (asquid_params, meander_params_list) in zip(asquid_params_list, meander_params_list)]
+
+    def _init_qubits(self):
+        logging.debug("Initializing qubits")
+        pass
+
     def draw(self, design_params=None):
+        logging.debug("Drawing started")
         self.draw_chip()
 
         self.draw_contact_pads()
@@ -155,7 +322,7 @@ class DesignKmon(ChipDesign):
 
 
 if __name__ == "__main__":
-    if ProductionParams.start_mode == StartMode.SHOW:
+    if ProductionParams.instance().start_mode == StartMode.SHOW:
         logging.info("Executing script in showing mode")
         design = DesignKmon()
         design.draw()
