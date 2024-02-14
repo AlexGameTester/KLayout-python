@@ -7,7 +7,7 @@ from enum import Enum
 from importlib import reload
 from typing import List
 
-from pya import Region, DBox, DPoint
+from pya import Region, DBox, DPoint, DVector, Trans
 
 import Projects.Kinemon.KmonDesign
 
@@ -26,6 +26,8 @@ logging.debug("Reloaded classLib from main")
 from classLib.chipDesign import ChipDesign
 from classLib.chipTemplates import CHIP_14x14_20pads
 from classLib.coplanars import CPWParameters, CPW
+from classLib.capacitors import XmonCross
+from classLib.resonators import EMResonatorTL3QbitWormRLTailXmonFork
 
 # Configuring logging
 LOGS_FOLDER = "c:/klayout_dev/logs/Design20pad/"
@@ -51,6 +53,11 @@ class DefaultParams:
     """
     ro_line_Z = CPWParameters(width=18e3, gap=10e3)
     z_fl1 = CPWParameters(width=30e3, gap=15e3)
+
+    Z_res = CPWParameters(10e3, 6e3)
+    res_r = 60e3
+    n_coils = 3
+    res_tail_shape = "LRLRL"
 
     asquid_dx = 35e3 / 2
 
@@ -136,6 +143,81 @@ class ProductionParams:
     def ro_lines_ends_indexes(self):
         return np.copy(self._ro_lines_ends_indexes)
 
+    @property
+    def resonator_above_line_list(self):
+        return np.copy(self._resonator_above_line_list)
+
+    @property
+    def cross_len_x_list(self):
+        return np.copy(self._cross_len_x_list)
+
+    @property
+    def cross_width_x_list(self):
+        return np.copy(self._cross_width_x_list)
+
+    @property
+    def cross_gnd_gap_x_list(self):
+        return np.copy(self._cross_gnd_gap_x_list)
+
+    @property
+    def cross_len_y_list(self):
+        return np.copy(self._cross_len_y_list)
+
+    @property
+    def cross_width_y_list(self):
+        return np.copy(self._cross_width_y_list)
+
+    @property
+    def cross_gnd_gap_y_list(self):
+        return np.copy(self._cross_gnd_gap_y_list)
+
+    @property
+    def cross_gnd_gap_face_y_list(self):
+        return np.copy(self._cross_gnd_gap_face_y_list)
+
+    @property
+    def resonator_L_coupling_list(self):
+        return np.copy(self._resonator_L_coupling_list)
+
+    @property
+    def resonator_origin_on_line_list(self):
+        return np.copy(self._resonator_origin_on_line_list)
+
+    @property
+    def resonator_trans_list(self):
+        return np.copy(self._resonator_trans_list)
+
+    @property
+    def resonator_above_line_list(self):
+        return np.copy(self._resonator_above_line_list)
+
+    @property
+    def resonator_L0_list(self):
+        return np.copy(self._resonator_L0_list)
+
+    @property
+    def resonator_L1_list(self):
+        return np.copy(self._resonator_L1_list)
+
+    @property
+    def fork_metal_width_list(self):
+        return np.copy(self._fork_metal_width_list)
+
+    @property
+    def fork_gnd_gap_list(self):
+        return np.copy(self._fork_gnd_gap_list)
+
+    @property
+    def xmon_fork_gnd_gap_list(self):
+        return np.copy(self._xmon_fork_gnd_gap_list)
+
+    @property
+    def fork_y_span_list(self):
+        return np.copy(self._fork_y_span_list)
+
+    resonator_to_line_list = property(fget=lambda self: np.copy(self._resonator_to_line_list))
+    xmon_res_d_list = property(fget=lambda self: np.copy(self._xmon_res_d_list))
+
     def __init__(self):
         self.start_mode = StartMode.SHOW
 
@@ -159,6 +241,60 @@ class ProductionParams:
         '''KinInd Meander params'''
         meander_length = 262949.689
         self._meander_length_list = np.array([meander_length] * self.NQUBITS)
+
+        '''Resonator params'''
+        # It's not real origin of resonator, it'll be shifted according to to_line parameter.
+        self._resonator_origin_on_line_list = np.array([DPoint(1.5e6 * i, 0) for i in range(self.NQUBITS)])
+        self._resonator_trans_list = np.array([Trans.R0] * self.NQUBITS)
+        # Additional variable that shows if resonator is above or below corresponding readout line. This variable is defined by corresponding trans
+        self._resonator_above_line_list = np.array([True] * self.NQUBITS)
+
+        self._resonator_L_coupling_list = np.array([
+            1e3 * x for x in [310, 320, 320, 310] * 2
+        ])
+
+        L0 = 986e3
+        # long vertical line length
+        self._resonator_L0_list = [L0] * self.NQUBITS
+
+        self._resonator_L1_list = np.array(
+            [141080.2779, 132432.5366, 125948.9511, 106176.2057,
+             115540.3816, 89988.1556, 77104.8224, 46724.314]
+        )
+
+        self._fork_metal_width_list = np.array(
+            [1e3 * x for x in ([10] * 3 + [6] * 2 + [10] * 3)])
+        self._fork_gnd_gap_list = np.array([10e3] * self.NQUBITS)
+        self._xmon_fork_gnd_gap_list = np.array([10e3] * self.NQUBITS)
+        self._fork_y_span_list = np.array(
+            [
+                x * 1e3 for x in
+                [42.0, 47, 52.0, 64.0, 70.0, 62.0, 68.0, 81.0]
+            ]
+        )
+
+        self._resonator_to_line_list = np.array([45e3] * 8)
+
+        '''X-mon params'''
+        self._cross_len_x_list = np.array(
+            [1e3 * x for x in [129.905, 65.602, 35.098, 0, 0, 0,
+                               0, 0]]
+        )
+        self._cross_width_x_list = np.array(
+            [1e3 * x for x in [16, 16, 16, 16, 16, 32, 56, 56]]
+        )
+        self._cross_gnd_gap_x_list = np.array([60e3] * self.NQUBITS)
+        self._cross_len_y_list = np.array(
+            [1e3 * x for x in
+             [170.0, 232.0, 281.0, 256.0, 267.0, 186.0, 195.0, 223.0]]
+        )
+        self._cross_width_y_list = np.array(
+            [1e3 * x for x in [16, 16, 16, 16, 16, 32, 32, 32]]
+        )
+        self._cross_gnd_gap_y_list = np.array([60e3] * self.NQUBITS)
+        self._cross_gnd_gap_face_y_list = np.array([20e3] * self.NQUBITS)
+
+        self._xmon_res_d_list = [40e3] * self.NQUBITS
 
         '''Josephson junction params'''
         self._big_jj_dx_list = np.array([120] * 8)
@@ -193,6 +329,37 @@ class ProductionParams:
             109.66,
         ])
 
+    def check_assertions(self):
+        # TODO: Maybe add assert(all > 0) for the lists here
+        logging.info("Checking assertions in ProductionParams")
+        assert isinstance(self.start_mode, StartMode)
+
+        assert isinstance(self.NQUBITS, int)
+        assert self.NQUBITS > 0
+
+        assert len(self._chip_Z_list) == 20
+
+        assert all([len(ind_pair) == 2 for ind_pair in self.ro_lines_ends_indexes])
+
+        assert len(self._meander_length_list) == self.NQUBITS
+
+        assert len(self._resonator_trans_list) == self.NQUBITS
+        assert len(self._resonator_above_line_list) == self.NQUBITS
+
+        assert len(self._cross_len_x_list) == self.NQUBITS
+        assert len(self._cross_width_x_list) == self.NQUBITS
+        assert len(self._cross_gnd_gap_x_list) == self.NQUBITS
+        assert len(self._cross_len_y_list) == self.NQUBITS
+        assert len(self._cross_width_y_list) == self.NQUBITS
+        assert len(self._cross_gnd_gap_y_list) == self.NQUBITS
+        assert len(self._cross_gnd_gap_face_y_list) == self.NQUBITS
+
+        assert len(self._big_jj_dx_list) == self.NQUBITS
+        assert len(self._big_jj_dy_list) == self.NQUBITS
+        assert len(self._small_jj_dx_list) == self.NQUBITS
+        assert len(self._small_jj_dx_list) == self.NQUBITS
+
+        logging.info("Assertion check completed")
 
 
 class DesignKmon(ChipDesign):
@@ -247,6 +414,12 @@ class DesignKmon(ChipDesign):
         self.readout_lines = None
         self._init_readout_lines()
 
+        self.resonators = None
+        self._init_resonators()
+
+        self.xmons = None
+        self._init_xmons()
+
         self.qubit_params_list = None
         self.qubit_origins = None
         self.qubit_trans = None
@@ -270,6 +443,139 @@ class DesignKmon(ChipDesign):
 
         if len(self.readout_lines) != len(ProductionParams.instance().ro_lines_ends_indexes):
             raise ValueError('')
+
+    def _init_resonators(self):
+        logging.debug("Initializing resonators")
+        self.resonators = []
+        self._L2_list = [DefaultParams.res_r] * ProductionParams.instance().NQUBITS
+        # horizontal line connected to L2
+        self._L3_list = [0e3] * ProductionParams.instance().NQUBITS
+        # vertical line connected to L3
+        self._L4_list = [DefaultParams.res_r] * ProductionParams.instance().NQUBITS
+
+        self._tail_segment_lengths_list = [[L2, L3, L4]
+                                           for L2, L3, L4 in
+                                           zip(self._L2_list, self._L3_list,
+                                               self._L4_list)]
+        self._tail_turn_angles_list = [
+                                          [np.pi / 2, -np.pi / 2]
+                                      ] * ProductionParams.instance().NQUBITS
+        self._tail_trans_in_list = [Trans.R270] * ProductionParams.instance().NQUBITS
+
+        self._fork_x_span_list = ProductionParams.instance().cross_width_y_list + 2 * \
+                                 (
+                                         ProductionParams.instance().xmon_fork_gnd_gap_list +
+                                         ProductionParams.instance().fork_metal_width_list)
+
+        for (origin_on_line,
+             to_line,
+             above_line,
+             trans,
+             L_coupling,
+             L0,
+             L1,
+             tail_segment_length,
+             tail_turn_angle,
+             tail_trans_in,
+             fork_metal_width,
+             fork_x_span,
+             fork_y_span,
+             fork_gnd_gap) in zip(ProductionParams.instance().resonator_origin_on_line_list,
+                                  ProductionParams.instance().resonator_to_line_list,
+                                  ProductionParams.instance().resonator_above_line_list,
+                                  ProductionParams.instance().resonator_trans_list,
+                                  ProductionParams.instance().resonator_L_coupling_list,
+                                  ProductionParams.instance().resonator_L0_list,
+                                  ProductionParams.instance().resonator_L1_list,
+                                  self._tail_segment_lengths_list,
+                                  self._tail_turn_angles_list,
+                                  self._tail_trans_in_list,
+                                  ProductionParams.instance().fork_metal_width_list,
+                                  self._fork_x_span_list,
+                                  ProductionParams.instance().fork_y_span_list,
+                                  ProductionParams.instance().fork_gnd_gap_list):
+            self.resonators.append(
+                EMResonatorTL3QbitWormRLTailXmonFork(
+                    Z0=DefaultParams.Z_res,
+                    start=origin_on_line + DVector(0, to_line if above_line else -to_line),
+                    L_coupling=L_coupling,
+                    L0=L0,
+                    L1=L1,
+                    r=DefaultParams.res_r,
+                    N=DefaultParams.n_coils,
+                    tail_shape=DefaultParams.res_tail_shape,
+                    tail_turn_radiuses=DefaultParams.res_r,
+                    tail_segment_lengths=tail_segment_length,
+                    tail_turn_angles=tail_turn_angle,
+                    tail_trans_in=tail_trans_in,
+                    fork_x_span=fork_x_span,
+                    fork_y_span=fork_y_span,
+                    fork_metal_width=fork_metal_width,
+                    fork_gnd_gap=fork_gnd_gap,
+                    trans_in=trans
+                )
+            )
+
+    def _init_xmons(self):
+        logging.debug("Initializing X-mons")
+
+        xmon_params_packed = [
+            {
+                "sideX_length": cross_len_x,
+                "sideX_width": cross_width_x,
+                "sideX_gnd_gap": cross_gnd_gap_x,
+                "sideY_length": cross_len_y,
+                "sideY_width": cross_width_y,
+                "sideY_gnd_gap": cross_gnd_gap_y,
+                "sideX_face_gnd_gap": cross_gnd_gap_x,
+                "sideY_face_gnd_gap": cross_gnd_gap_face_y
+            }
+            for
+            (cross_len_x,
+             cross_width_x,
+             cross_gnd_gap_x,
+             cross_len_y,
+             cross_width_y,
+             cross_gnd_gap_y,
+             cross_gnd_gap_face_y)
+            in
+            zip(ProductionParams.instance().cross_len_x_list,
+                ProductionParams.instance().cross_width_x_list,
+                ProductionParams.instance().cross_gnd_gap_x_list,
+                ProductionParams.instance().cross_len_y_list,
+                ProductionParams.instance().cross_width_y_list,
+                ProductionParams.instance().cross_gnd_gap_y_list,
+                ProductionParams.instance().cross_gnd_gap_face_y_list,
+                )
+        ]
+
+        res_iter = zip(self.resonators,
+                       ProductionParams.instance().resonator_above_line_list,
+                       ProductionParams.instance().xmon_res_d_list,
+                       ProductionParams.instance().fork_metal_width_list,
+                       ProductionParams.instance().fork_gnd_gap_list,
+                       xmon_params_packed)
+        self.xmons = []
+
+        for resonator, above_line, xmon_res_d, fork_metal_width, fork_gnd_gap, xmon_params_dict in res_iter:
+            # d = self.xmon_res_d_list[res_idx] + xmon_params_dict['sideY_length']
+            #      + xmon_params_dict['sideX_width'] / 2 + \
+            #     self.fork_metal_width_list[res_idx] + self.fork_gnd_gap
+            d = xmon_res_d + xmon_params_dict['sideY_length'] + xmon_params_dict[
+                'sideX_width'] / 2 + fork_metal_width + fork_gnd_gap
+            d = -d
+            # d = 0
+            if above_line:
+                xmon_center = resonator.end + DVector(0, d)
+            else:
+                xmon_center = resonator.end + DVector(0, -d)
+
+            self.xmons.append(
+                XmonCross(
+                    xmon_center,
+                    **xmon_params_dict
+                )
+            )
 
     def _init_qubit_params(self):
         logging.debug("Initializing qubit parameters")
@@ -311,7 +617,7 @@ class DesignKmon(ChipDesign):
             for (asquid_params, meander_params_list) in zip(asquid_params_list, meander_params_list)]
 
         # TODO: Calculate qubit origins and trans here
-        self.qubit_origins = [DPoint(0,0)] * ProductionParams.instance().NQUBITS
+        self.qubit_origins = [DPoint(0, 0)] * ProductionParams.instance().NQUBITS
 
     def _init_qubits(self):
         logging.debug("Initializing qubits")
@@ -326,6 +632,10 @@ class DesignKmon(ChipDesign):
         self.draw_contact_pads()
 
         self.draw_readout_lines()
+
+        self.draw_resonators()
+
+        self.draw_xmons()
 
         self.draw_qubits()
 
@@ -344,6 +654,14 @@ class DesignKmon(ChipDesign):
     def draw_readout_lines(self):
         for ro_line in self.readout_lines:
             ro_line.place(self.region_ph)
+
+    def draw_resonators(self):
+        for resonator in self.resonators:
+            resonator.place(self.region_ph)
+
+    def draw_xmons(self):
+        for xmon in self.xmons:
+            xmon.place(self.region_ph)
 
     def draw_qubits(self):
         logging.debug("Drawing qubits")
@@ -370,6 +688,7 @@ class DesignKmon(ChipDesign):
 
 
 if __name__ == "__main__":
+    ProductionParams.instance().check_assertions()
     if ProductionParams.instance().start_mode == StartMode.SHOW:
         logging.info("Executing script in showing mode")
         design = DesignKmon()
