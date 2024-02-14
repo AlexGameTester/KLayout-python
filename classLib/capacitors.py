@@ -283,9 +283,8 @@ class XmonCross(ComplexBase):
 
         # draw central square
         from classLib.shapes import Rectangle
-        lb_corner = DPoint(-self.sideX_width / 2, -self.sideY_width / 2)
-        center_square = Rectangle(lb_corner, self.sideX_width,
-                                  self.sideY_width)
+        lb_corner = DPoint(-self.sideY_width / 2, -self.sideX_width / 2)
+        center_square = Rectangle(lb_corner, self.sideY_width, self.sideX_width)
         self.primitives["center_square"] = center_square
 
         """ left part of Xmon cross """

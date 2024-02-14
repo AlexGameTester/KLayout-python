@@ -329,6 +329,11 @@ class ProductionParams:
             109.66,
         ])
 
+    def _check_assertions_list(self, lst):
+        assert isinstance(lst, np.ndarray)
+        assert len(lst) == self.NQUBITS
+        assert np.all(lst >= 0)
+
     def check_assertions(self):
         # TODO: Maybe add assert(all > 0) for the lists here
         logging.info("Checking assertions in ProductionParams")
@@ -339,7 +344,8 @@ class ProductionParams:
 
         assert len(self._chip_Z_list) == 20
 
-        assert all([len(ind_pair) == 2 for ind_pair in self.ro_lines_ends_indexes])
+        assert all([len(ind_pair) == 2 and all([0 <= ind < 20 for ind in ind_pair]) for ind_pair in
+                    self.ro_lines_ends_indexes])
 
         assert len(self._meander_length_list) == self.NQUBITS
 
@@ -449,7 +455,7 @@ class DesignKmon(ChipDesign):
         self.resonators = []
         self._L2_list = [DefaultParams.res_r] * ProductionParams.instance().NQUBITS
         # horizontal line connected to L2
-        self._L3_list = [0e3] * ProductionParams.instance().NQUBITS
+        self._L3_list = [2 * DefaultParams.res_r] * ProductionParams.instance().NQUBITS
         # vertical line connected to L3
         self._L4_list = [DefaultParams.res_r] * ProductionParams.instance().NQUBITS
 
@@ -549,30 +555,30 @@ class DesignKmon(ChipDesign):
                 )
         ]
 
-        res_iter = zip(self.resonators,
-                       ProductionParams.instance().resonator_above_line_list,
-                       ProductionParams.instance().xmon_res_d_list,
-                       ProductionParams.instance().fork_metal_width_list,
-                       ProductionParams.instance().fork_gnd_gap_list,
-                       xmon_params_packed)
+        data_iter = zip(self.resonators,
+                        ProductionParams.instance().resonator_trans_list,
+                        ProductionParams.instance().resonator_above_line_list,
+                        ProductionParams.instance().xmon_res_d_list,
+                        ProductionParams.instance().fork_metal_width_list,
+                        ProductionParams.instance().fork_gnd_gap_list,
+                        xmon_params_packed)
         self.xmons = []
 
-        for resonator, above_line, xmon_res_d, fork_metal_width, fork_gnd_gap, xmon_params_dict in res_iter:
+        for resonator, trans, above_line, xmon_res_d, fork_metal_width, fork_gnd_gap, xmon_params_dict in data_iter:
             # d = self.xmon_res_d_list[res_idx] + xmon_params_dict['sideY_length']
             #      + xmon_params_dict['sideX_width'] / 2 + \
             #     self.fork_metal_width_list[res_idx] + self.fork_gnd_gap
             d = xmon_res_d + xmon_params_dict['sideY_length'] + xmon_params_dict[
                 'sideX_width'] / 2 + fork_metal_width + fork_gnd_gap
-            d = -d
-            # d = 0
             if above_line:
-                xmon_center = resonator.end + DVector(0, d)
-            else:
                 xmon_center = resonator.end + DVector(0, -d)
+            else:
+                xmon_center = resonator.end + DVector(0, d)
 
             self.xmons.append(
                 XmonCross(
-                    xmon_center,
+                    origin=xmon_center,
+                    trans_in=trans,
                     **xmon_params_dict
                 )
             )
@@ -616,14 +622,23 @@ class DesignKmon(ChipDesign):
                           **DefaultParams.kinemon_params)
             for (asquid_params, meander_params_list) in zip(asquid_params_list, meander_params_list)]
 
-        # TODO: Calculate qubit origins and trans here
-        self.qubit_origins = [DPoint(0, 0)] * ProductionParams.instance().NQUBITS
+        self.qubit_origins = [((xmon.cpw_bempt.end + xmon.cpw_bempt.start) / 2 if not above_line
+                              else xmon.cpw_tempt.end + xmon.cpw_tempt.start) / 2
+                              for above_line, xmon
+                              in zip(ProductionParams.instance().resonator_above_line_list,
+                                     self.xmons)]
+
+        self.qubit_trans = [trans * Trans.R180 if above_line
+                            else trans
+                            for above_line, trans
+                            in zip(ProductionParams.instance().resonator_above_line_list,
+                                   ProductionParams.instance().resonator_trans_list)]
 
     def _init_qubits(self):
         logging.debug("Initializing qubits")
-        self.qubits = [Kinemon(origin, kinemon_params)
-                       for (origin, kinemon_params) in
-                       zip(self.qubit_origins, self.qubit_params_list)]
+        self.qubits = [Kinemon(origin, kinemon_params, trans)
+                       for (origin, kinemon_params, trans) in
+                       zip(self.qubit_origins, self.qubit_params_list, self.qubit_trans)]
 
     def draw(self, design_params=None):
         logging.debug("Drawing started")
@@ -636,6 +651,10 @@ class DesignKmon(ChipDesign):
         self.draw_resonators()
 
         self.draw_xmons()
+
+        # Resonators are need to be drawn again as xmons' CPWs can cut parts of resonators' forks
+        logging.debug("Redrawing resonators")
+        self.draw_resonators()
 
         self.draw_qubits()
 
@@ -652,14 +671,17 @@ class DesignKmon(ChipDesign):
             contact_pad.place(self.region_ph)
 
     def draw_readout_lines(self):
+        logging.debug("Drawing readout lines")
         for ro_line in self.readout_lines:
             ro_line.place(self.region_ph)
 
     def draw_resonators(self):
+        logging.debug("Drawing resonators")
         for resonator in self.resonators:
             resonator.place(self.region_ph)
 
     def draw_xmons(self):
+        logging.debug("Drawing X-mons")
         for xmon in self.xmons:
             xmon.place(self.region_ph)
 
