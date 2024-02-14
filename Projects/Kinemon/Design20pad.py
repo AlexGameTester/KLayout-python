@@ -188,10 +188,6 @@ class ProductionParams:
         return np.copy(self._resonator_trans_list)
 
     @property
-    def resonator_above_line_list(self):
-        return np.copy(self._resonator_above_line_list)
-
-    @property
     def resonator_L0_list(self):
         return np.copy(self._resonator_L0_list)
 
@@ -245,9 +241,11 @@ class ProductionParams:
         '''Resonator params'''
         # It's not real origin of resonator, it'll be shifted according to to_line parameter.
         self._resonator_origin_on_line_list = np.array([DPoint(1.5e6 * i, 0) for i in range(self.NQUBITS)])
-        self._resonator_trans_list = np.array([Trans.R0] * self.NQUBITS)
+        self._resonator_trans_list = np.array([Trans.M0] * self.NQUBITS)
         # Additional variable that shows if resonator is above or below corresponding readout line. This variable is defined by corresponding trans
-        self._resonator_above_line_list = np.array([True] * self.NQUBITS)
+        # self._resonator_above_line_list = np.array([True] * self.NQUBITS)
+        self._resonator_above_line_list = self._resonator_trans_list == Trans.M0
+        logging.debug(f"Above line list: {self._resonator_above_line_list}")
 
         self._resonator_L_coupling_list = np.array([
             1e3 * x for x in [310, 320, 320, 310] * 2
@@ -374,6 +372,7 @@ class DesignKmon(ChipDesign):
     """
 
     def __init__(self, cell_name="testScript"):
+        logging.debug("Initialization started")
         super().__init__(cell_name)
 
         dc_bandage_layer_i = pya.LayerInfo(3,
@@ -433,6 +432,7 @@ class DesignKmon(ChipDesign):
 
         self.qubits = None
         self._init_qubits()
+        logging.debug("Initialization finished")
 
     def _init_contact_pads(self):
         logging.debug("Initializing contact pads")
@@ -571,9 +571,9 @@ class DesignKmon(ChipDesign):
             d = xmon_res_d + xmon_params_dict['sideY_length'] + xmon_params_dict[
                 'sideX_width'] / 2 + fork_metal_width + fork_gnd_gap
             if above_line:
-                xmon_center = resonator.end + DVector(0, -d)
-            else:
                 xmon_center = resonator.end + DVector(0, d)
+            else:
+                xmon_center = resonator.end + DVector(0, -d)
 
             self.xmons.append(
                 XmonCross(
@@ -622,13 +622,17 @@ class DesignKmon(ChipDesign):
                           **DefaultParams.kinemon_params)
             for (asquid_params, meander_params_list) in zip(asquid_params_list, meander_params_list)]
 
-        self.qubit_origins = [((xmon.cpw_bempt.end + xmon.cpw_bempt.start) / 2 if not above_line
-                              else xmon.cpw_tempt.end + xmon.cpw_tempt.start) / 2
-                              for above_line, xmon
-                              in zip(ProductionParams.instance().resonator_above_line_list,
-                                     self.xmons)]
+        # self.qubit_origins = [((xmon.cpw_bempt.end + xmon.cpw_bempt.start) / 2 if not above_line
+        # else (xmon.cpw_tempt.end + xmon.cpw_tempt.start) / 2
+        # self.qubit_origins = [(xmon.cpw_bempt.end + xmon.cpw_bempt.start) / 2 if above_line
+        #                       else (xmon.cpw_tempt.end + xmon.cpw_tempt.start) / 2
+        #                       for above_line, xmon
+        #                       in zip(ProductionParams.instance().resonator_above_line_list,
+        #                              self.xmons)]
 
-        self.qubit_trans = [trans * Trans.R180 if above_line
+        self.qubit_origins = [(xmon.cpw_bempt.end + xmon.cpw_bempt.start) / 2 for xmon in self.xmons]
+
+        self.qubit_trans = [trans if above_line
                             else trans
                             for above_line, trans
                             in zip(ProductionParams.instance().resonator_above_line_list,
