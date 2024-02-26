@@ -162,7 +162,7 @@ PROJECT_DIR = r"C:\klayout_dev\kmon-calculations\Cq_Cqr"
 
 
 class ProductionParams:
-    start_mode = 1
+    start_mode = 3
     par_d = 10e3
     qubit_indexes = [3, 4]
 
@@ -3153,6 +3153,11 @@ if __name__ == "__main__":
     elif start_mode == 2:
         print("Simulation mode: Resonators Q and f sim")
         simulate_resonators_f_and_Q(resolution=(4e3, 4e3))
+
+    elif start_mode == 3:
+        print("Simulation mode: Cqq")
+        simulate_Cqq(0, 1, resolution=(7e3, 7e3))
+
 
     ''' Resonators Q and f when placed together'''
     # simulate_resonators_f_and_Q_together()
